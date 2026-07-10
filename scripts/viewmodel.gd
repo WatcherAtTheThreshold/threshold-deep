@@ -24,7 +24,10 @@ func _process(delta: float) -> void:
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
-	var corner_base := get_viewport_rect().size + base_offset
+	# pivot_offset is the center for scaling too, so compensate for the
+	# up-left shift the 3x scale gets from a bottom-center pivot.
+	var corner_base := get_viewport_rect().size + base_offset \
+			+ pivot_offset * (scale - Vector2.ONE)
 	position = corner_base + swing_offset + Vector2(
 		sin(bob_time) * SWAY_AMOUNT,
 		absf(cos(bob_time)) * SWAY_AMOUNT * 0.5
