@@ -66,4 +66,7 @@ Each phase is independently shippable and playtestable.
 - Doors, keys, locked treasure rooms
 - Bosses every N floors
 - Minimap from the ASCII grid
-- Web export for the portfolio site (needs Compatibility renderer test)
+- Web export for the portfolio site — **validated 2026-07-10**: runs in
+  browser via the single-threaded Web preset; web builds use the
+  Compatibility renderer (`rendering_method.web` override), desktop
+  stays Forward+. Deploy whenever wanted.

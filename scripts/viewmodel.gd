@@ -15,7 +15,9 @@ func _ready() -> void:
 	# Remember how far from the window's bottom-right corner we start;
 	# the corner itself is recomputed live so resizing keeps us in it.
 	base_offset = Vector2(offset_left, offset_top)
-	pivot_offset = Vector2(size.x * 0.5, size.y)
+	# Pivot at the bottom-right corner: counterclockwise swing can then
+	# only tilt the canvas's cut bottom edge downward, never up into view.
+	pivot_offset = size
 	player.attacked.connect(_on_attacked)
 
 
@@ -40,7 +42,7 @@ func _on_attacked() -> void:
 	# rotation stays subtle.
 	texture = SWING_TEXTURE
 	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "swing_offset", Vector2(-60.0, -20.0), 0.07) \
+	tween.tween_property(self, "swing_offset", Vector2(-36.0, -4.0), 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "rotation", -0.3, 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
