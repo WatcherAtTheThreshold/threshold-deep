@@ -11,7 +11,7 @@ var attack_timer := 0.0
 var dead := false
 
 @onready var sprite: Sprite3D = $Sprite
-@onready var player: CharacterBody3D = get_tree().get_first_node_in_group("player")
+@onready var player: Player = get_tree().get_first_node_in_group("player")
 
 
 func _physics_process(delta: float) -> void:

@@ -9,7 +9,7 @@ const EMPTY_COLOR := Color(0.2, 0.2, 0.25)
 var last_health := 0
 var heart_rects: Array[ColorRect] = []
 
-@onready var player: CharacterBody3D = get_parent()
+@onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
 @onready var hurt_flash: ColorRect = $HurtFlash
 

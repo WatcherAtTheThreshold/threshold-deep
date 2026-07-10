@@ -1,3 +1,4 @@
+class_name Player
 extends CharacterBody3D
 
 signal health_changed(current: int, maximum: int)
@@ -72,7 +73,7 @@ func _attack() -> void:
 	attacked.emit()
 	# Melee arc: hit every enemy close enough and roughly in front.
 	var forward := -global_transform.basis.z
-	for enemy in get_tree().get_nodes_in_group("enemies"):
+	for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 		var to := enemy.global_position - global_position
 		to.y = 0.0
 		if to.length() <= ATTACK_RANGE \

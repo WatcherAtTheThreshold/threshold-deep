@@ -2,7 +2,7 @@ extends TextureRect
 
 const SWAY_AMOUNT := 6.0
 
-@onready var player: CharacterBody3D = get_tree().get_first_node_in_group("player")
+@onready var player: Player = get_tree().get_first_node_in_group("player")
 
 var bob_time := 0.0
 var base_position: Vector2
