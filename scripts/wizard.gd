@@ -2,7 +2,10 @@ extends CharacterBody3D
 
 const FRAME_A := preload("res://assets/sprites/wizard1.png")
 const FRAME_B := preload("res://assets/sprites/wizard2.png")
+const DEAD_TEXTURE := preload("res://assets/sprites/wizard_dead.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
+const POTION_SCENE := preload("res://scenes/potion.tscn")
+const POTION_DROP_CHANCE := 0.25
 const WALK_FRAME_TIME := 0.3
 
 const SPEED := 1.6
@@ -108,12 +111,15 @@ func take_damage(amount: int, push_dir: Vector3) -> void:
 
 
 func _die() -> void:
-	# No corpse art yet — fade and sink until a wizard_dead.png exists.
+	# The corpse stays: crumpled robes where the wizard fell.
 	dead = true
 	RunState.record_kill()
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(sprite, "modulate:a", 0.0, 0.6)
-	tween.tween_property(sprite, "position:y", sprite.position.y - 0.8, 0.6)
-	tween.chain().tween_callback(queue_free)
+	sprite.texture = DEAD_TEXTURE
+	sprite.modulate = Color.WHITE
+	velocity = Vector3.ZERO
+	if randf() < POTION_DROP_CHANCE:
+		var potion := POTION_SCENE.instantiate()
+		potion.position = global_position + Vector3(0, -0.9, 0)
+		get_parent().add_child.call_deferred(potion)
