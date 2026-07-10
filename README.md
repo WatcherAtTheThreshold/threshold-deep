@@ -21,6 +21,8 @@ in-game to reroll the dungeon.
 - **Dungeon generation:** grid-based rooms + corridors, generated as 2D data
   and instantiated into the GridMap
 
+Forward plan and design pillars: [docs/roadmap.md](docs/roadmap.md)
+
 ## Roadmap
 
 1. ~~First-person character controller walking around a CSG blockout room~~
