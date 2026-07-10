@@ -24,6 +24,7 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 | Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge; front view only |
 | Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off bottom/right edges |
 | UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
+| Items (world pickups) | 16×16 | base at bottom edge; Area3D scenes, hover bob in code |
 | Tiles (floor/wall textures) | 64×64 seamless | triplanar-mapped, repeats once per 2 m cell |
 
 Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard

@@ -1,5 +1,8 @@
 extends CharacterBody3D
 
+const POTION_SCENE := preload("res://scenes/potion.tscn")
+const POTION_DROP_CHANCE := 0.25
+
 const FRAME_A := preload("res://assets/sprites/skeleton.png")
 const FRAME_B := preload("res://assets/sprites/skeleton2.png")
 const DEAD_TEXTURE := preload("res://assets/sprites/skeleton_dead.png")
@@ -83,3 +86,7 @@ func _die() -> void:
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.texture = DEAD_TEXTURE
 	velocity = Vector3.ZERO
+	if randf() < POTION_DROP_CHANCE:
+		var potion := POTION_SCENE.instantiate()
+		potion.position = global_position + Vector3(0, -0.9, 0)
+		get_parent().add_child.call_deferred(potion)

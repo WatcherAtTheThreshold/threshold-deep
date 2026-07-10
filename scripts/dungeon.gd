@@ -1,6 +1,8 @@
 extends Node3D
 
 const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
+const POTION_SCENE := preload("res://scenes/potion.tscn")
+const ROOM_POTION_CHANCE := 0.3
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
 const ROOM_ATTEMPTS := 14
@@ -47,8 +49,17 @@ func _populate(rooms: Array[Rect2i]) -> void:
 		var skeleton := SKELETON_SCENE.instantiate()
 		skeleton.position = _cell_to_world(rooms[i].get_center())
 		add_child(skeleton)
+		if randf() < ROOM_POTION_CHANCE:
+			var room := rooms[i]
+			var cell := room.position + Vector2i(
+				randi_range(0, room.size.x - 1),
+				randi_range(0, room.size.y - 1))
+			var potion := POTION_SCENE.instantiate()
+			potion.position = _cell_to_world(cell, 0.5)
+			add_child(potion)
 
 
-func _cell_to_world(cell: Vector2i) -> Vector3:
-	# Cell center; y = 1.5 stands a 2m-tall thing on the 0.5m floor slab.
-	return Vector3(cell.x * CELL_SIZE + 1.0, 1.5, cell.y * CELL_SIZE + 1.0)
+func _cell_to_world(cell: Vector2i, y: float = 1.5) -> Vector3:
+	# Cell center; default y = 1.5 stands a 2m-tall body on the 0.5m
+	# floor slab. Pass y = 0.5 to sit something on the floor itself.
+	return Vector3(cell.x * CELL_SIZE + 1.0, y, cell.y * CELL_SIZE + 1.0)

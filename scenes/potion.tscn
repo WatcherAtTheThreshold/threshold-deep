@@ -1,0 +1,24 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/potion.gd" id="1_potion"]
+[ext_resource type="Texture2D" path="res://assets/items/potion_health.png" id="2_texture"]
+
+[sub_resource type="SphereShape3D" id="sphere_pickup"]
+radius = 0.6
+
+[node name="Potion" type="Area3D"]
+
+script = ExtResource("1_potion")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.25, 0)
+shape = SubResource("sphere_pickup")
+
+[node name="Sprite" type="Sprite3D" parent="."]
+position = Vector3(0, 0.25, 0)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_texture")

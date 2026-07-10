@@ -81,6 +81,14 @@ func _attack() -> void:
 			enemy.take_damage(1, to.normalized())
 
 
+func heal(amount: int) -> bool:
+	if health >= MAX_HEALTH:
+		return false
+	health = mini(health + amount, MAX_HEALTH)
+	health_changed.emit(health, MAX_HEALTH)
+	return true
+
+
 func take_damage(amount: int, push_dir: Vector3) -> void:
 	if invuln_timer > 0.0 or health <= 0:
 		return
