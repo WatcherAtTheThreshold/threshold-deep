@@ -1,0 +1,111 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 1
+background_color = Color(0.02, 0.02, 0.04, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.35, 0.38, 0.5, 1)
+ambient_light_energy = 0.5
+fog_enabled = true
+fog_light_color = Color(0.03, 0.03, 0.05, 1)
+fog_density = 0.025
+
+[sub_resource type="StandardMaterial3D" id="mat_floor"]
+albedo_color = Color(0.24, 0.23, 0.28, 1)
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="mat_wall"]
+albedo_color = Color(0.34, 0.32, 0.4, 1)
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="mat_block"]
+albedo_color = Color(0.45, 0.3, 0.25, 1)
+roughness = 0.8
+
+[sub_resource type="CapsuleShape3D" id="capsule_player"]
+radius = 0.4
+height = 1.8
+
+[node name="Main" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation = Vector3(-0.8, 0.6, 0)
+light_color = Color(0.7, 0.75, 0.9, 1)
+light_energy = 0.4
+shadow_enabled = true
+
+[node name="Torch" type="OmniLight3D" parent="."]
+position = Vector3(0, 3, 0)
+light_color = Color(1, 0.75, 0.45, 1)
+light_energy = 2.5
+omni_range = 14.0
+shadow_enabled = true
+
+[node name="Floor" type="CSGBox3D" parent="."]
+position = Vector3(0, -0.5, 0)
+size = Vector3(24, 1, 24)
+use_collision = true
+material = SubResource("mat_floor")
+
+[node name="WallNorth" type="CSGBox3D" parent="."]
+position = Vector3(0, 2, -12.5)
+size = Vector3(26, 4, 1)
+use_collision = true
+material = SubResource("mat_wall")
+
+[node name="WallSouth" type="CSGBox3D" parent="."]
+position = Vector3(0, 2, 12.5)
+size = Vector3(26, 4, 1)
+use_collision = true
+material = SubResource("mat_wall")
+
+[node name="WallEast" type="CSGBox3D" parent="."]
+position = Vector3(12.5, 2, 0)
+size = Vector3(1, 4, 26)
+use_collision = true
+material = SubResource("mat_wall")
+
+[node name="WallWest" type="CSGBox3D" parent="."]
+position = Vector3(-12.5, 2, 0)
+size = Vector3(1, 4, 26)
+use_collision = true
+material = SubResource("mat_wall")
+
+[node name="Pillar1" type="CSGBox3D" parent="."]
+position = Vector3(5, 1.5, -4)
+size = Vector3(1.5, 3, 1.5)
+use_collision = true
+material = SubResource("mat_block")
+
+[node name="Pillar2" type="CSGBox3D" parent="."]
+position = Vector3(-6, 1.5, 3)
+size = Vector3(1.5, 3, 1.5)
+use_collision = true
+material = SubResource("mat_block")
+
+[node name="Step1" type="CSGBox3D" parent="."]
+position = Vector3(7, 0.25, 6)
+size = Vector3(3, 0.5, 3)
+use_collision = true
+material = SubResource("mat_block")
+
+[node name="Step2" type="CSGBox3D" parent="."]
+position = Vector3(9, 0.75, 8)
+size = Vector3(3, 1.5, 3)
+use_collision = true
+material = SubResource("mat_block")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+position = Vector3(0, 1, 4)
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+shape = SubResource("capsule_player")
+
+[node name="Camera3D" type="Camera3D" parent="Player"]
+position = Vector3(0, 0.55, 0)
