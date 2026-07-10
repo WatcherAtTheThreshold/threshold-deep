@@ -1,7 +1,9 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Texture2D" path="res://assets/sprites/skeleton.png" id="2_skeleton"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hand-torch.png" id="3_hand"]
+[ext_resource type="Script" path="res://scripts/viewmodel.gd" id="4_viewmodel"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -110,7 +112,7 @@ alpha_cut = 1
 texture_filter = 0
 texture = ExtResource("2_skeleton")
 
-[node name="Player" type="CharacterBody3D" parent="."]
+[node name="Player" type="CharacterBody3D" parent="." groups=["player"]]
 position = Vector3(0, 1, 4)
 script = ExtResource("1_player")
 
@@ -119,3 +121,21 @@ shape = SubResource("capsule_player")
 
 [node name="Camera3D" type="Camera3D" parent="Player"]
 position = Vector3(0, 0.55, 0)
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="HandTorch" type="TextureRect" parent="HUD"]
+texture_filter = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -372.0
+offset_top = -372.0
+offset_right = -244.0
+offset_bottom = -244.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(3, 3)
+texture = ExtResource("3_hand")
+script = ExtResource("4_viewmodel")
