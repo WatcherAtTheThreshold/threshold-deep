@@ -27,7 +27,7 @@ torch-swing melee, hearts HUD, corpses, death → new run.
 
 Each phase is independently shippable and playtestable.
 
-### Phase 1 — Staying alive is interesting
+### Phase 1 — Staying alive is interesting ✅ 2026-07-10
 - **Health pickups**: hearts dropped by skeletons (chance) or found in
   rooms. *Art: 16×16 world-heart or potion sprite.*
 - **Score/depth counter** on the HUD: kills this run, or floor number
@@ -35,7 +35,7 @@ Each phase is independently shippable and playtestable.
 - *Done when: a careful player survives noticeably longer than a
   reckless one.*
 
-### Phase 2 — Descent
+### Phase 2 — Descent ✅ 2026-07-10 (run summary is a console print for now)
 - **Stairs down** placed in the room farthest from spawn; walking in
   generates the next floor. *Art: 64×64 stairwell/hole sprite or tile.*
 - **Depth scaling**: more/faster/tougher skeletons per floor.

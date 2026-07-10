@@ -10,9 +10,12 @@ var heart_icons: Array[TextureRect] = []
 @onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
 @onready var hurt_flash: ColorRect = $HurtFlash
+@onready var run_info: Label = $RunInfo
 
 
 func _ready() -> void:
+	RunState.changed.connect(_update_run_info)
+	_update_run_info()
 	for i in player.MAX_HEALTH:
 		var icon := TextureRect.new()
 		icon.texture = HEART_FULL
@@ -38,3 +41,7 @@ func _on_health_changed(current: int, _maximum: int) -> void:
 func _refresh(current: int) -> void:
 	for i in heart_icons.size():
 		heart_icons[i].texture = HEART_FULL if i < current else HEART_EMPTY
+
+
+func _update_run_info() -> void:
+	run_info.text = "Depth %d   Kills %d" % [RunState.depth, RunState.kills]

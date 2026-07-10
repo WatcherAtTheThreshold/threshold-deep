@@ -2,7 +2,9 @@ extends Node3D
 
 const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
+const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const ROOM_POTION_CHANCE := 0.3
+const EXTRA_SKELETON_CHANCE_PER_DEPTH := 0.15
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
 const ROOM_ATTEMPTS := 14
@@ -45,18 +47,44 @@ func _build(map: Array[String]) -> void:
 func _populate(rooms: Array[Rect2i]) -> void:
 	# Player starts in the first room; every other room gets a skeleton.
 	player.position = _cell_to_world(rooms[0].get_center())
+	var extra_chance := minf(
+		EXTRA_SKELETON_CHANCE_PER_DEPTH * (RunState.depth - 1), 0.6)
 	for i in range(1, rooms.size()):
-		var skeleton := SKELETON_SCENE.instantiate()
-		skeleton.position = _cell_to_world(rooms[i].get_center())
-		add_child(skeleton)
+		var spawn_cells: Array[Vector2i] = [rooms[i].get_center()]
+		if randf() < extra_chance:
+			spawn_cells.append(rooms[i].get_center() + Vector2i(-1, 0))
+		for cell in spawn_cells:
+			var skeleton := SKELETON_SCENE.instantiate()
+			skeleton.setup(RunState.depth)
+			skeleton.position = _cell_to_world(cell)
+			add_child(skeleton)
 		if randf() < ROOM_POTION_CHANCE:
 			var room := rooms[i]
-			var cell := room.position + Vector2i(
+			var potion_cell := room.position + Vector2i(
 				randi_range(0, room.size.x - 1),
 				randi_range(0, room.size.y - 1))
 			var potion := POTION_SCENE.instantiate()
-			potion.position = _cell_to_world(cell, 0.5)
+			potion.position = _cell_to_world(potion_cell, 0.5)
 			add_child(potion)
+	_place_hatch(rooms)
+
+
+func _place_hatch(rooms: Array[Rect2i]) -> void:
+	# The way down lives in the room farthest from where you start.
+	var spawn := rooms[0].get_center()
+	var far_index := 0
+	var far_dist := -1.0
+	for i in range(1, rooms.size()):
+		var dist := Vector2(rooms[i].get_center() - spawn).length()
+		if dist > far_dist:
+			far_dist = dist
+			far_index = i
+	if far_index == 0:
+		return
+	var hatch := HATCH_SCENE.instantiate()
+	hatch.position = _cell_to_world(
+		rooms[far_index].get_center() + Vector2i(1, 0), 0.5)
+	add_child(hatch)
 
 
 func _cell_to_world(cell: Vector2i, y: float = 1.5) -> Vector3:

@@ -22,6 +22,9 @@ var invuln_timer := 0.0
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	if RunState.carried_health > 0:
+		health = RunState.carried_health
+		health_changed.emit(health, MAX_HEALTH)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -97,5 +100,5 @@ func take_damage(amount: int, push_dir: Vector3) -> void:
 	health_changed.emit(health, MAX_HEALTH)
 	velocity += push_dir * 5.0 + Vector3.UP * 2.5
 	if health == 0:
-		print("You died. The dungeon reshuffles its bones...")
+		RunState.reset()
 		get_tree().reload_current_scene.call_deferred()

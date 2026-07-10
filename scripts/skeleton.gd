@@ -8,12 +8,14 @@ const FRAME_B := preload("res://assets/sprites/skeleton2.png")
 const DEAD_TEXTURE := preload("res://assets/sprites/skeleton_dead.png")
 const WALK_FRAME_TIME := 0.3
 
-const SPEED := 2.0
+const BASE_SPEED := 2.0
+const MAX_SPEED := 3.2
 const SIGHT_RANGE := 10.0
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
 const MAX_HEALTH := 3
 
+var speed := BASE_SPEED
 var health := MAX_HEALTH
 var attack_timer := 0.0
 var walk_time := 0.0
@@ -37,8 +39,8 @@ func _physics_process(delta: float) -> void:
 	if dist < SIGHT_RANGE and _can_see_player():
 		if dist > ATTACK_RANGE:
 			var dir := to_player.normalized()
-			velocity.x = dir.x * SPEED
-			velocity.z = dir.z * SPEED
+			velocity.x = dir.x * speed
+			velocity.z = dir.z * speed
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0
@@ -46,8 +48,8 @@ func _physics_process(delta: float) -> void:
 				attack_timer = ATTACK_COOLDOWN
 				player.take_damage(1, to_player.normalized())
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
-		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
 
 	move_and_slide()
 
@@ -57,6 +59,12 @@ func _physics_process(delta: float) -> void:
 		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
 	else:
 		sprite.texture = FRAME_A
+
+
+func setup(depth: int) -> void:
+	# Deeper floors: faster bones, and a bit tougher every third floor.
+	speed = minf(BASE_SPEED + 0.1 * (depth - 1), MAX_SPEED)
+	health += (depth - 1) / 3
 
 
 func _can_see_player() -> bool:
@@ -82,6 +90,7 @@ func take_damage(amount: int, push_dir: Vector3) -> void:
 func _die() -> void:
 	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
+	RunState.record_kill()
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.texture = DEAD_TEXTURE
