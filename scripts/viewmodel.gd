@@ -7,12 +7,14 @@ const SWAY_AMOUNT := 6.0
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
 var bob_time := 0.0
-var base_position: Vector2
+var base_offset: Vector2
 var swing_offset := Vector2.ZERO
 
 
 func _ready() -> void:
-	base_position = position
+	# Remember how far from the window's bottom-right corner we start;
+	# the corner itself is recomputed live so resizing keeps us in it.
+	base_offset = Vector2(offset_left, offset_top)
 	pivot_offset = Vector2(size.x * 0.5, size.y)
 	player.attacked.connect(_on_attacked)
 
@@ -22,7 +24,8 @@ func _process(delta: float) -> void:
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
-	position = base_position + swing_offset + Vector2(
+	var corner_base := get_viewport_rect().size + base_offset
+	position = corner_base + swing_offset + Vector2(
 		sin(bob_time) * SWAY_AMOUNT,
 		absf(cos(bob_time)) * SWAY_AMOUNT * 0.5
 	)
