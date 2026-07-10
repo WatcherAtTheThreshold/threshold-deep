@@ -8,9 +8,10 @@ sprite creatures and items in a real 3D space, run-based structure.
 
 ## Status
 
-Walkable prototype: procedurally generated, textured dungeons with
-billboarded creatures. No combat yet. Press R in-game to reroll the
-dungeon.
+Playable prototype: procedurally generated, textured dungeons with
+billboarded skeletons that chase and attack on sight. Torch-swing
+melee (left click), hearts HUD, death restarts the run. Press R
+in-game to reroll the dungeon.
 
 ## Tech
 

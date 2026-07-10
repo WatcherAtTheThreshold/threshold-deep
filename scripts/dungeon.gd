@@ -1,6 +1,6 @@
 extends Node3D
 
-const SKELETON_TEXTURE := preload("res://assets/sprites/skeleton.png")
+const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
 const ROOM_ATTEMPTS := 14
@@ -44,13 +44,7 @@ func _populate(rooms: Array[Rect2i]) -> void:
 	# Player starts in the first room; every other room gets a skeleton.
 	player.position = _cell_to_world(rooms[0].get_center())
 	for i in range(1, rooms.size()):
-		var skeleton := Sprite3D.new()
-		skeleton.texture = SKELETON_TEXTURE
-		skeleton.pixel_size = 0.03125
-		skeleton.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
-		skeleton.shaded = true
-		skeleton.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
-		skeleton.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		var skeleton := SKELETON_SCENE.instantiate()
 		skeleton.position = _cell_to_world(rooms[i].get_center())
 		add_child(skeleton)
 

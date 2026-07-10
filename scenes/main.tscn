@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/skeleton.png" id="1_skeleton"]
+[ext_resource type="PackedScene" path="res://scenes/skeleton.tscn" id="1_skeleton"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
 
 [sub_resource type="Environment" id="Environment_main"]
@@ -97,14 +97,8 @@ size = Vector3(3, 1.5, 3)
 use_collision = true
 material = SubResource("mat_block")
 
-[node name="Skeleton" type="Sprite3D" parent="."]
+[node name="Skeleton" parent="." instance=ExtResource("1_skeleton")]
 position = Vector3(0, 1, -3)
-pixel_size = 0.03125
-billboard = 2
-shaded = true
-alpha_cut = 1
-texture_filter = 0
-texture = ExtResource("1_skeleton")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector3(0, 1, 4)
