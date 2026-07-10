@@ -42,7 +42,7 @@ Each phase is independently shippable and playtestable.
 - **Run summary on death**: floors reached, kills.
 - *Done when: "how deep did you get?" is a meaningful question.*
 
-### Phase 3 — Bestiary
+### Phase 3 — Bestiary ✅ 2026-07-10 (wizard: ranged, retreating, telegraphed casts; corpse art pending)
 - **Second creature** with a different verb — e.g. a ranged spitter
   (projectile sprite) or a fast fragile rat. *Art: 64×64 or 32×32
   creature, 2 frames + corpse.*

@@ -1,10 +1,13 @@
 extends Node3D
 
 const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
+const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const ROOM_POTION_CHANCE := 0.3
 const EXTRA_SKELETON_CHANCE_PER_DEPTH := 0.15
+const WIZARD_CHANCE_PER_DEPTH := 0.15
+const WIZARD_CHANCE_MAX := 0.45
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
 const ROOM_ATTEMPTS := 14
@@ -53,11 +56,17 @@ func _populate(rooms: Array[Rect2i]) -> void:
 		var spawn_cells: Array[Vector2i] = [rooms[i].get_center()]
 		if randf() < extra_chance:
 			spawn_cells.append(rooms[i].get_center() + Vector2i(-1, 0))
+		var wizard_chance := minf(
+			WIZARD_CHANCE_PER_DEPTH * (RunState.depth - 1), WIZARD_CHANCE_MAX)
 		for cell in spawn_cells:
-			var skeleton := SKELETON_SCENE.instantiate()
-			skeleton.setup(RunState.depth)
-			skeleton.position = _cell_to_world(cell)
-			add_child(skeleton)
+			var enemy: Node3D
+			if randf() < wizard_chance:
+				enemy = WIZARD_SCENE.instantiate()
+			else:
+				enemy = SKELETON_SCENE.instantiate()
+			enemy.setup(RunState.depth)
+			enemy.position = _cell_to_world(cell)
+			add_child(enemy)
 		if randf() < ROOM_POTION_CHANCE:
 			var room := rooms[i]
 			var potion_cell := room.position + Vector2i(
