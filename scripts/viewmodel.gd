@@ -1,5 +1,7 @@
 extends TextureRect
 
+const IDLE_TEXTURE := preload("res://assets/sprites/hand-torch.png")
+const SWING_TEXTURE := preload("res://assets/sprites/hand-torch_swing.png")
 const SWAY_AMOUNT := 6.0
 
 @onready var player: Player = get_tree().get_first_node_in_group("player")
@@ -27,11 +29,15 @@ func _process(delta: float) -> void:
 
 
 func _on_attacked() -> void:
-	# Quick arc toward screen center, then settle back.
+	# Swap to the drawn swing frame and arc toward screen center.
+	# The frame already carries most of the tilt, so the code
+	# rotation stays subtle.
+	texture = SWING_TEXTURE
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "swing_offset", Vector2(-60.0, -20.0), 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", -0.55, 0.07) \
+	tween.tween_property(self, "rotation", -0.3, 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.22)
 	tween.parallel().tween_property(self, "rotation", 0.0, 0.22)
+	tween.chain().tween_callback(func() -> void: texture = IDLE_TEXTURE)

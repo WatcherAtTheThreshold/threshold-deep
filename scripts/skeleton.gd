@@ -1,5 +1,10 @@
 extends CharacterBody3D
 
+const FRAME_A := preload("res://assets/sprites/skeleton.png")
+const FRAME_B := preload("res://assets/sprites/skeleton2.png")
+const DEAD_TEXTURE := preload("res://assets/sprites/skeleton_dead.png")
+const WALK_FRAME_TIME := 0.3
+
 const SPEED := 2.0
 const SIGHT_RANGE := 10.0
 const ATTACK_RANGE := 1.4
@@ -8,6 +13,7 @@ const MAX_HEALTH := 3
 
 var health := MAX_HEALTH
 var attack_timer := 0.0
+var walk_time := 0.0
 var dead := false
 
 @onready var sprite: Sprite3D = $Sprite
@@ -42,6 +48,13 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
+	# Two-frame shamble while moving; rest on the base frame when still.
+	if Vector2(velocity.x, velocity.z).length() > 0.3:
+		walk_time += delta
+		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
+	else:
+		sprite.texture = FRAME_A
+
 
 func _can_see_player() -> bool:
 	# A wall between us means no aggro — no x-ray vision through the dungeon.
@@ -64,10 +77,9 @@ func take_damage(amount: int, push_dir: Vector3) -> void:
 
 
 func _die() -> void:
+	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(sprite, "modulate:a", 0.0, 0.6)
-	tween.tween_property(sprite, "position:y", sprite.position.y - 0.8, 0.6)
-	tween.chain().tween_callback(queue_free)
+	sprite.texture = DEAD_TEXTURE
+	velocity = Vector3.ZERO
