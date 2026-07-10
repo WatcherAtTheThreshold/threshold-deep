@@ -1,0 +1,43 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Script" path="res://scripts/viewmodel.gd" id="2_viewmodel"]
+[ext_resource type="Texture2D" path="res://assets/sprites/hand-torch.png" id="3_hand"]
+
+[sub_resource type="CapsuleShape3D" id="capsule_player"]
+radius = 0.4
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+script = ExtResource("1_player")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("capsule_player")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+position = Vector3(0, 0.55, 0)
+
+[node name="TorchLight" type="OmniLight3D" parent="Camera3D"]
+position = Vector3(0.35, -0.15, -0.4)
+light_color = Color(1, 0.75, 0.45, 1)
+light_energy = 1.8
+omni_range = 10.0
+shadow_enabled = true
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="HandTorch" type="TextureRect" parent="HUD"]
+texture_filter = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -372.0
+offset_top = -372.0
+offset_right = -244.0
+offset_bottom = -244.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(3, 3)
+texture = ExtResource("3_hand")
+script = ExtResource("2_viewmodel")

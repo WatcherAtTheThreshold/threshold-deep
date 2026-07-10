@@ -1,0 +1,39 @@
+[gd_resource type="MeshLibrary" load_steps=7 format=3]
+
+[sub_resource type="StandardMaterial3D" id="mat_floor"]
+albedo_color = Color(0.24, 0.23, 0.28, 1)
+roughness = 0.9
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxMesh" id="mesh_floor"]
+material = SubResource("mat_floor")
+size = Vector3(2, 0.5, 2)
+
+[sub_resource type="BoxShape3D" id="shape_floor"]
+size = Vector3(2, 0.5, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall"]
+albedo_color = Color(0.34, 0.32, 0.4, 1)
+roughness = 0.85
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxMesh" id="mesh_wall"]
+material = SubResource("mat_wall")
+size = Vector3(2, 4, 2)
+
+[sub_resource type="BoxShape3D" id="shape_wall"]
+size = Vector3(2, 4, 2)
+
+[resource]
+item/0/name = "floor"
+item/0/mesh = SubResource("mesh_floor")
+item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
+item/0/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/1/name = "wall"
+item/1/mesh = SubResource("mesh_wall")
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/1/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
