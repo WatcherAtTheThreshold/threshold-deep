@@ -7,6 +7,7 @@ const LIFETIME := 4.0
 const FRAME_TIME := 0.15
 
 var direction := Vector3.FORWARD
+var shooter: PhysicsBody3D = null
 var time := 0.0
 
 @onready var sprite: Sprite3D = $Sprite
@@ -26,9 +27,11 @@ func _physics_process(delta: float) -> void:
 
 
 func _on_body_entered(body: Node3D) -> void:
+	if body == shooter:
+		return
 	if body is Player:
 		body.take_damage(1, direction)
-		queue_free()
-	elif not body.is_in_group("enemies"):
-		# Walls stop orbs; fellow monsters don't (they pass through).
-		queue_free()
+	elif body.is_in_group("enemies"):
+		# Friendly fire: a stray orb starts an infight.
+		body.take_damage(1, direction, shooter)
+	queue_free()

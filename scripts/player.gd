@@ -92,7 +92,7 @@ func _attack() -> void:
 		to.y = 0.0
 		if to.length() <= ATTACK_RANGE \
 				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
-			enemy.take_damage(1, to.normalized())
+			enemy.take_damage(1, to.normalized(), self)
 
 
 func heal(amount: int) -> bool:
@@ -103,7 +103,7 @@ func heal(amount: int) -> bool:
 	return true
 
 
-func take_damage(amount: int, push_dir: Vector3) -> void:
+func take_damage(amount: int, push_dir: Vector3, _attacker: PhysicsBody3D = null) -> void:
 	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
 		return
 	invuln_timer = INVULN_TIME

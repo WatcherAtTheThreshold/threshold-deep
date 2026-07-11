@@ -47,9 +47,12 @@ Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
   Dungeon layouts are ASCII grids (`#` wall, `.` floor) — the generator
   produces them, `dungeon.gd` instantiates them. Cell → world:
   `(x*2+1, y, z*2+1)`; floor walking surface is y = 0.5.
-- Enemies: `CharacterBody3D` in group `"enemies"` with a
-  `take_damage(amount, push_dir)` method. Player is in group
-  `"player"`, class `Player`.
+- Enemies: `CharacterBody3D` in group `"enemies"` with
+  `take_damage(amount, push_dir, attacker = null)`. Damage from
+  another enemy switches aggro to the attacker (Doom-style
+  infighting) until that grudge target dies; only player kills
+  increment `RunState.kills`. Player is in group `"player"`,
+  class `Player`.
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
 - Input actions (`project.godot`): `move_*`, `jump`, `attack`

@@ -11,6 +11,7 @@ const WALK_FRAME_TIME := 0.3
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
 const SIGHT_RANGE := 10.0
+const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
 const MAX_HEALTH := 3
@@ -20,6 +21,7 @@ var health := MAX_HEALTH
 var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
+var target: PhysicsBody3D = null
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var player: Player = get_tree().get_first_node_in_group("player")
@@ -32,13 +34,15 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
-	var to_player := player.global_position - global_position
-	to_player.y = 0.0
-	var dist := to_player.length()
+	var t := _get_target()
+	var to_target := t.global_position - global_position
+	to_target.y = 0.0
+	var dist := to_target.length()
+	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
-	if dist < SIGHT_RANGE and _can_see_player():
+	if dist < sight and _can_see(t):
 		if dist > ATTACK_RANGE:
-			var dir := to_player.normalized()
+			var dir := to_target.normalized()
 			velocity.x = dir.x * speed
 			velocity.z = dir.z * speed
 		else:
@@ -46,7 +50,7 @@ func _physics_process(delta: float) -> void:
 			velocity.z = 0.0
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
-				player.take_damage(1, to_player.normalized())
+				t.take_damage(1, to_target.normalized(), self)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
@@ -67,30 +71,41 @@ func setup(depth: int) -> void:
 	health += (depth - 1) / 3
 
 
-func _can_see_player() -> bool:
-	# A wall between us means no aggro — no x-ray vision through the dungeon.
+func _get_target() -> PhysicsBody3D:
+	# A grudge holds only while its object stands; otherwise, the player.
+	if target != null and is_instance_valid(target) and not target.get("dead"):
+		return target
+	target = null
+	return player
+
+
+func _can_see(t: PhysicsBody3D) -> bool:
 	var query := PhysicsRayQueryParameters3D.create(
 		global_position + Vector3.UP * 0.5,
-		player.global_position + Vector3.UP * 0.3,
-		1, [get_rid(), player.get_rid()])
+		t.global_position + Vector3.UP * 0.3,
+		1, [get_rid(), t.get_rid()])
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
-func take_damage(amount: int, push_dir: Vector3) -> void:
+func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if dead:
 		return
 	health -= amount
 	velocity += push_dir * 6.0
+	if attacker != null and attacker != self:
+		# Pain redirects attention to whoever caused it.
+		target = attacker
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:
-		_die()
+		_die(attacker == null or attacker is Player)
 
 
-func _die() -> void:
+func _die(by_player: bool) -> void:
 	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
-	RunState.record_kill()
+	if by_player:
+		RunState.record_kill()
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.texture = DEAD_TEXTURE
