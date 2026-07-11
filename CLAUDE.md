@@ -30,10 +30,16 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
 (`billboard = 2`), `shaded = true`, `alpha_cut = 1`, nearest filtering.
 
+Flat-on-ground sprites (hatch, slime puddle/splat): draw a top-down
+view filling the canvas; placed as a Sprite3D with billboard disabled,
+rotated -90° on X, ~0.03 m above the floor surface.
+
 ## Layout
 
-- `scenes/` — `main.tscn` (CSG test room), `dungeon.tscn` (the game),
-  `player.tscn`, `skeleton.tscn`
+- `scenes/` — `dungeon.tscn` (the game, startup scene), `main.tscn`
+  (CSG test room), `player.tscn`, creatures (`skeleton.tscn`,
+  `wizard.tscn`, `slime.tscn`), `orb.tscn` (wizard projectile),
+  `potion.tscn`, `hatch.tscn`
 - `scripts/` — one script per scene/system; `dungeon_generator.gd` is a
   static `class_name DungeonGenerator`
 - `resources/dungeon_tiles.tres` — hand-written MeshLibrary (BoxMesh +
@@ -58,6 +64,12 @@ Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
   infighting) until that grudge target dies; only player kills
   increment `RunState.kills`. Player is in group `"player"`,
   class `Player`.
+- Bestiary: **skeleton** (melee chaser, 3 HP), **wizard** (keeps
+  distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle →
+  large 6 HP → splits at ≤3 HP into two smalls that re-merge on
+  contact unless the player is within 5 m; also in group `"slimes"`
+  and dissolves potions it touches; flat puddle/splat sprites).
+  All leave persistent corpses and may drop potions (slimes don't).
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
 - Input actions (`project.godot`): `move_*`, `jump`, `attack`
@@ -65,6 +77,8 @@ Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
 
 ## Testing
 
-No test framework — playtest in editor. `dungeon.tscn` + **F6** is the
-real game; `main.tscn` + **F5** is the controlled test room. The
-generator prints its ASCII blueprint to Output each run.
+No test framework — playtest in editor. **F5** runs the real game
+(`dungeon.tscn` is the startup scene); open `main.tscn` and press
+**F6** for the controlled CSG test room. The generator prints its
+ASCII blueprint to Output each run; R rerolls the current floor
+without resetting the run (debug key).
