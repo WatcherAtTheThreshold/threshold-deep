@@ -25,6 +25,7 @@ var wall_id := -1
 var floor_wood_id := -1
 var wall_wood_id := -1
 var hole_id := -1
+var ceiling_id := -1
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
@@ -40,6 +41,7 @@ func _ready() -> void:
 	floor_wood_id = grid_map.mesh_library.find_item_by_name("floor_wood")
 	wall_wood_id = grid_map.mesh_library.find_item_by_name("wall_wood")
 	hole_id = grid_map.mesh_library.find_item_by_name("hole")
+	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -77,6 +79,8 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3) -> void:
 	wall_damage[cell] = wall_damage.get(cell, 0) + 1
 	if wall_damage[cell] >= WOOD_WALL_HITS:
 		grid_map.set_cell_item(cell, floor_id)
+		# The opened cell needs a lid too, or you'd see the void.
+		grid_map.set_cell_item(cell + Vector3i(0, 1, 0), ceiling_id)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -103,6 +107,10 @@ func _build(map: Array[String]) -> void:
 				",":
 					id = floor_wood_id
 			grid_map.set_cell_item(Vector3i(x, 0, z), id)
+			# Every walkable cell gets a ceiling slab in the cell
+			# above, resting on top of the 4m walls.
+			if id != wall_id and id != wall_wood_id:
+				grid_map.set_cell_item(Vector3i(x, 1, z), ceiling_id)
 
 
 func _populate(rooms: Array[Rect2i]) -> void:
