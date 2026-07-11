@@ -24,6 +24,7 @@ var dead := false
 var target: PhysicsBody3D = null
 
 @onready var sprite: Sprite3D = $Sprite
+@onready var step_sound: AudioStreamPlayer3D = $StepSound
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
 
@@ -58,11 +59,16 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	# Two-frame shamble while moving; rest on the base frame when still.
-	if Vector2(velocity.x, velocity.z).length() > 0.3:
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
+	if moving:
 		walk_time += delta
 		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
 	else:
 		sprite.texture = FRAME_A
+	if moving and not step_sound.playing:
+		step_sound.play()
+	elif not moving and step_sound.playing:
+		step_sound.stop()
 
 
 func setup(depth: int) -> void:
@@ -104,6 +110,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
+	step_sound.stop()
 	if by_player:
 		RunState.record_kill()
 	remove_from_group("enemies")

@@ -33,6 +33,7 @@ var target: PhysicsBody3D = null
 var partner: CharacterBody3D = null  # fellow small to re-merge with
 
 @onready var sprite: Sprite3D = $Sprite
+@onready var step_sound: AudioStreamPlayer3D = $StepSound
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
 
@@ -98,7 +99,8 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	if Vector2(velocity.x, velocity.z).length() > 0.3:
+	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
+	if moving:
 		walk_time += delta
 		var first := int(walk_time / WALK_FRAME_TIME) % 2 == 0
 		if state == State.LARGE:
@@ -109,6 +111,10 @@ func _physics_process(delta: float) -> void:
 		sprite.texture = TEX_LARGE_1
 	else:
 		sprite.texture = TEX_SMALL_1
+	if moving and not step_sound.playing:
+		step_sound.play()
+	elif not moving and step_sound.playing:
+		step_sound.stop()
 
 
 func _pick_goal() -> PhysicsBody3D:
@@ -163,12 +169,15 @@ func _apply_state() -> void:
 	sprite.rotation = Vector3.ZERO
 	# Body center rests at floor + 0.5 (sphere radius), so the canvas
 	# bottom edge lands exactly on the floor surface at these offsets.
+	# Smalls squish at a higher pitch than the big one.
 	if state == State.LARGE:
 		sprite.texture = TEX_LARGE_1
 		sprite.position = Vector3(0, 0.5, 0)
+		step_sound.pitch_scale = 0.85
 	else:
 		sprite.texture = TEX_SMALL_1
 		sprite.position = Vector3.ZERO
+		step_sound.pitch_scale = 1.2
 
 
 func _show_flat(tex: Texture2D) -> void:
@@ -217,6 +226,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The splat stays where the slime burst.
 	dead = true
+	step_sound.stop()
 	if by_player:
 		RunState.record_kill()
 	remove_from_group("enemies")

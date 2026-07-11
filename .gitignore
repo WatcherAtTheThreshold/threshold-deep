@@ -10,6 +10,9 @@ exports/
 *.blend1
 *.blend2
 
+# Ableton analysis sidecars
+*.asd
+
 # OS junk
 Thumbs.db
 .DS_Store

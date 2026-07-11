@@ -20,6 +20,7 @@ var invuln_timer := 0.0
 var controls_enabled := true
 
 @onready var camera: Camera3D = $Camera3D
+@onready var step_sound: AudioStreamPlayer = $StepSound
 
 
 func _ready() -> void:
@@ -63,6 +64,7 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED * delta * 4.0)
 		velocity.z = move_toward(velocity.z, 0.0, SPEED * delta * 4.0)
 		move_and_slide()
+		_update_step_audio()
 		return
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
@@ -78,6 +80,18 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, SPEED)
 
 	move_and_slide()
+	_update_step_audio()
+
+
+func _update_step_audio() -> void:
+	# The step file is a walking loop: run it while walking, cut it
+	# when airborne, still, or dead.
+	var walking := controls_enabled and is_on_floor() \
+			and Vector2(velocity.x, velocity.z).length() > 0.5
+	if walking and not step_sound.playing:
+		step_sound.play()
+	elif not walking and step_sound.playing:
+		step_sound.stop()
 
 
 func _attack() -> void:
