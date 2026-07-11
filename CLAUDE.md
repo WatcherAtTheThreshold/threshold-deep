@@ -34,6 +34,17 @@ Flat-on-ground sprites (hatch, slime puddle/splat): draw a top-down
 view filling the canvas; placed as a Sprite3D with billboard disabled,
 rotated -90° on X, ~0.03 m above the floor surface.
 
+## Audio
+
+- `assets/audio/sfx/` by category (`player/`, `enemies/`, `items/`).
+  `.wav` preferred; Ableton `.asd` sidecars are gitignored.
+- Footstep files are walking **loops**, not one-shots: scripts play
+  them while the body moves and stop them when still/dead (no import
+  loop flags needed). Own-player sounds are flat `AudioStreamPlayer`;
+  world sounds are positional `AudioStreamPlayer3D` (max_distance 18).
+- One-shots that outlive their emitter (e.g. potion pickup): spawn a
+  self-freeing `AudioStreamPlayer3D` into the world.
+
 ## Layout
 
 - `scenes/` — `dungeon.tscn` (the game, startup scene), `main.tscn`
