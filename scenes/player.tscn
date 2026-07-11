@@ -66,3 +66,29 @@ grow_vertical = 0
 scale = Vector2(3, 3)
 texture = ExtResource("3_hand")
 script = ExtResource("2_viewmodel")
+
+[node name="ScreenFade" type="ColorRect" parent="HUD"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 1)
+mouse_filter = 2
+
+[node name="DeathLabel" type="Label" parent="HUD"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+horizontal_alignment = 1
+vertical_alignment = 1
+text = "YOU DIED"
+theme_override_font_sizes/font_size = 72
+theme_override_colors/font_color = Color(0.85, 0.2, 0.25, 1)
+
+[node name="DeathStats" type="Label" parent="HUD"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)

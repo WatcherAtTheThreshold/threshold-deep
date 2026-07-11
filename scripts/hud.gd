@@ -4,6 +4,10 @@ const HEART_FULL := preload("res://assets/ui/heart_full.png")
 const HEART_EMPTY := preload("res://assets/ui/heart_empty.png")
 const HEART_SIZE := Vector2(48, 48)
 
+const FADE_IN_TIME := 0.7
+const DESCENT_FADE_TIME := 0.5
+const DEATH_HOLD_TIME := 1.8
+
 var last_health := 0
 var heart_icons: Array[TextureRect] = []
 
@@ -11,6 +15,9 @@ var heart_icons: Array[TextureRect] = []
 @onready var hearts_box: HBoxContainer = $Hearts
 @onready var hurt_flash: ColorRect = $HurtFlash
 @onready var run_info: Label = $RunInfo
+@onready var screen_fade: ColorRect = $ScreenFade
+@onready var death_label: Label = $DeathLabel
+@onready var death_stats: Label = $DeathStats
 
 
 func _ready() -> void:
@@ -26,8 +33,47 @@ func _ready() -> void:
 		hearts_box.add_child(icon)
 		heart_icons.append(icon)
 	player.health_changed.connect(_on_health_changed)
+	player.died.connect(_on_player_died)
 	last_health = player.health
 	_refresh(player.health)
+	# Every floor and every run opens with a fade in from black.
+	screen_fade.color.a = 1.0
+	create_tween().tween_property(screen_fade, "color:a", 0.0, FADE_IN_TIME)
+
+
+func start_descent_fade() -> void:
+	var tween := create_tween()
+	tween.tween_property(screen_fade, "color:a", 1.0, DESCENT_FADE_TIME)
+	tween.tween_callback(_go_down)
+
+
+func _go_down() -> void:
+	RunState.descend(player.health)
+	get_tree().reload_current_scene()
+
+
+func _on_player_died() -> void:
+	death_stats.text = "Depth %d   —   %d kills" % [RunState.depth, RunState.kills]
+	death_label.modulate.a = 0.0
+	death_stats.modulate.a = 0.0
+	death_label.visible = true
+	death_stats.visible = true
+	var tween := create_tween()
+	# Half-darken the world, bring in the verdict...
+	tween.tween_property(screen_fade, "color:a", 0.55, 0.5)
+	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.7)
+	tween.tween_property(death_stats, "modulate:a", 1.0, 0.4)
+	# ...let it sit, then close the dark over everything.
+	tween.tween_interval(DEATH_HOLD_TIME)
+	tween.tween_property(screen_fade, "color:a", 1.0, 0.9)
+	tween.parallel().tween_property(death_label, "modulate:a", 0.0, 0.9)
+	tween.parallel().tween_property(death_stats, "modulate:a", 0.0, 0.9)
+	tween.tween_callback(_restart_run)
+
+
+func _restart_run() -> void:
+	RunState.reset()
+	get_tree().reload_current_scene()
 
 
 func _on_health_changed(current: int, _maximum: int) -> void:

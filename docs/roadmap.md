@@ -35,7 +35,7 @@ Each phase is independently shippable and playtestable.
 - *Done when: a careful player survives noticeably longer than a
   reckless one.*
 
-### Phase 2 — Descent ✅ 2026-07-10 (run summary is a console print for now)
+### Phase 2 — Descent ✅ 2026-07-10 (incl. on-screen death summary + floor-transition fades)
 - **Stairs down** placed in the room farthest from spawn; walking in
   generates the next floor. *Art: 64×64 stairwell/hole sprite or tile.*
 - **Depth scaling**: more/faster/tougher skeletons per floor.

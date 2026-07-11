@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal health_changed(current: int, maximum: int)
 signal attacked
+signal died
 
 const SPEED := 5.0
 const JUMP_VELOCITY := 4.5
@@ -16,6 +17,7 @@ const INVULN_TIME := 1.0
 var health := MAX_HEALTH
 var attack_timer := 0.0
 var invuln_timer := 0.0
+var controls_enabled := true
 
 @onready var camera: Camera3D = $Camera3D
 
@@ -28,6 +30,8 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not controls_enabled:
+		return
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		# Mouse X turns the whole body, mouse Y tilts only the camera.
 		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
@@ -53,6 +57,13 @@ func _physics_process(delta: float) -> void:
 
 	if not is_on_floor():
 		velocity += get_gravity() * delta
+
+	if not controls_enabled:
+		# Dead or descending: coast to a stop, no input.
+		velocity.x = move_toward(velocity.x, 0.0, SPEED * delta * 4.0)
+		velocity.z = move_toward(velocity.z, 0.0, SPEED * delta * 4.0)
+		move_and_slide()
+		return
 
 	if Input.is_action_just_pressed("jump") and is_on_floor():
 		velocity.y = JUMP_VELOCITY
@@ -93,12 +104,19 @@ func heal(amount: int) -> bool:
 
 
 func take_damage(amount: int, push_dir: Vector3) -> void:
-	if invuln_timer > 0.0 or health <= 0:
+	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
 		return
 	invuln_timer = INVULN_TIME
 	health = maxi(health - amount, 0)
 	health_changed.emit(health, MAX_HEALTH)
 	velocity += push_dir * 5.0 + Vector3.UP * 2.5
 	if health == 0:
-		RunState.reset()
-		get_tree().reload_current_scene.call_deferred()
+		controls_enabled = false
+		died.emit()
+
+
+func start_descent() -> void:
+	if not controls_enabled:
+		return
+	controls_enabled = false
+	$HUD.start_descent_fade()

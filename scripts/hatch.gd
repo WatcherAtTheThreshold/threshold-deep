@@ -7,5 +7,4 @@ func _ready() -> void:
 
 func _on_body_entered(body: Node3D) -> void:
 	if body is Player:
-		RunState.descend(body.health)
-		get_tree().reload_current_scene.call_deferred()
+		body.start_descent()
