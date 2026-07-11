@@ -1,8 +1,12 @@
 class_name DungeonGenerator
 extends RefCounted
 
-## Generates a dungeon as a grid of "#" (wall) and "." (floor) —
-## the same shape of data as the old hand-typed MAP.
+## Generates a dungeon as a grid of characters — the same shape of
+## data as the old hand-typed MAP:
+##   "#"  stone wall
+##   "W"  wooden wall (breakable: two hits open it into floor)
+##   "."  stone floor
+##   ","  wooden floor (may collapse into a hole behind the player)
 ##
 ## Algorithm (rooms + corridors):
 ##   1. Try to place a number of random rectangular rooms, keeping
@@ -10,6 +14,11 @@ extends RefCounted
 ##   2. Walk the room list in order, carving an L-shaped corridor
 ##      from each room's center to the previous room's center.
 ##   3. Everything not carved stays wall.
+##   4. Some rooms get a patch of wooden flooring; some walls that
+##      separate two walkable cells turn wooden (secret shortcuts).
+
+const WOOD_WALL_CHANCE := 0.12
+const WOOD_FLOOR_ROOM_CHANCE := 0.35
 
 
 static func generate(width: int, height: int, room_attempts: int, rng: RandomNumberGenerator) -> Dictionary:
@@ -48,12 +57,45 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 			_carve_v(floor_cells, a.y, b.y, a.x)
 			_carve_h(floor_cells, a.x, b.x, b.y)
 
-	# Render the set out to rows of "#" and ".".
+	# Wooden floor patches: a sub-rectangle of planks in some rooms.
+	var wood_floor := {}
+	for room in rooms:
+		if rng.randf() < WOOD_FLOOR_ROOM_CHANCE:
+			var pw := rng.randi_range(2, room.size.x)
+			var ph := rng.randi_range(2, room.size.y)
+			var px := room.position.x + rng.randi_range(0, room.size.x - pw)
+			var py := room.position.y + rng.randi_range(0, room.size.y - ph)
+			for cy in range(py, py + ph):
+				for cx in range(px, px + pw):
+					wood_floor[Vector2i(cx, cy)] = true
+
+	# Wooden walls: only where a wall separates two walkable cells,
+	# so breaking one always opens a real shortcut.
+	var wood_wall := {}
+	for cy in range(1, height - 1):
+		for cx in range(1, width - 1):
+			var c := Vector2i(cx, cy)
+			if floor_cells.has(c):
+				continue
+			var ns: bool = floor_cells.has(c + Vector2i.UP) \
+					and floor_cells.has(c + Vector2i.DOWN)
+			var ew: bool = floor_cells.has(c + Vector2i.LEFT) \
+					and floor_cells.has(c + Vector2i.RIGHT)
+			if (ns or ew) and rng.randf() < WOOD_WALL_CHANCE:
+				wood_wall[c] = true
+
+	# Render the sets out to rows of characters.
 	var map: Array[String] = []
 	for cy in height:
 		var row := ""
 		for cx in width:
-			row += "." if floor_cells.has(Vector2i(cx, cy)) else "#"
+			var c := Vector2i(cx, cy)
+			if floor_cells.has(c):
+				row += "," if wood_floor.has(c) else "."
+			elif wood_wall.has(c):
+				row += "W"
+			else:
+				row += "#"
 		map.append(row)
 
 	return {"map": map, "rooms": rooms}

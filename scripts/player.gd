@@ -93,6 +93,16 @@ func _attack() -> void:
 		if to.length() <= ATTACK_RANGE \
 				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
 			enemy.take_damage(1, to.normalized(), self)
+	# The swing also lands on whatever wall you're facing — the
+	# dungeon decides if that cell is breakable.
+	var from := camera.global_position
+	var ray_to := from - camera.global_transform.basis.z * (ATTACK_RANGE + 0.2)
+	var query := PhysicsRayQueryParameters3D.create(from, ray_to, 1, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty() and hit.collider is GridMap:
+		var scene := get_tree().current_scene
+		if scene.has_method("damage_wall"):
+			scene.damage_wall(hit.position, hit.normal)
 
 
 func heal(amount: int) -> bool:

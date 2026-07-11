@@ -44,9 +44,14 @@ Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
 ## World Conventions
 
 - GridMap `cell_size = (2, 4, 2)`: one map cell = 2×2 m, walls 4 m.
-  Dungeon layouts are ASCII grids (`#` wall, `.` floor) — the generator
-  produces them, `dungeon.gd` instantiates them. Cell → world:
-  `(x*2+1, y, z*2+1)`; floor walking surface is y = 0.5.
+  Dungeon layouts are ASCII grids (`#` stone wall, `W` breakable
+  wooden wall — two torch hits open it to floor, `.` stone floor,
+  `,` wooden floor — may collapse into a hole behind the player) —
+  the generator produces them, `dungeon.gd` instantiates them.
+  Cell → world: `(x*2+1, y, z*2+1)`; floor walking surface is y = 0.5.
+- Holes live in a second GridMap (`HoleMap`, collision layer 2):
+  they block bodies (characters use `collision_mask = 3`) but not
+  sight rays or orbs, which query only layer 1.
 - Enemies: `CharacterBody3D` in group `"enemies"` with
   `take_damage(amount, push_dir, attacker = null)`. Damage from
   another enemy switches aggro to the attacker (Doom-style
