@@ -111,6 +111,9 @@ func _die(by_player: bool) -> void:
 	sprite.texture = DEAD_TEXTURE
 	velocity = Vector3.ZERO
 	if randf() < POTION_DROP_CHANCE:
+		# Roll the bottle off the corpse so the sprites never share a
+		# depth (coplanar billboards z-fight).
+		var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
 		var potion := POTION_SCENE.instantiate()
-		potion.position = global_position + Vector3(0, -0.9, 0)
+		potion.position = global_position + Vector3(0, -0.9, 0) + roll
 		get_parent().add_child.call_deferred(potion)
