@@ -12,3 +12,6 @@ func _on_body_entered(body: Node3D) -> void:
 	# on the floor for later, which rewards remembering where it was.
 	if body is Player and body.heal(HEAL_AMOUNT):
 		queue_free()
+	elif body.is_in_group("slimes"):
+		# Slimes dissolve what they slither over.
+		queue_free()
