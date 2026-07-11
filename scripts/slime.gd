@@ -161,12 +161,14 @@ func _split(h1: int, h2: int) -> void:
 func _apply_state() -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.rotation = Vector3.ZERO
+	# Body center rests at floor + 0.5 (sphere radius), so the canvas
+	# bottom edge lands exactly on the floor surface at these offsets.
 	if state == State.LARGE:
 		sprite.texture = TEX_LARGE_1
-		sprite.position = Vector3.ZERO
+		sprite.position = Vector3(0, 0.5, 0)
 	else:
 		sprite.texture = TEX_SMALL_1
-		sprite.position = Vector3(0, -0.5, 0)
+		sprite.position = Vector3.ZERO
 
 
 func _show_flat(tex: Texture2D) -> void:
