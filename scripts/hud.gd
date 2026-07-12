@@ -2,14 +2,14 @@ extends CanvasLayer
 
 const HEART_FULL := preload("res://assets/ui/heart_full.png")
 const HEART_EMPTY := preload("res://assets/ui/heart_empty.png")
+const HEART_MAGIC := preload("res://assets/ui/heart_magic.png")
 const HEART_SIZE := Vector2(48, 48)
 
 const FADE_IN_TIME := 0.7
 const DESCENT_FADE_TIME := 0.5
 const DEATH_HOLD_TIME := 4.0
 
-var last_health := 0
-var heart_icons: Array[TextureRect] = []
+var last_total := 0
 
 @onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
@@ -25,19 +25,10 @@ var heart_icons: Array[TextureRect] = []
 func _ready() -> void:
 	RunState.changed.connect(_update_run_info)
 	_update_run_info()
-	for i in player.MAX_HEALTH:
-		var icon := TextureRect.new()
-		icon.texture = HEART_FULL
-		icon.custom_minimum_size = HEART_SIZE
-		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_SCALE
-		hearts_box.add_child(icon)
-		heart_icons.append(icon)
 	player.health_changed.connect(_on_health_changed)
 	player.died.connect(_on_player_died)
-	last_health = player.health
-	_refresh(player.health)
+	last_total = player.health + player.magic_hearts
+	_rebuild_hearts(player.health, player.max_health, player.magic_hearts)
 	# Every floor and every run opens with a fade in from black.
 	screen_fade.color.a = 1.0
 	create_tween().tween_property(screen_fade, "color:a", 0.0, FADE_IN_TIME)
@@ -50,7 +41,7 @@ func start_descent_fade() -> void:
 
 
 func _go_down() -> void:
-	RunState.descend(player.health)
+	RunState.descend(player.health, player.max_health, player.magic_hearts)
 	get_tree().reload_current_scene()
 
 
@@ -109,17 +100,33 @@ func _restart_run() -> void:
 	get_tree().reload_current_scene()
 
 
-func _on_health_changed(current: int, _maximum: int) -> void:
-	if current < last_health:
+func _on_health_changed(current: int, maximum: int, magic: int) -> void:
+	var total := current + magic
+	if total < last_total:
 		hurt_flash.color.a = 0.4
 		create_tween().tween_property(hurt_flash, "color:a", 0.0, 0.4)
-	last_health = current
-	_refresh(current)
+	last_total = total
+	_rebuild_hearts(current, maximum, magic)
 
 
-func _refresh(current: int) -> void:
-	for i in heart_icons.size():
-		heart_icons[i].texture = HEART_FULL if i < current else HEART_EMPTY
+func _rebuild_hearts(current: int, maximum: int, magic: int) -> void:
+	# Red containers (full then empty), magic hearts appended after.
+	for child in hearts_box.get_children():
+		child.queue_free()
+	for i in maximum:
+		hearts_box.add_child(_make_heart(HEART_FULL if i < current else HEART_EMPTY))
+	for i in magic:
+		hearts_box.add_child(_make_heart(HEART_MAGIC))
+
+
+func _make_heart(tex: Texture2D) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.texture = tex
+	icon.custom_minimum_size = HEART_SIZE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_SCALE
+	return icon
 
 
 func _update_run_info() -> void:

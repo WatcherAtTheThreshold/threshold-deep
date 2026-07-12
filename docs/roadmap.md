@@ -79,9 +79,16 @@ Each phase is independently shippable and playtestable.
   the sword elsewhere on the floor (a fresh plate spawns each floor
   until claimed, per run). 2 damage, planted-in-stone pickup, moves
   the torch to the left hand; two-handed viewmodel.
+- **Heart economy** ✅ (2026-07-12): start at 3 containers (cap 8);
+  1-up plates grant a filled container, magic plates grant 3 yellow
+  hearts (cap 6) that absorb damage first and can't be healed. One
+  trigger plate per floor: sword until claimed, then 65% magic /
+  35% container.
 - **Items**: torch upgrades (light radius), weapons (swing arc/damage),
   Isaac-style stat trinkets. *Art: 32×32 item sprites.*
-- **Pedestal rooms** in the generator (special room type).
+- **Pedestal rooms** in the generator (special room type) — future
+  home of the choice chamber: all plates in one room, picking one
+  seals the others.
 - *Done when: two runs feel different because of what you found.*
 
 ### Phase 5 — Juice (started 2026-07-11)

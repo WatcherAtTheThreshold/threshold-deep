@@ -9,6 +9,8 @@ signal changed
 var depth := 1
 var kills := 0
 var carried_health := -1  # -1 = fresh run, spawn with full hearts
+var carried_max_health := -1  # -1 = fresh run, base containers
+var carried_magic := 0
 var has_sword := false
 
 var damage_dealt := 0
@@ -37,9 +39,11 @@ func set_killer(label: String, texture: Texture2D) -> void:
 	killer_texture = texture
 
 
-func descend(current_health: int) -> void:
+func descend(current_health: int, current_max: int, current_magic: int) -> void:
 	depth += 1
 	carried_health = current_health
+	carried_max_health = current_max
+	carried_magic = current_magic
 	changed.emit()
 
 
@@ -49,6 +53,8 @@ func reset() -> void:
 	depth = 1
 	kills = 0
 	carried_health = -1
+	carried_max_health = -1
+	carried_magic = 0
 	has_sword = false
 	damage_dealt = 0
 	damage_taken = 0

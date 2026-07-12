@@ -80,9 +80,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   only, and that darkness is intentional.
 - `RunState` autoload = everything that must survive scene reloads:
   depth, kills (total + per-creature tally), damage dealt/taken,
-  carried health, sword ownership, and the killer's name + sprite
-  for the death report. Descent keeps it, death resets it. New
-  persistent run state belongs there.
+  carried health/max health/magic hearts, sword ownership, and the
+  killer's name + sprite for the death report. Descent keeps it,
+  death resets it. New persistent run state belongs there.
+- Health: start 3 red containers, cap 8 (1-up plates add one,
+  filled). Magic hearts (yellow, cap 6) absorb damage before red
+  and can't be healed by potions. One item trigger plate spawns per
+  floor (sword until claimed, then 65% magic / 35% container);
+  stepping it summons the pickup in a different room.
 - Holes live in a second GridMap (`HoleMap`, collision layer 2):
   they block bodies (characters use `collision_mask = 3`) but not
   sight rays or orbs, which query only layer 1.

@@ -1,7 +1,7 @@
 class_name Player
 extends CharacterBody3D
 
-signal health_changed(current: int, maximum: int)
+signal health_changed(current: int, maximum: int, magic: int)
 signal attacked
 signal died
 
@@ -10,13 +10,17 @@ const DASH_SPEED := 14.0
 const DASH_TIME := 0.18
 const DASH_COOLDOWN := 1.1
 const MOUSE_SENSITIVITY := 0.002
-const MAX_HEALTH := 5
+const BASE_MAX_HEALTH := 3
+const MAX_HEALTH_CAP := 8
+const MAGIC_CAP := 6
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
 const INVULN_TIME := 1.0
 
-var health := MAX_HEALTH
+var max_health := BASE_MAX_HEALTH
+var health := BASE_MAX_HEALTH
+var magic_hearts := 0
 var attack_damage := 1
 var attack_timer := 0.0
 var invuln_timer := 0.0
@@ -31,9 +35,12 @@ var controls_enabled := true
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	if RunState.carried_max_health > 0:
+		max_health = RunState.carried_max_health
 	if RunState.carried_health > 0:
 		health = RunState.carried_health
-		health_changed.emit(health, MAX_HEALTH)
+	magic_hearts = RunState.carried_magic
+	health_changed.emit(health, max_health, magic_hearts)
 	_apply_loadout()
 
 
@@ -151,10 +158,28 @@ func _attack() -> void:
 
 
 func heal(amount: int) -> bool:
-	if health >= MAX_HEALTH:
+	# Potions restore red hearts only — magic hearts are temporary.
+	if health >= max_health:
 		return false
-	health = mini(health + amount, MAX_HEALTH)
-	health_changed.emit(health, MAX_HEALTH)
+	health = mini(health + amount, max_health)
+	health_changed.emit(health, max_health, magic_hearts)
+	return true
+
+
+func add_magic_hearts(amount: int) -> bool:
+	if magic_hearts >= MAGIC_CAP:
+		return false
+	magic_hearts = mini(magic_hearts + amount, MAGIC_CAP)
+	health_changed.emit(health, max_health, magic_hearts)
+	return true
+
+
+func add_heart_container() -> bool:
+	if max_health >= MAX_HEALTH_CAP:
+		return false
+	max_health += 1
+	health = mini(health + 1, max_health)  # the new container comes filled
+	health_changed.emit(health, max_health, magic_hearts)
 	return true
 
 
@@ -162,9 +187,14 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
 		return
 	invuln_timer = INVULN_TIME
-	health = maxi(health - amount, 0)
+	# Magic hearts absorb damage first; the spill hits red hearts.
+	var remaining := amount
+	var absorbed := mini(magic_hearts, remaining)
+	magic_hearts -= absorbed
+	remaining -= absorbed
+	health = maxi(health - remaining, 0)
 	RunState.record_damage_taken(amount)
-	health_changed.emit(health, MAX_HEALTH)
+	health_changed.emit(health, max_health, magic_hearts)
 	velocity += push_dir * 5.0 + Vector3.UP * 2.5
 	if health == 0:
 		# Remember who did this — name and face — for the death screen.

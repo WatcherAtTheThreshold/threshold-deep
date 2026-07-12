@@ -9,6 +9,10 @@ const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
 const SWORD_TRIGGER_SCENE := preload("res://scenes/sword_trigger.tscn")
+const MAGIC_TRIGGER_SCENE := preload("res://scenes/magic_heart_trigger.tscn")
+const HEART_TRIGGER_SCENE := preload("res://scenes/heart_trigger.tscn")
+const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
+const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -164,29 +168,36 @@ func _populate(rooms: Array[Rect2i]) -> void:
 			potion.position = _cell_to_world(potion_cell, 0.5)
 			add_child(potion)
 	floor_rooms = rooms
-	_place_sword_trigger(rooms)
+	_place_item_trigger(rooms)
 	_place_hatch(rooms)
 
 
-func _place_sword_trigger(rooms: Array[Rect2i]) -> void:
-	# The sword hunt has two stages: find the trigger plate, step on
-	# it, then find the sword it summons elsewhere on the floor. A
-	# fresh plate appears every floor until the sword is claimed;
-	# death resets it with the rest of RunState.
+func _place_item_trigger(rooms: Array[Rect2i]) -> void:
+	# One trigger plate per floor, two-stage hunt: step on the plate
+	# and its item appears elsewhere on the floor. The sword plate
+	# takes priority until the sword is claimed; after that, floors
+	# roll magic hearts (65%) or a heart container (35%).
+	var trigger_scene := SWORD_TRIGGER_SCENE
+	var pickup_scene := SWORD_SCENE
 	if RunState.has_sword:
-		return
+		if player.max_health >= player.MAX_HEALTH_CAP or randf() < 0.65:
+			trigger_scene = MAGIC_TRIGGER_SCENE
+			pickup_scene = MAGIC_PICKUP_SCENE
+		else:
+			trigger_scene = HEART_TRIGGER_SCENE
+			pickup_scene = CONTAINER_PICKUP_SCENE
 	var idx := 0 if rooms.size() == 1 else randi_range(1, rooms.size() - 1)
 	var room := rooms[idx]
 	var cell := room.position + Vector2i(
 		randi_range(0, room.size.x - 1),
 		randi_range(0, room.size.y - 1))
-	var trigger := SWORD_TRIGGER_SCENE.instantiate()
+	var trigger := trigger_scene.instantiate()
 	trigger.position = _cell_to_world(cell, 0.5)
-	trigger.activated.connect(_spawn_triggered_sword.bind(idx))
+	trigger.activated.connect(_spawn_triggered_item.bind(idx, pickup_scene))
 	add_child(trigger)
 
 
-func _spawn_triggered_sword(trigger_room_idx: int) -> void:
+func _spawn_triggered_item(trigger_room_idx: int, pickup_scene: PackedScene) -> void:
 	# Somewhere else: any room but the plate's own, when possible.
 	var candidates: Array[int] = []
 	for i in floor_rooms.size():
@@ -199,9 +210,9 @@ func _spawn_triggered_sword(trigger_room_idx: int) -> void:
 	var cell := room.position + Vector2i(
 		randi_range(0, room.size.x - 1),
 		randi_range(0, room.size.y - 1))
-	var sword := SWORD_SCENE.instantiate()
-	sword.position = _cell_to_world(cell, 0.5)
-	add_child(sword)
+	var pickup := pickup_scene.instantiate()
+	pickup.position = _cell_to_world(cell, 0.5)
+	add_child(pickup)
 
 
 func _place_hatch(rooms: Array[Rect2i]) -> void:
