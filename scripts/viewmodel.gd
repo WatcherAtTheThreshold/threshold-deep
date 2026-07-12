@@ -10,6 +10,8 @@ const SWAY_AMOUNT := 6.0
 
 var idle_texture: Texture2D = TORCH_IDLE
 var swing_texture: Texture2D = TORCH_SWING
+var swing_move := Vector2(-36.0, -4.0)
+var swing_rot := -0.3
 var bob_time := 0.0
 var base_offset: Vector2
 var swing_offset := Vector2.ZERO
@@ -28,6 +30,15 @@ func set_sword(equipped: bool) -> void:
 	idle_texture = SWORD_IDLE if equipped else TORCH_IDLE
 	swing_texture = SWORD_SWING if equipped else TORCH_SWING
 	texture = idle_texture
+	# The sword's swing frame carries the arc itself, so its code
+	# motion is a flat sideways push — big lift/rotation shoved the
+	# canvas edge into view.
+	if equipped:
+		swing_move = Vector2(-24.0, 0.0)
+		swing_rot = -0.12
+	else:
+		swing_move = Vector2(-36.0, -4.0)
+		swing_rot = -0.3
 
 
 func _process(delta: float) -> void:
@@ -49,9 +60,9 @@ func _on_attacked() -> void:
 	# Swap to the drawn swing frame and arc toward screen center.
 	texture = swing_texture
 	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "swing_offset", Vector2(-36.0, -4.0), 0.07) \
+	tween.tween_property(self, "swing_offset", swing_move, 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", -0.3, 0.07) \
+	tween.tween_property(self, "rotation", swing_rot, 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.22)
 	tween.parallel().tween_property(self, "rotation", 0.0, 0.22)
