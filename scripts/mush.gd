@@ -8,6 +8,7 @@ const TEX_MUSH_1 := preload("res://assets/sprites/mush/mush/mush1.png")
 const TEX_MUSH_2 := preload("res://assets/sprites/mush/mush/mush2.png")
 const TEX_MINI_1 := preload("res://assets/sprites/mush/mini-mush/mini-mush1.png")
 const TEX_MINI_2 := preload("res://assets/sprites/mush/mini-mush/mini-mush2.png")
+const TEX_DEAD := preload("res://assets/sprites/mush/mush_dead.png")
 const WALK_FRAME_TIME := 0.28
 
 const MUSH_MAX_HEALTH := 8
@@ -25,6 +26,7 @@ var state := State.MUSH
 var health := MUSH_MAX_HEALTH
 var speed := 1.6
 var damage := 1
+var body_radius := 0.5
 var speed_scale := 1.0
 var merge_cooldown := 0.0
 var attack_timer := 0.0
@@ -149,7 +151,7 @@ func _apply_state() -> void:
 		State.MEGA:
 			frame_a = TEX_MEGA_1
 			frame_b = TEX_MEGA_2
-			$CollisionShape3D.shape.radius = 0.7
+			body_radius = 0.7
 			sprite.position = Vector3(0, 0.3, 0)
 			step_sound.pitch_scale = 0.85
 			speed = 1.2
@@ -157,7 +159,7 @@ func _apply_state() -> void:
 		State.MUSH:
 			frame_a = TEX_MUSH_1
 			frame_b = TEX_MUSH_2
-			$CollisionShape3D.shape.radius = 0.5
+			body_radius = 0.5
 			sprite.position = Vector3(0, 0.5, 0)
 			step_sound.pitch_scale = 1.05
 			speed = 1.6
@@ -165,11 +167,12 @@ func _apply_state() -> void:
 		State.MINI:
 			frame_a = TEX_MINI_1
 			frame_b = TEX_MINI_2
-			$CollisionShape3D.shape.radius = 0.35
+			body_radius = 0.35
 			sprite.position = Vector3(0, 0.15, 0)
 			step_sound.pitch_scale = 1.3
 			speed = 2.8
 			damage = 1
+	$CollisionShape3D.shape.radius = body_radius
 	sprite.texture = frame_a
 
 
@@ -208,7 +211,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 
 
 func _die(by_player: bool) -> void:
-	# No corpse art yet — fade and sink until a mush splat exists.
+	# The squashed cap stays where it fell, flat like the slime splat.
 	dead = true
 	step_sound.stop()
 	if by_player:
@@ -216,7 +219,11 @@ func _die(by_player: bool) -> void:
 	remove_from_group("enemies")
 	remove_from_group("mushes")
 	$CollisionShape3D.set_deferred("disabled", true)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(sprite, "modulate:a", 0.0, 0.6)
-	tween.tween_property(sprite, "position:y", sprite.position.y - 0.6, 0.6)
-	tween.chain().tween_callback(queue_free)
+	velocity = Vector3.ZERO
+	sprite.modulate = Color.WHITE
+	sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	sprite.rotation_degrees = Vector3(-90, 0, 0)
+	# Body center rests at floor + radius; park the splat just above
+	# the floor surface.
+	sprite.position = Vector3(0, 0.03 - body_radius, 0)
+	sprite.texture = TEX_DEAD

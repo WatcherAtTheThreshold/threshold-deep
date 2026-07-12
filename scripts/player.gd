@@ -6,7 +6,9 @@ signal attacked
 signal died
 
 const SPEED := 5.0
-const JUMP_VELOCITY := 4.5
+const DASH_SPEED := 14.0
+const DASH_TIME := 0.18
+const DASH_COOLDOWN := 1.1
 const MOUSE_SENSITIVITY := 0.002
 const MAX_HEALTH := 5
 const ATTACK_COOLDOWN := 0.5
@@ -18,6 +20,9 @@ var health := MAX_HEALTH
 var attack_damage := 1
 var attack_timer := 0.0
 var invuln_timer := 0.0
+var dash_timer := 0.0
+var dash_cooldown_timer := 0.0
+var dash_dir := Vector3.ZERO
 var controls_enabled := true
 
 @onready var camera: Camera3D = $Camera3D
@@ -68,6 +73,8 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
+	dash_timer = maxf(dash_timer - delta, 0.0)
+	dash_cooldown_timer = maxf(dash_cooldown_timer - delta, 0.0)
 
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -80,12 +87,22 @@ func _physics_process(delta: float) -> void:
 		_update_step_audio()
 		return
 
-	if Input.is_action_just_pressed("jump") and is_on_floor():
-		velocity.y = JUMP_VELOCITY
-
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
-	if direction:
+
+	# Space: short forward burst on a cooldown. Dashes toward your
+	# movement direction, or straight ahead when standing still.
+	if Input.is_action_just_pressed("dash") and dash_cooldown_timer == 0.0:
+		dash_dir = direction if direction else -global_transform.basis.z
+		dash_dir.y = 0.0
+		dash_dir = dash_dir.normalized()
+		dash_timer = DASH_TIME
+		dash_cooldown_timer = DASH_COOLDOWN
+
+	if dash_timer > 0.0:
+		velocity.x = dash_dir.x * DASH_SPEED
+		velocity.z = dash_dir.z * DASH_SPEED
+	elif direction:
 		velocity.x = direction.x * SPEED
 		velocity.z = direction.z * SPEED
 	else:

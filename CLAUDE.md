@@ -83,8 +83,10 @@ rotated -90° on X, ~0.03 m above the floor surface.
   All leave persistent corpses and may drop potions (slimes don't).
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
-- Input actions (`project.godot`): `move_*`, `jump`, `attack`
-  (left mouse). Esc toggles mouse capture; R rerolls the dungeon.
+- Input actions (`project.godot`): `move_*`, `dash` (Space — short
+  forward burst, ~1s cooldown; there is deliberately no jump),
+  `attack` (left mouse). Esc toggles mouse capture; R rerolls the
+  dungeon.
 
 ## Testing
 
