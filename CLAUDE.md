@@ -22,7 +22,7 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 | Asset type | Canvas | Rule |
 |---|---|---|
 | Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge; front view only |
-| Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off bottom/right edges |
+| Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off the bottom + outer edge of its corner |
 | UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
 | Items (world pickups) | 16×16 | base at bottom edge; Area3D scenes, hover bob in code |
 | Tiles (floor/wall textures) | 64×64 seamless | triplanar-mapped, repeats once per 2 m cell |
@@ -30,9 +30,14 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
 (`billboard = 2`), `shaded = true`, `alpha_cut = 1`, nearest filtering.
 
-Flat-on-ground sprites (hatch, slime puddle/splat): draw a top-down
-view filling the canvas; placed as a Sprite3D with billboard disabled,
-rotated -90° on X, ~0.03 m above the floor surface.
+Flat-on-ground sprites (hatch, slime puddle/splat, mush splat): draw a
+top-down view filling the canvas; placed as a Sprite3D with billboard
+disabled, rotated -90° on X, ~0.03 m above the floor surface.
+
+Viewmodel is two-handed once the sword is claimed: right hand holds
+the weapon (`viewmodel.gd`, bottom-right), torch moves to the left
+hand (`left_torch.gd`, bottom-left, body-lean on strikes). Swing
+motion values are per-weapon in `viewmodel.gd.set_sword()`.
 
 ## Audio
 
@@ -49,8 +54,9 @@ rotated -90° on X, ~0.03 m above the floor surface.
 
 - `scenes/` — `dungeon.tscn` (the game, startup scene), `main.tscn`
   (CSG test room), `player.tscn`, creatures (`skeleton.tscn`,
-  `wizard.tscn`, `slime.tscn`), `orb.tscn` (wizard projectile),
-  `potion.tscn`, `hatch.tscn`
+  `wizard.tscn`, `slime.tscn`, `mush.tscn`), `orb.tscn` (wizard
+  projectile), pickups (`potion.tscn`, `sword_pickup.tscn`),
+  `hatch.tscn`
 - `scripts/` — one script per scene/system; `dungeon_generator.gd` is a
   static `class_name DungeonGenerator`
 - `resources/dungeon_tiles.tres` — hand-written MeshLibrary (BoxMesh +
@@ -66,6 +72,13 @@ rotated -90° on X, ~0.03 m above the floor surface.
   `,` wooden floor — may collapse into a hole behind the player) —
   the generator produces them, `dungeon.gd` instantiates them.
   Cell → world: `(x*2+1, y, z*2+1)`; floor walking surface is y = 0.5.
+- Ceilings are slabs at grid layer y = 1 over every walkable cell
+  (breaking a wooden wall must also lid the opened cell). They block
+  the directional light: interiors are lit by ambient + carried torch
+  only, and that darkness is intentional.
+- `RunState` autoload = everything that must survive scene reloads:
+  depth, kills, carried health, sword ownership. Descent keeps it,
+  death resets it. New persistent run state belongs there.
 - Holes live in a second GridMap (`HoleMap`, collision layer 2):
   they block bodies (characters use `collision_mask = 3`) but not
   sight rays or orbs, which query only layer 1.
@@ -79,8 +92,12 @@ rotated -90° on X, ~0.03 m above the floor surface.
   distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle →
   large 6 HP → splits at ≤3 HP into two smalls that re-merge on
   contact unless the player is within 5 m; also in group `"slimes"`
-  and dissolves potions it touches; flat puddle/splat sprites).
-  All leave persistent corpses and may drop potions (slimes don't).
+  and dissolves potions it touches), **mush family** (mush 8 HP →
+  two minis at ≤4; two full mushes within 1.2 m fuse into a mega —
+  14 HP cap, 2-damage hits, splits back at ≤7; 4 s merge cooldown
+  after any split; group `"mushes"`; mega never spawns naturally,
+  reserved as a future boss). All leave persistent corpses; only
+  skeletons and wizards drop potions.
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
 - Input actions (`project.godot`): `move_*`, `dash` (Space — short

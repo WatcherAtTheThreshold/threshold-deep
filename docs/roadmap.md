@@ -16,15 +16,19 @@ are cheap, and the dungeon is different every time.
 3. **Readable danger.** You can always tell what's about to hurt you —
    slow enemies, visible telegraphs, forgiving melee.
 
-## Where we are (2026-07-11)
+## Where we are (2026-07-11, evening)
 
 Full run loop, live: procedural dungeons (rooms + L-corridors →
-GridMap) with stone and wooden tiles — wooden walls break open into
-shortcuts (two hits), wooden floors collapse into impassable holes
-behind you. Three creatures with different verbs (skeleton, wizard,
-slime with split/merge lifecycle), Doom-style infighting, potions,
-hatch descent with depth scaling and carried health, death screen
-with run summary, floor-transition fades. Web export validated.
+GridMap) with stone and wooden tiles under stone ceilings — torch-lit
+interiors, wooden walls break open into shortcuts (two hits), wooden
+floors collapse into impassable holes behind you. Four creatures with
+different verbs (skeleton, wizard, slime that splits down, mush that
+fuses up into emergent megas), Doom-style infighting, potions, the
+sword (first Item: 2 damage, two-handed viewmodel), hatch descent
+with depth scaling and carried health/gear, death screen with run
+summary, floor fades. Movement is run + dash — deliberately no jump.
+First audio pass in (footstep loops per creature, positional; potion
+pickup). Web export validated. Playtest record: depth 14, 123 kills.
 
 ## Phases
 
@@ -69,16 +73,22 @@ Each phase is independently shippable and playtestable.
 - **Pedestal rooms** in the generator (special room type).
 - *Done when: two runs feel different because of what you found.*
 
-### Phase 5 — Juice
-- Sound (footsteps, swing, hits, ambient drips), torch flicker,
-  screen-shake on hits, main menu, pause.
+### Phase 5 — Juice (started 2026-07-11: first audio pass)
+- **Footsteps** ✅ (player flat loop; enemies/slimes positional 3D,
+  slime pitch by size) and **potion pickup** ✅.
+- Remaining sound: swing, hits, wooden wall crack/break, floor
+  collapse, orb, mush merge/split, ambient drips.
+- Torch flicker, screen-shake on hits, main menu, pause.
 - *Done when: someone else plays it without you explaining anything.*
 
 ### Interlude — the dungeon fights back ✅ 2026-07-11 (unplanned, Jessop's design)
 
 Breakable wooden walls (guaranteed shortcuts), wooden floor patches
 that collapse into holes behind the player, holes as a "wall you can
-see over" (block bodies, not sight or orbs).
+see over" (block bodies, not sight or orbs). Stone ceilings over
+every walkable cell — interiors lit by torch and ambient only.
+Jump removed in favor of a short dash (Space, ~1s cooldown) for a
+grounded, heavy underground feel.
 
 ## Parking lot (ideas, not commitments)
 

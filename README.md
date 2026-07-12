@@ -8,15 +8,17 @@ sprite creatures and items in a real 3D space, run-based structure.
 
 ## Status
 
-Playable roguelike loop: procedurally generated dungeons you descend
-through a hatch, with depth scaling and health carried between
-floors. Three hand-drawn creatures — skeletons (melee), wizards
-(dodgeable ranged orbs), slimes (split at half health, re-merge on
-contact, dissolve potions) — with Doom-style monster infighting.
-Breakable wooden walls open shortcuts; wooden floors collapse into
-holes behind you. Torch-swing melee (left click), hearts HUD, health
-potions, death screen with run summary. Press R in-game to reroll
-the floor.
+Playable roguelike loop: procedurally generated, torch-lit dungeons
+under stone ceilings, descended floor by floor through a hatch, with
+depth scaling and health and gear carried between floors. Four
+hand-drawn creature families — skeletons (melee), wizards (dodgeable
+ranged orbs), slimes (split at half health, re-merge, dissolve
+potions), and mushrooms (split into minis; two mushes that meet fuse
+into a mega) — with Doom-style monster infighting. Breakable wooden
+walls open shortcuts; wooden floors collapse into holes behind you.
+Torch melee, a findable sword (two-handed viewmodel), dash instead
+of jump, positional creature footsteps, hearts HUD, potions, death
+screen with run summary. Press R in-game to reroll the floor.
 
 ## Tech
 
