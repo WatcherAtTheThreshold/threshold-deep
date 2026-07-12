@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/viewmodel.gd" id="2_viewmodel"]
@@ -7,6 +7,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/player/footsteps_player.wav" id="5_steps"]
 [ext_resource type="Script" path="res://scripts/left_torch.gd" id="6_left_torch"]
 [ext_resource type="Texture2D" path="res://assets/sprites/left-hand-torch.png" id="7_left_tex"]
+[ext_resource type="FontFile" path="res://assets/fonts/PressStart2P-Regular.ttf" id="8_font"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_player"]
 radius = 0.4
@@ -45,12 +46,13 @@ mouse_filter = 2
 [node name="RunInfo" type="Label" parent="HUD"]
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -320.0
+offset_left = -420.0
 offset_top = 16.0
 offset_right = -16.0
 offset_bottom = 48.0
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("8_font")
+theme_override_font_sizes/font_size = 16
 
 [node name="Hearts" type="HBoxContainer" parent="HUD"]
 offset_left = 16.0
@@ -103,7 +105,8 @@ offset_bottom = -160.0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "YOU DIED"
-theme_override_font_sizes/font_size = 72
+theme_override_fonts/font = ExtResource("8_font")
+theme_override_font_sizes/font_size = 48
 theme_override_colors/font_color = Color(0.85, 0.2, 0.25, 1)
 
 [node name="KillerFace" type="TextureRect" parent="HUD"]
@@ -127,7 +130,8 @@ anchor_bottom = 1.0
 offset_top = 90.0
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 30
+theme_override_fonts/font = ExtResource("8_font")
+theme_override_font_sizes/font_size = 24
 theme_override_colors/font_color = Color(0.85, 0.55, 0.45, 1)
 
 [node name="DeathStats" type="Label" parent="HUD"]
@@ -137,5 +141,6 @@ anchor_bottom = 1.0
 offset_top = 250.0
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 24
+theme_override_fonts/font = ExtResource("8_font")
+theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)
