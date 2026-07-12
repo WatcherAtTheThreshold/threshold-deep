@@ -166,10 +166,10 @@ func _try_merge() -> void:
 
 
 func _split(child_state: State) -> void:
-	var h2 := health / 2
-	var h1 := health - h2
-	if h2 < 1:
-		return
+	# Splits never fizzle: children get at least 1 HP each, so the
+	# full cascade (mega → mushes → minis) always runs its course.
+	var h2 := maxi(health / 2, 1)
+	var h1 := maxi(health - h2, 1)
 	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/mush.tscn") as PackedScene).instantiate()

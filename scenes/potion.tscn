@@ -22,3 +22,9 @@ shaded = true
 alpha_cut = 1
 texture_filter = 0
 texture = ExtResource("2_texture")
+
+[node name="Glow" type="OmniLight3D" parent="."]
+position = Vector3(0, 0.4, 0)
+light_color = Color(1, 0.32, 0.35, 1)
+light_energy = 0.8
+omni_range = 2.8
