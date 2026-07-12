@@ -133,6 +133,7 @@ func _split(child_state: State) -> void:
 	var h1 := health - h2
 	if h2 < 1:
 		return
+	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/mush.tscn") as PackedScene).instantiate()
 	other.configure(child_state, h2, MERGE_COOLDOWN)
@@ -144,6 +145,24 @@ func _split(child_state: State) -> void:
 	merge_cooldown = MERGE_COOLDOWN
 	velocity += -side * 3.5
 	_apply_state()
+
+
+func _drop_splat() -> void:
+	# Every burst leaves the residue of the body that burst. Random
+	# spin for variety; slight height jitter so overlapping splats
+	# layer instead of z-fighting.
+	var splat := Sprite3D.new()
+	splat.texture = TEX_DEAD_MEGA if state == State.MEGA else TEX_DEAD_MUSH
+	splat.pixel_size = 0.03125
+	splat.shaded = true
+	splat.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	splat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	splat.rotation_degrees = Vector3(-90, randf() * 360.0, 0)
+	splat.position = Vector3(
+		global_position.x,
+		global_position.y - body_radius + 0.03 + randf() * 0.02,
+		global_position.z)
+	get_parent().add_child.call_deferred(splat)
 
 
 func _apply_state() -> void:
