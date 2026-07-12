@@ -24,6 +24,9 @@ func _physics_process(delta: float) -> void:
 		return
 	position += direction * SPEED * delta
 	sprite.texture = FRAME_A if int(time / FRAME_TIME) % 2 == 0 else FRAME_B
+	# Keep the flight sizzle going for as long as the orb lives.
+	if not $FlightSound.playing:
+		$FlightSound.play()
 
 
 func _on_body_entered(body: Node3D) -> void:

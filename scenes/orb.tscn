@@ -1,7 +1,8 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/orb.gd" id="1_orb"]
 [ext_resource type="Texture2D" path="res://assets/sprites/wizard_orb1.png" id="2_texture"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/projectile-wizard.wav" id="3_sound"]
 
 [sub_resource type="SphereShape3D" id="sphere_orb"]
 radius = 0.25
@@ -24,3 +25,9 @@ texture = ExtResource("2_texture")
 light_color = Color(0.45, 0.9, 1, 1)
 light_energy = 1.2
 omni_range = 3.5
+
+[node name="FlightSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3_sound")
+autoplay = true
+volume_db = -8.0
+max_distance = 14.0
