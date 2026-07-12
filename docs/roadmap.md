@@ -52,8 +52,13 @@ Each phase is independently shippable and playtestable.
   health → smalls re-merge unless the player is close; eats potions;
   first 32×32 creature.
 - **Spawn tables by depth**; monster infighting with grudge aggro.
-- **Unwired art waiting**: `assets/sprites/frogmen/`,
-  `assets/sprites/mush/` (mega/mini) — future creatures.
+- **Mush family** (2026-07-11): mush splits into two minis at half
+  health; two full mushes that meet fuse into a mega mush (splits
+  back into mushes when hurt; 4s re-merge cooldown after any split).
+  Mega never spawns naturally — reserved as a future boss. Mush
+  spawn rate climbs with depth, so deep floors breed megas.
+- **Unwired art waiting**: `assets/sprites/frogmen/` — in progress,
+  needs more work per Jessop.
 - *Done when: seeing a room's occupants changes how you enter it.* ✓
 
 ### Phase 4 — Things to find (started 2026-07-11: sword)

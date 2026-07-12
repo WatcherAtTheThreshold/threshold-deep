@@ -3,6 +3,7 @@ extends Node3D
 const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
 const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const SLIME_SCENE := preload("res://scenes/slime.tscn")
+const MUSH_SCENE := preload("res://scenes/mush.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
@@ -17,6 +18,8 @@ const EXTRA_SKELETON_CHANCE_PER_DEPTH := 0.15
 const WIZARD_CHANCE_PER_DEPTH := 0.15
 const WIZARD_CHANCE_MAX := 0.45
 const SLIME_CHANCE := 0.18
+const MUSH_CHANCE_PER_DEPTH := 0.04
+const MUSH_CHANCE_MAX := 0.25
 
 const WOOD_WALL_HITS := 2
 const FLOOR_COLLAPSE_CHANCE := 0.35
@@ -121,6 +124,8 @@ func _populate(rooms: Array[Rect2i]) -> void:
 		EXTRA_SKELETON_CHANCE_PER_DEPTH * (RunState.depth - 1), 0.6)
 	var wizard_chance := minf(
 		WIZARD_CHANCE_PER_DEPTH * (RunState.depth - 1), WIZARD_CHANCE_MAX)
+	var mush_chance := minf(
+		MUSH_CHANCE_PER_DEPTH * RunState.depth, MUSH_CHANCE_MAX)
 	for i in range(1, rooms.size()):
 		var spawn_cells: Array[Vector2i] = [rooms[i].get_center()]
 		if randf() < extra_chance:
@@ -132,6 +137,8 @@ func _populate(rooms: Array[Rect2i]) -> void:
 				enemy = WIZARD_SCENE.instantiate()
 			elif roll < wizard_chance + SLIME_CHANCE:
 				enemy = SLIME_SCENE.instantiate()
+			elif roll < wizard_chance + SLIME_CHANCE + mush_chance:
+				enemy = MUSH_SCENE.instantiate()
 			else:
 				enemy = SKELETON_SCENE.instantiate()
 			enemy.setup(RunState.depth)
