@@ -10,7 +10,6 @@ const SWAY_AMOUNT := 6.0
 
 var idle_texture: Texture2D = TORCH_IDLE
 var swing_texture: Texture2D = TORCH_SWING
-var is_sword := false
 var bob_time := 0.0
 var base_offset: Vector2
 var swing_offset := Vector2.ZERO
@@ -26,7 +25,6 @@ func _ready() -> void:
 
 func set_sword(equipped: bool) -> void:
 	# The right hand holds the best weapon; the torch moves left.
-	is_sword = equipped
 	idle_texture = SWORD_IDLE if equipped else TORCH_IDLE
 	swing_texture = SWORD_SWING if equipped else TORCH_SWING
 	texture = idle_texture
@@ -48,40 +46,19 @@ func _process(delta: float) -> void:
 
 
 func _on_attacked() -> void:
-	if is_sword:
-		_sword_thrust()
-	else:
-		_torch_swing()
-
-
-func _torch_swing() -> void:
-	# Swap to the drawn swing frame and arc toward screen center.
-	texture = swing_texture
+	# The jab, same for torch and sword: yank the weapon down toward
+	# off-screen, then piston it back up past rest with only a slight
+	# arc, then settle. Stabby, not sweepy.
 	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "swing_offset", Vector2(-36.0, -4.0), 0.07) \
+	tween.tween_property(self, "swing_offset", Vector2(10.0, 110.0), 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", -0.3, 0.07) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.22)
-	tween.parallel().tween_property(self, "rotation", 0.0, 0.22)
-	tween.chain().tween_callback(func() -> void: texture = idle_texture)
-
-
-func _sword_thrust() -> void:
-	# Three beats: pull back into the corner (anticipation), drive
-	# up-and-inward on the swing frame (rotation around the corner
-	# pivot sells the upward read without lifting the canvas edge),
-	# then settle home.
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "swing_offset", Vector2(16.0, 14.0), 0.07) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", 0.1, 0.07) \
+	tween.tween_property(self, "rotation", 0.05, 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(func() -> void: texture = swing_texture)
-	tween.chain().tween_property(self, "swing_offset", Vector2(-34.0, -10.0), 0.08) \
+	tween.chain().tween_property(self, "swing_offset", Vector2(-14.0, -10.0), 0.07) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "rotation", -0.28, 0.08) \
+	tween.parallel().tween_property(self, "rotation", -0.1, 0.07) \
 			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.24)
-	tween.parallel().tween_property(self, "rotation", 0.0, 0.24)
+	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.18)
+	tween.parallel().tween_property(self, "rotation", 0.0, 0.18)
 	tween.chain().tween_callback(func() -> void: texture = idle_texture)
