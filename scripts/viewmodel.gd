@@ -1,11 +1,15 @@
 extends TextureRect
 
-const IDLE_TEXTURE := preload("res://assets/sprites/hand-torch.png")
-const SWING_TEXTURE := preload("res://assets/sprites/hand-torch_swing.png")
+const TORCH_IDLE := preload("res://assets/sprites/hand-torch.png")
+const TORCH_SWING := preload("res://assets/sprites/hand-torch_swing.png")
+const SWORD_IDLE := preload("res://assets/sprites/hand-sword.png")
+const SWORD_SWING := preload("res://assets/sprites/hand-sword-swing.png")
 const SWAY_AMOUNT := 6.0
 
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
+var idle_texture: Texture2D = TORCH_IDLE
+var swing_texture: Texture2D = TORCH_SWING
 var bob_time := 0.0
 var base_offset: Vector2
 var swing_offset := Vector2.ZERO
@@ -15,10 +19,15 @@ func _ready() -> void:
 	# Remember how far from the window's bottom-right corner we start;
 	# the corner itself is recomputed live so resizing keeps us in it.
 	base_offset = Vector2(offset_left, offset_top)
-	# Pivot at the bottom-right corner: counterclockwise swing can then
-	# only tilt the canvas's cut bottom edge downward, never up into view.
 	pivot_offset = size
 	player.attacked.connect(_on_attacked)
+
+
+func set_sword(equipped: bool) -> void:
+	# The right hand holds the best weapon; the torch moves left.
+	idle_texture = SWORD_IDLE if equipped else TORCH_IDLE
+	swing_texture = SWORD_SWING if equipped else TORCH_SWING
+	texture = idle_texture
 
 
 func _process(delta: float) -> void:
@@ -27,7 +36,7 @@ func _process(delta: float) -> void:
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
 	# pivot_offset is the center for scaling too, so compensate for the
-	# up-left shift the 3x scale gets from a bottom-center pivot.
+	# up-left shift the 3x scale gets from the corner pivot.
 	var corner_base := get_viewport_rect().size + base_offset \
 			+ pivot_offset * (scale - Vector2.ONE)
 	position = corner_base + swing_offset + Vector2(
@@ -38,9 +47,7 @@ func _process(delta: float) -> void:
 
 func _on_attacked() -> void:
 	# Swap to the drawn swing frame and arc toward screen center.
-	# The frame already carries most of the tilt, so the code
-	# rotation stays subtle.
-	texture = SWING_TEXTURE
+	texture = swing_texture
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "swing_offset", Vector2(-36.0, -4.0), 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -48,4 +55,4 @@ func _on_attacked() -> void:
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.22)
 	tween.parallel().tween_property(self, "rotation", 0.0, 0.22)
-	tween.chain().tween_callback(func() -> void: texture = IDLE_TEXTURE)
+	tween.chain().tween_callback(func() -> void: texture = idle_texture)

@@ -15,6 +15,7 @@ const ATTACK_ARC_DEG := 55.0
 const INVULN_TIME := 1.0
 
 var health := MAX_HEALTH
+var attack_damage := 1
 var attack_timer := 0.0
 var invuln_timer := 0.0
 var controls_enabled := true
@@ -28,6 +29,18 @@ func _ready() -> void:
 	if RunState.carried_health > 0:
 		health = RunState.carried_health
 		health_changed.emit(health, MAX_HEALTH)
+	_apply_loadout()
+
+
+func pickup_sword() -> void:
+	RunState.has_sword = true
+	_apply_loadout()
+
+
+func _apply_loadout() -> void:
+	attack_damage = 2 if RunState.has_sword else 1
+	$HUD/HandTorch.set_sword(RunState.has_sword)
+	$HUD/LeftTorch.visible = RunState.has_sword
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -106,7 +119,7 @@ func _attack() -> void:
 		to.y = 0.0
 		if to.length() <= ATTACK_RANGE \
 				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
-			enemy.take_damage(1, to.normalized(), self)
+			enemy.take_damage(attack_damage, to.normalized(), self)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable.
 	var from := camera.global_position

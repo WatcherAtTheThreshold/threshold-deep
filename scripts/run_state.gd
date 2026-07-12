@@ -9,6 +9,7 @@ signal changed
 var depth := 1
 var kills := 0
 var carried_health := -1  # -1 = fresh run, spawn with full hearts
+var has_sword := false
 
 
 func record_kill() -> void:
@@ -27,4 +28,5 @@ func reset() -> void:
 	depth = 1
 	kills = 0
 	carried_health = -1
+	has_sword = false
 	changed.emit()

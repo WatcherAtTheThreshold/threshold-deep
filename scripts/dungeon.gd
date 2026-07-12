@@ -5,6 +5,7 @@ const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const SLIME_SCENE := preload("res://scenes/slime.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
+const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -144,7 +145,23 @@ func _populate(rooms: Array[Rect2i]) -> void:
 			var potion := POTION_SCENE.instantiate()
 			potion.position = _cell_to_world(potion_cell, 0.5)
 			add_child(potion)
+	_place_sword(rooms)
 	_place_hatch(rooms)
+
+
+func _place_sword(rooms: Array[Rect2i]) -> void:
+	# One sword somewhere on every floor — until it's claimed, then
+	# never again this run. Death resets it with the rest of RunState.
+	if RunState.has_sword:
+		return
+	var idx := 0 if rooms.size() == 1 else randi_range(1, rooms.size() - 1)
+	var room := rooms[idx]
+	var cell := room.position + Vector2i(
+		randi_range(0, room.size.x - 1),
+		randi_range(0, room.size.y - 1))
+	var sword := SWORD_SCENE.instantiate()
+	sword.position = _cell_to_world(cell, 0.5)
+	add_child(sword)
 
 
 func _place_hatch(rooms: Array[Rect2i]) -> void:
