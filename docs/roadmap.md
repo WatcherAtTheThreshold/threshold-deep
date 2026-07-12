@@ -63,8 +63,8 @@ Each phase is independently shippable and playtestable.
   spawn rate climbs with depth, so deep floors breed megas.
 - **Frogman** (2026-07-12): two frogs in a trenchcoat. Melee chaser;
   at low HP an invulnerable 0.7 s coat-off reveal, then splits
-  one-way into a hopping frog and a toad. Depth 3+. Corpse art
-  pending (frog/toad fade out).
+  one-way into a hopping frog and a toad, leaving the crumpled coat
+  on the floor. Depth 3+. Full art including corpses.
 - *Done when: seeing a room's occupants changes how you enter it.* ✓
 
 ### Phase 4 — Things to find (started 2026-07-11: sword)

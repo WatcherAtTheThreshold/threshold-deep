@@ -9,6 +9,9 @@ const TEX_FROG_1 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog1.p
 const TEX_FROG_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog2.png")
 const TEX_TOAD_1 := preload("res://assets/sprites/frogmen/frogmen-phase2/toad1.png")
 const TEX_TOAD_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/toad2.png")
+const TEX_COAT := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen-dead.png")
+const TEX_FROG_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_dead.png")
+const TEX_TOAD_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_dead.png")
 const WALK_FRAME_TIME := 0.3
 
 const COATED_HEALTH := 7
@@ -131,6 +134,16 @@ func _start_reveal() -> void:
 
 
 func _split() -> void:
+	# The crumpled coat stays where the secret came out.
+	var coat := Sprite3D.new()
+	coat.texture = TEX_COAT
+	coat.pixel_size = 0.03125
+	coat.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	coat.shaded = true
+	coat.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	coat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	coat.position = global_position + Vector3(0, 0.1, 0)
+	get_parent().add_child.call_deferred(coat)
 	# The frog (this body) and the toad go their separate ways.
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var toad: CharacterBody3D = (load("res://scenes/frogman.tscn") as PackedScene).instantiate()
@@ -208,14 +221,13 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 
 
 func _die(by_player: bool) -> void:
-	# No corpse art yet — fade and sink until frog/toad splats exist.
+	# The corpse stays: frog or toad, collapsed where it fell.
 	dead = true
 	step_sound.stop()
 	if by_player:
 		RunState.record_kill()
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(sprite, "modulate:a", 0.0, 0.6)
-	tween.tween_property(sprite, "position:y", sprite.position.y - 0.6, 0.6)
-	tween.chain().tween_callback(queue_free)
+	velocity = Vector3.ZERO
+	sprite.modulate = Color.WHITE
+	sprite.texture = TEX_FROG_DEAD if state == State.FROG else TEX_TOAD_DEAD

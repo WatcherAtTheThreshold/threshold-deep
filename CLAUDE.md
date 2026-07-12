@@ -100,8 +100,9 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   reserved as a future boss), **frogman** (trenchcoat, 7 HP, depth
   3+; at ≤3 HP freezes invulnerable for a 0.7 s coat-off reveal,
   then splits one-way into a hopping frog (2 HP, lunge-rest cycle)
-  and a toad (3 HP)). All leave persistent corpses except frog/toad
-  (fade, corpse art pending); only skeletons and wizards drop potions.
+  and a toad (3 HP), leaving the crumpled coat behind as a prop).
+  All creatures leave persistent corpses; only skeletons and wizards
+  drop potions.
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
 - Input actions (`project.godot`): `move_*`, `dash` (Space — short
