@@ -155,6 +155,7 @@ func _merge() -> void:
 
 
 func _split(h1: int, h2: int) -> void:
+	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/slime.tscn") as PackedScene).instantiate()
 	other.make_small(h2, self)
@@ -166,6 +167,24 @@ func _split(h1: int, h2: int) -> void:
 	health = h1
 	velocity += -side * 3.0
 	_apply_state()
+
+
+func _drop_splat() -> void:
+	# The burst leaves residue where it happened, same as the mushes.
+	# Random spin for variety; slight height jitter so overlapping
+	# splats layer instead of z-fighting.
+	var splat := Sprite3D.new()
+	splat.texture = TEX_DEAD
+	splat.pixel_size = 0.03125
+	splat.shaded = true
+	splat.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	splat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	splat.rotation_degrees = Vector3(-90, randf() * 360.0, 0)
+	splat.position = Vector3(
+		global_position.x,
+		global_position.y - 0.5 + 0.03 + randf() * 0.02,
+		global_position.z)
+	get_parent().add_child.call_deferred(splat)
 
 
 func _apply_state() -> void:
