@@ -79,17 +79,25 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   the directional light: interiors are lit by ambient + carried torch
   only, and that darkness is intentional.
 - `RunState` autoload = everything that must survive scene reloads:
-  depth, kills, carried health, sword ownership. Descent keeps it,
-  death resets it. New persistent run state belongs there.
+  depth, kills (total + per-creature tally), damage dealt/taken,
+  carried health, sword ownership, and the killer's name + sprite
+  for the death report. Descent keeps it, death resets it. New
+  persistent run state belongs there.
 - Holes live in a second GridMap (`HoleMap`, collision layer 2):
   they block bodies (characters use `collision_mask = 3`) but not
   sight rays or orbs, which query only layer 1.
 - Enemies: `CharacterBody3D` in group `"enemies"` with
   `take_damage(amount, push_dir, attacker = null)`. Damage from
   another enemy switches aggro to the attacker (Doom-style
-  infighting) until that grudge target dies; only player kills
-  increment `RunState.kills`. Player is in group `"player"`,
-  class `Player`.
+  infighting) until that grudge target dies; only player kills count.
+  Every enemy implements `kill_label()` (state-aware display name)
+  and passes it to `RunState.record_kill()`; the fatal blow against
+  the player records the attacker's label + current sprite for the
+  death report. Player is in group `"player"`, class `Player`.
+- **Aftermath is the art style**: every death and split leaves
+  persistent bright residue (billboard corpses, flat splats with
+  random spin + height jitter, the frogman's coat). New creatures
+  and events should always answer "what does it leave behind?"
 - Bestiary: **skeleton** (melee chaser, 3 HP), **wizard** (keeps
   distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle →
   large 6 HP → splits at ≤3 HP into two smalls that re-merge on

@@ -10,15 +10,19 @@ sprite creatures and items in a real 3D space, run-based structure.
 
 Playable roguelike loop: procedurally generated, torch-lit dungeons
 under stone ceilings, descended floor by floor through a hatch, with
-depth scaling and health and gear carried between floors. Four
+depth scaling and health and gear carried between floors. Five
 hand-drawn creature families — skeletons (melee), wizards (dodgeable
 ranged orbs), slimes (split at half health, re-merge, dissolve
-potions), and mushrooms (split into minis; two mushes that meet fuse
-into a mega) — with Doom-style monster infighting. Breakable wooden
+potions), mushrooms (split into minis; mushes actively seek each
+other to fuse into a mega), and frogmen (two frogs in a trenchcoat:
+coat-off reveal, then a hopping frog and a toad) — with Doom-style
+monster infighting. Every death and split leaves persistent bright
+remains: corpses, goo splats, a crumpled coat. Breakable wooden
 walls open shortcuts; wooden floors collapse into holes behind you.
-Torch melee, a findable sword (two-handed viewmodel), dash instead
-of jump, positional creature footsteps, hearts HUD, potions, death
-screen with run summary. Press R in-game to reroll the floor.
+Torch and sword jab attacks, dash instead of jump, positional
+creature footsteps, hearts HUD, potions, and a death report naming
+(and picturing) your killer with full run stats, in a pixel UI font.
+Press R in-game to reroll the floor.
 
 ## Tech
 

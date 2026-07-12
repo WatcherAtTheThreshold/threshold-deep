@@ -16,19 +16,26 @@ are cheap, and the dungeon is different every time.
 3. **Readable danger.** You can always tell what's about to hurt you —
    slow enemies, visible telegraphs, forgiving melee.
 
-## Where we are (2026-07-11, evening)
+## Where we are (2026-07-12)
 
 Full run loop, live: procedural dungeons (rooms + L-corridors →
 GridMap) with stone and wooden tiles under stone ceilings — torch-lit
 interiors, wooden walls break open into shortcuts (two hits), wooden
-floors collapse into impassable holes behind you. Four creatures with
-different verbs (skeleton, wizard, slime that splits down, mush that
-fuses up into emergent megas), Doom-style infighting, potions, the
-sword (first Item: 2 damage, two-handed viewmodel), hatch descent
-with depth scaling and carried health/gear, death screen with run
-summary, floor fades. Movement is run + dash — deliberately no jump.
-First audio pass in (footstep loops per creature, positional; potion
-pickup). Web export validated. Playtest record: depth 14, 123 kills.
+floors collapse into impassable holes behind you. Five creature
+families, each with its own verb: skeleton (rush), wizard (ranged,
+telegraphed), slime (splits down, re-merges), mush (fuses up into
+emergent megas, actively seeks kin), frogman (two frogs in a
+trenchcoat — coat-off reveal, then a hopping frog and a toad).
+Doom-style infighting. The signature look: every death and split
+leaves persistent bright residue — corpses, splats, puddles, a
+crumpled coat — battle aftermath accumulating on drab stone.
+Torch/sword jab attacks (pull down, piston back), the sword as first
+Item, hatch descent with depth scaling and carried health/gear,
+dash instead of jump. Death report: killer portrait and name, depth,
+kills, damage dealt/taken, per-creature tally, held 4 s. UI text in
+Press Start 2P. Audio: per-creature positional footstep loops,
+potion pickup, orb flight. Web export validated. Playtest record:
+depth 14, 123 kills.
 
 ## Phases
 
@@ -75,11 +82,14 @@ Each phase is independently shippable and playtestable.
 - **Pedestal rooms** in the generator (special room type).
 - *Done when: two runs feel different because of what you found.*
 
-### Phase 5 — Juice (started 2026-07-11: first audio pass)
+### Phase 5 — Juice (started 2026-07-11)
 - **Footsteps** ✅ (player flat loop; enemies/slimes positional 3D,
-  slime pitch by size) and **potion pickup** ✅.
+  slime pitch by size), **potion pickup** ✅, **orb flight** ✅.
+- **Pixel UI font** ✅ (Press Start 2P, bundled + OFL).
+- **Death report** ✅ (killer portrait/name, damage dealt/taken,
+  per-creature kill tally).
 - Remaining sound: swing, hits, wooden wall crack/break, floor
-  collapse, orb, mush merge/split, ambient drips.
+  collapse, mush merge/split, frogman reveal, ambient drips.
 - Torch flicker, screen-shake on hits, main menu, pause.
 - *Done when: someone else plays it without you explaining anything.*
 
