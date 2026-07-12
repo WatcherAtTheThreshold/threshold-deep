@@ -8,7 +8,9 @@ const TEX_MUSH_1 := preload("res://assets/sprites/mush/mush/mush1.png")
 const TEX_MUSH_2 := preload("res://assets/sprites/mush/mush/mush2.png")
 const TEX_MINI_1 := preload("res://assets/sprites/mush/mini-mush/mini-mush1.png")
 const TEX_MINI_2 := preload("res://assets/sprites/mush/mini-mush/mini-mush2.png")
-const TEX_DEAD := preload("res://assets/sprites/mush/mush_dead.png")
+const TEX_DEAD_MEGA := preload("res://assets/sprites/mush/mega-mush/mega_mush_dead.png")
+const TEX_DEAD_MUSH := preload("res://assets/sprites/mush/mush/mush_dead.png")
+const TEX_DEAD_MINI := preload("res://assets/sprites/mush/mini-mush/mini_mush_dead.png")
 const WALK_FRAME_TIME := 0.28
 
 const MUSH_MAX_HEALTH := 8
@@ -226,4 +228,10 @@ func _die(by_player: bool) -> void:
 	# Body center rests at floor + radius; park the splat just above
 	# the floor surface.
 	sprite.position = Vector3(0, 0.03 - body_radius, 0)
-	sprite.texture = TEX_DEAD
+	match state:
+		State.MEGA:
+			sprite.texture = TEX_DEAD_MEGA
+		State.MUSH:
+			sprite.texture = TEX_DEAD_MUSH
+		State.MINI:
+			sprite.texture = TEX_DEAD_MINI
