@@ -61,6 +61,16 @@ func setup(depth: int) -> void:
 	speed_scale = 1.0 + minf(0.04 * (depth - 1), 0.4)
 
 
+func kill_label() -> String:
+	match state:
+		State.FROG:
+			return "Frog"
+		State.TOAD:
+			return "Toad"
+		_:
+			return "Frogman"
+
+
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
@@ -225,7 +235,7 @@ func _die(by_player: bool) -> void:
 	dead = true
 	step_sound.stop()
 	if by_player:
-		RunState.record_kill()
+		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
 	velocity = Vector3.ZERO

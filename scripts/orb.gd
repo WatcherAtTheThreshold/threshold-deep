@@ -33,7 +33,8 @@ func _on_body_entered(body: Node3D) -> void:
 	if body == shooter:
 		return
 	if body is Player:
-		body.take_damage(1, direction)
+		# Credit the wizard who cast it.
+		body.take_damage(1, direction, shooter if is_instance_valid(shooter) else null)
 	elif body.is_in_group("enemies"):
 		# Friendly fire: a stray orb starts an infight.
 		body.take_damage(1, direction, shooter)

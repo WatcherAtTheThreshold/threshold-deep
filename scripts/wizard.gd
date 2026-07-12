@@ -93,6 +93,10 @@ func setup(depth: int) -> void:
 	cast_cooldown = maxf(BASE_CAST_COOLDOWN - 0.08 * (depth - 1), 1.4)
 
 
+func kill_label() -> String:
+	return "Wizard"
+
+
 func _get_target() -> PhysicsBody3D:
 	# A grudge holds only while its object stands; otherwise, the player.
 	if target != null and is_instance_valid(target) and not target.get("dead"):
@@ -137,7 +141,7 @@ func _die(by_player: bool) -> void:
 	dead = true
 	step_sound.stop()
 	if by_player:
-		RunState.record_kill()
+		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.texture = DEAD_TEXTURE

@@ -60,6 +60,16 @@ func setup(depth: int) -> void:
 	speed_scale = 1.0 + minf(0.04 * (depth - 1), 0.4)
 
 
+func kill_label() -> String:
+	match state:
+		State.MEGA:
+			return "Mega Mush"
+		State.MINI:
+			return "Mini-Mush"
+		_:
+			return "Mush"
+
+
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
@@ -263,7 +273,7 @@ func _die(by_player: bool) -> void:
 	dead = true
 	step_sound.stop()
 	if by_player:
-		RunState.record_kill()
+		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
 	remove_from_group("mushes")
 	$CollisionShape3D.set_deferred("disabled", true)

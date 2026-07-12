@@ -137,6 +137,7 @@ func _attack() -> void:
 		if to.length() <= ATTACK_RANGE \
 				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
 			enemy.take_damage(attack_damage, to.normalized(), self)
+			RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable.
 	var from := camera.global_position
@@ -157,14 +158,25 @@ func heal(amount: int) -> bool:
 	return true
 
 
-func take_damage(amount: int, push_dir: Vector3, _attacker: PhysicsBody3D = null) -> void:
+func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
 		return
 	invuln_timer = INVULN_TIME
 	health = maxi(health - amount, 0)
+	RunState.record_damage_taken(amount)
 	health_changed.emit(health, MAX_HEALTH)
 	velocity += push_dir * 5.0 + Vector3.UP * 2.5
 	if health == 0:
+		# Remember who did this — name and face — for the death screen.
+		var killer_label := "the Dungeon"
+		var killer_tex: Texture2D = null
+		if attacker != null and is_instance_valid(attacker):
+			if attacker.has_method("kill_label"):
+				killer_label = attacker.kill_label()
+			var attacker_sprite: Sprite3D = attacker.get_node_or_null("Sprite")
+			if attacker_sprite != null:
+				killer_tex = attacker_sprite.texture
+		RunState.set_killer(killer_label, killer_tex)
 		controls_enabled = false
 		died.emit()
 

@@ -99,18 +99,43 @@ mouse_filter = 2
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_bottom = -160.0
 horizontal_alignment = 1
 vertical_alignment = 1
 text = "YOU DIED"
 theme_override_font_sizes/font_size = 72
 theme_override_colors/font_color = Color(0.85, 0.2, 0.25, 1)
 
+[node name="KillerFace" type="TextureRect" parent="HUD"]
+visible = false
+texture_filter = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -48.0
+offset_top = -70.0
+offset_right = 48.0
+offset_bottom = 26.0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DeathCause" type="Label" parent="HUD"]
+visible = false
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 90.0
+horizontal_alignment = 1
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.85, 0.55, 0.45, 1)
+
 [node name="DeathStats" type="Label" parent="HUD"]
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 130.0
+offset_top = 250.0
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 30
+theme_override_font_sizes/font_size = 24
 theme_override_colors/font_color = Color(0.8, 0.75, 0.7, 1)
