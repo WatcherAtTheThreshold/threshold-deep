@@ -8,6 +8,7 @@ const FROGMAN_SCENE := preload("res://scenes/frogman.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
+const SWORD_TRIGGER_SCENE := preload("res://scenes/sword_trigger.tscn")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -37,6 +38,7 @@ var ceiling_id := -1
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
+var floor_rooms: Array[Rect2i] = []
 
 @onready var grid_map: GridMap = $GridMap
 @onready var hole_map: GridMap = $HoleMap
@@ -161,17 +163,39 @@ func _populate(rooms: Array[Rect2i]) -> void:
 			var potion := POTION_SCENE.instantiate()
 			potion.position = _cell_to_world(potion_cell, 0.5)
 			add_child(potion)
-	_place_sword(rooms)
+	floor_rooms = rooms
+	_place_sword_trigger(rooms)
 	_place_hatch(rooms)
 
 
-func _place_sword(rooms: Array[Rect2i]) -> void:
-	# One sword somewhere on every floor — until it's claimed, then
-	# never again this run. Death resets it with the rest of RunState.
+func _place_sword_trigger(rooms: Array[Rect2i]) -> void:
+	# The sword hunt has two stages: find the trigger plate, step on
+	# it, then find the sword it summons elsewhere on the floor. A
+	# fresh plate appears every floor until the sword is claimed;
+	# death resets it with the rest of RunState.
 	if RunState.has_sword:
 		return
 	var idx := 0 if rooms.size() == 1 else randi_range(1, rooms.size() - 1)
 	var room := rooms[idx]
+	var cell := room.position + Vector2i(
+		randi_range(0, room.size.x - 1),
+		randi_range(0, room.size.y - 1))
+	var trigger := SWORD_TRIGGER_SCENE.instantiate()
+	trigger.position = _cell_to_world(cell, 0.5)
+	trigger.activated.connect(_spawn_triggered_sword.bind(idx))
+	add_child(trigger)
+
+
+func _spawn_triggered_sword(trigger_room_idx: int) -> void:
+	# Somewhere else: any room but the plate's own, when possible.
+	var candidates: Array[int] = []
+	for i in floor_rooms.size():
+		if i != trigger_room_idx:
+			candidates.append(i)
+	var idx := trigger_room_idx
+	if candidates.size() > 0:
+		idx = candidates[randi_range(0, candidates.size() - 1)]
+	var room := floor_rooms[idx]
 	var cell := room.position + Vector2i(
 		randi_range(0, room.size.x - 1),
 		randi_range(0, room.size.y - 1))

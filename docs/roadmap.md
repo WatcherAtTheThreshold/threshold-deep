@@ -75,8 +75,10 @@ Each phase is independently shippable and playtestable.
 - *Done when: seeing a room's occupants changes how you enter it.* ✓
 
 ### Phase 4 — Things to find (started 2026-07-11: sword)
-- **Sword** ✅: floor pickup (one per floor until claimed, per run),
-  2 damage, moves the torch to the left hand; two-handed viewmodel.
+- **Sword** ✅: two-stage hunt — step on a trigger plate to summon
+  the sword elsewhere on the floor (a fresh plate spawns each floor
+  until claimed, per run). 2 damage, planted-in-stone pickup, moves
+  the torch to the left hand; two-handed viewmodel.
 - **Items**: torch upgrades (light radius), weapons (swing arc/damage),
   Isaac-style stat trinkets. *Art: 32×32 item sprites.*
 - **Pedestal rooms** in the generator (special room type).
