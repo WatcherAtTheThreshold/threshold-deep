@@ -72,14 +72,16 @@ func _physics_process(delta: float) -> void:
 		_try_merge()
 
 	var t := _get_target()
-	var to_target := t.global_position - global_position
-	to_target.y = 0.0
-	var dist := to_target.length()
-	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
+	var goal := _pick_goal(t)
+	var to_goal := goal.global_position - global_position
+	to_goal.y = 0.0
+	var dist := to_goal.length()
+	var sight := SIGHT_RANGE if goal == player else INFIGHT_SIGHT_RANGE
 
-	if dist < sight and _can_see(t):
-		if dist > ATTACK_RANGE:
-			var dir := to_target.normalized()
+	if dist < sight and _can_see(goal):
+		if goal != t or dist > ATTACK_RANGE:
+			# Walking toward a merge mate, or closing on a target.
+			var dir := to_goal.normalized()
 			velocity.x = dir.x * speed * speed_scale
 			velocity.z = dir.z * speed * speed_scale
 		else:
@@ -87,7 +89,7 @@ func _physics_process(delta: float) -> void:
 			velocity.z = 0.0
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
-				t.take_damage(damage, to_target.normalized(), self)
+				t.take_damage(damage, to_goal.normalized(), self)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
@@ -104,6 +106,31 @@ func _physics_process(delta: float) -> void:
 		step_sound.play()
 	elif not moving and step_sound.playing:
 		step_sound.stop()
+
+
+func _pick_goal(t: PhysicsBody3D) -> PhysicsBody3D:
+	# Union over war: an unhurried mush would rather find its kin and
+	# fuse than fight. Pain (a grudge target) overrides that.
+	if t == player and state == State.MUSH and merge_cooldown == 0.0:
+		var mate := _find_merge_mate()
+		if mate != null:
+			return mate
+	return t
+
+
+func _find_merge_mate() -> PhysicsBody3D:
+	var best: PhysicsBody3D = null
+	var best_dist := INF
+	for other in get_tree().get_nodes_in_group("mushes"):
+		if other == self or not is_instance_valid(other):
+			continue
+		if other.dead or other.state != State.MUSH or other.merge_cooldown > 0.0:
+			continue
+		var d: float = (other.global_position - global_position).length()
+		if d < best_dist and d < INFIGHT_SIGHT_RANGE and _can_see(other):
+			best_dist = d
+			best = other
+	return best
 
 
 func _try_merge() -> void:

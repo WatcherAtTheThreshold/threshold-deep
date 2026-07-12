@@ -94,7 +94,8 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   large 6 HP → splits at ≤3 HP into two smalls that re-merge on
   contact unless the player is within 5 m; also in group `"slimes"`
   and dissolves potions it touches), **mush family** (mush 8 HP →
-  two minis at ≤4; two full mushes within 1.2 m fuse into a mega —
+  two minis at ≤4; mushes actively seek visible kin to fuse with —
+  grudges override; two full mushes within 1.2 m fuse into a mega —
   14 HP cap, 2-damage hits, splits back at ≤7; 4 s merge cooldown
   after any split; group `"mushes"`; mega never spawns naturally,
   reserved as a future boss), **frogman** (trenchcoat, 7 HP, depth
