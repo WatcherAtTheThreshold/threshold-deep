@@ -61,8 +61,10 @@ Each phase is independently shippable and playtestable.
   back into mushes when hurt; 4s re-merge cooldown after any split).
   Mega never spawns naturally — reserved as a future boss. Mush
   spawn rate climbs with depth, so deep floors breed megas.
-- **Unwired art waiting**: `assets/sprites/frogmen/` — in progress,
-  needs more work per Jessop.
+- **Frogman** (2026-07-12): two frogs in a trenchcoat. Melee chaser;
+  at low HP an invulnerable 0.7 s coat-off reveal, then splits
+  one-way into a hopping frog and a toad. Depth 3+. Corpse art
+  pending (frog/toad fade out).
 - *Done when: seeing a room's occupants changes how you enter it.* ✓
 
 ### Phase 4 — Things to find (started 2026-07-11: sword)

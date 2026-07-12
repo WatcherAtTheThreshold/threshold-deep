@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cp4k1luqr3ldx"
-path="res://.godot/imported/frogmen-down3.png-9df92ce8ccf8b10f88c45ade3df8fe60.ctex"
+uid="uid://ddrud3xrb5838"
+path="res://.godot/imported/frogmen-phase-stransition.png-6b2f62e9633a1c2b3611265e2d0ed7b2.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/frogmen/frogmen-down3.png"
-dest_files=["res://.godot/imported/frogmen-down3.png-9df92ce8ccf8b10f88c45ade3df8fe60.ctex"]
+source_file="res://assets/sprites/frogmen/frogmen-phase-stransition.png"
+dest_files=["res://.godot/imported/frogmen-phase-stransition.png-6b2f62e9633a1c2b3611265e2d0ed7b2.ctex"]
 
 [params]
 

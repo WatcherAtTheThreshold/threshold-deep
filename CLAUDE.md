@@ -54,7 +54,8 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 
 - `scenes/` — `dungeon.tscn` (the game, startup scene), `main.tscn`
   (CSG test room), `player.tscn`, creatures (`skeleton.tscn`,
-  `wizard.tscn`, `slime.tscn`, `mush.tscn`), `orb.tscn` (wizard
+  `wizard.tscn`, `slime.tscn`, `mush.tscn`, `frogman.tscn`),
+  `orb.tscn` (wizard
   projectile), pickups (`potion.tscn`, `sword_pickup.tscn`),
   `hatch.tscn`
 - `scripts/` — one script per scene/system; `dungeon_generator.gd` is a
@@ -96,8 +97,11 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   two minis at ≤4; two full mushes within 1.2 m fuse into a mega —
   14 HP cap, 2-damage hits, splits back at ≤7; 4 s merge cooldown
   after any split; group `"mushes"`; mega never spawns naturally,
-  reserved as a future boss). All leave persistent corpses; only
-  skeletons and wizards drop potions.
+  reserved as a future boss), **frogman** (trenchcoat, 7 HP, depth
+  3+; at ≤3 HP freezes invulnerable for a 0.7 s coat-off reveal,
+  then splits one-way into a hopping frog (2 HP, lunge-rest cycle)
+  and a toad (3 HP)). All leave persistent corpses except frog/toad
+  (fade, corpse art pending); only skeletons and wizards drop potions.
 - Player melee is a forgiving arc check against the enemies group —
   no physics areas involved.
 - Input actions (`project.godot`): `move_*`, `dash` (Space — short

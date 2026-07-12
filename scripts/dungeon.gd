@@ -4,6 +4,7 @@ const SKELETON_SCENE := preload("res://scenes/skeleton.tscn")
 const WIZARD_SCENE := preload("res://scenes/wizard.tscn")
 const SLIME_SCENE := preload("res://scenes/slime.tscn")
 const MUSH_SCENE := preload("res://scenes/mush.tscn")
+const FROGMAN_SCENE := preload("res://scenes/frogman.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
@@ -20,6 +21,9 @@ const WIZARD_CHANCE_MAX := 0.45
 const SLIME_CHANCE := 0.18
 const MUSH_CHANCE_PER_DEPTH := 0.04
 const MUSH_CHANCE_MAX := 0.25
+const FROGMAN_CHANCE_PER_DEPTH := 0.06
+const FROGMAN_CHANCE_MAX := 0.18
+const FROGMAN_MIN_DEPTH := 3
 
 const WOOD_WALL_HITS := 2
 const FLOOR_COLLAPSE_CHANCE := 0.35
@@ -126,6 +130,9 @@ func _populate(rooms: Array[Rect2i]) -> void:
 		WIZARD_CHANCE_PER_DEPTH * (RunState.depth - 1), WIZARD_CHANCE_MAX)
 	var mush_chance := minf(
 		MUSH_CHANCE_PER_DEPTH * RunState.depth, MUSH_CHANCE_MAX)
+	var frogman_chance := minf(
+		FROGMAN_CHANCE_PER_DEPTH * maxf(RunState.depth - FROGMAN_MIN_DEPTH + 1, 0.0),
+		FROGMAN_CHANCE_MAX)
 	for i in range(1, rooms.size()):
 		var spawn_cells: Array[Vector2i] = [rooms[i].get_center()]
 		if randf() < extra_chance:
@@ -139,6 +146,8 @@ func _populate(rooms: Array[Rect2i]) -> void:
 				enemy = SLIME_SCENE.instantiate()
 			elif roll < wizard_chance + SLIME_CHANCE + mush_chance:
 				enemy = MUSH_SCENE.instantiate()
+			elif roll < wizard_chance + SLIME_CHANCE + mush_chance + frogman_chance:
+				enemy = FROGMAN_SCENE.instantiate()
 			else:
 				enemy = SKELETON_SCENE.instantiate()
 			enemy.setup(RunState.depth)

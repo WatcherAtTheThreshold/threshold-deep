@@ -1,0 +1,31 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/frogman.gd" id="1_frogman"]
+[ext_resource type="Texture2D" path="res://assets/sprites/frogmen/frogmen-phase1/frogmen-front1.png" id="2_texture"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/footsteps_enemies.wav" id="3_steps"]
+
+[sub_resource type="CapsuleShape3D" id="capsule_frogman"]
+radius = 0.5
+height = 1.8
+
+[node name="Frogman" type="CharacterBody3D" groups=["enemies"]]
+
+collision_mask = 3
+script = ExtResource("1_frogman")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("capsule_frogman")
+
+[node name="StepSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3_steps")
+volume_db = -6.0
+max_distance = 18.0
+
+[node name="Sprite" type="Sprite3D" parent="."]
+position = Vector3(0, 0.1, 0)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_texture")

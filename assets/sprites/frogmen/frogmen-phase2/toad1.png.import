@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://6gjhqri78vr5"
-path="res://.godot/imported/frogmen3.png-748fc1bbc9bd8491428198d9875149d7.ctex"
+uid="uid://dnp15h8l73xvh"
+path="res://.godot/imported/toad1.png-3e0453fba283e557a4a62dc24d1f5809.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/frogmen/frogmen3.png"
-dest_files=["res://.godot/imported/frogmen3.png-748fc1bbc9bd8491428198d9875149d7.ctex"]
+source_file="res://assets/sprites/frogmen/frogmen-phase2/toad1.png"
+dest_files=["res://.godot/imported/toad1.png-3e0453fba283e557a4a62dc24d1f5809.ctex"]
 
 [params]
 
