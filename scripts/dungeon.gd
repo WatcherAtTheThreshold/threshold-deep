@@ -112,7 +112,8 @@ func _physics_process(_delta: float) -> void:
 	var cell := _player_cell()
 	if cell != last_player_cell:
 		if grid_map.get_cell_item(last_player_cell) == floor_wood_id \
-				and randf() < FLOOR_COLLAPSE_CHANCE:
+				and randf() < FLOOR_COLLAPSE_CHANCE \
+				and _player_keeps_path_to_stone(last_player_cell, cell):
 			grid_map.set_cell_item(last_player_cell, GridMap.INVALID_CELL_ITEM)
 			hole_map.set_cell_item(last_player_cell, hole_id)
 		last_player_cell = cell
@@ -163,6 +164,33 @@ func _unhandled_input(event: InputEvent) -> void:
 		if fight_active:
 			return
 		get_tree().reload_current_scene()
+
+
+func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i) -> bool:
+	# The plank that holds: a collapse is suppressed if it would cut
+	# the player off from all stone. The gen-time proof covers the
+	# stone graph; this covers a player who wanders onto the wooden
+	# region and burns it behind themselves.
+	var start := Vector2i(player_cell.x, player_cell.z)
+	var banned := Vector2i(collapse_cell.x, collapse_cell.z)
+	var visited := {start: true}
+	var queue: Array[Vector2i] = [start]
+	while queue.size() > 0:
+		var c: Vector2i = queue.pop_back()
+		var id := grid_map.get_cell_item(Vector3i(c.x, 0, c.y))
+		if id == floor_id:
+			return true
+		if id != floor_wood_id and c != start:
+			continue
+		for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			var n := c + d
+			if n == banned or visited.has(n):
+				continue
+			var nid := grid_map.get_cell_item(Vector3i(n.x, 0, n.y))
+			if nid == floor_id or nid == floor_wood_id:
+				visited[n] = true
+				queue.append(n)
+	return false
 
 
 func _player_cell() -> Vector3i:

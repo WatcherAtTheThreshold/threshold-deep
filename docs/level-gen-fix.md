@@ -8,6 +8,14 @@ cells the flood fill actually proved. Converting a wooden cell to
 stone at placement time created stone the proof never covered; never
 patch around the invariant, place inside it.*
 
+*Second amendment, same day: the proof covers the stone graph, not a
+player who wanders onto the wooden region and collapses it around
+themselves (playtest: marooned on one plank chasing a dropped
+potion). Runtime rule — **the plank that holds**: a collapse roll is
+suppressed if that specific collapse would sever the player's path
+to all stone. Every other collapse proceeds; the floor still burns
+behind you, but there is always one creaking way back.*
+
 ## The problem
 
 Wooden floor patches sometimes sit in a doorway. When they collapse,
