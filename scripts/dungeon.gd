@@ -66,6 +66,10 @@ func _ready() -> void:
 	# Print the blueprint to the Output panel — same grid, new every run.
 	for row in map:
 		print(row)
+	var demoted: Array[Vector2i] = dungeon.demoted
+	if demoted.size() > 0:
+		print("gen-fix: demoted %d wooden floor cell(s) to stone for solvability: %s" \
+				% [demoted.size(), str(demoted)])
 
 	_build(map)
 	_populate(rooms)
@@ -191,6 +195,7 @@ func _place_item_trigger(rooms: Array[Rect2i]) -> void:
 	var cell := room.position + Vector2i(
 		randi_range(0, room.size.x - 1),
 		randi_range(0, room.size.y - 1))
+	_harden_cell(cell)
 	var trigger := trigger_scene.instantiate()
 	trigger.position = _cell_to_world(cell, 0.5)
 	trigger.activated.connect(_spawn_triggered_item.bind(idx, pickup_scene))
@@ -227,10 +232,19 @@ func _place_hatch(rooms: Array[Rect2i]) -> void:
 			far_index = i
 	if far_index == 0:
 		return
+	var hatch_cell := rooms[far_index].get_center() + Vector2i(1, 0)
+	_harden_cell(hatch_cell)
 	var hatch := HATCH_SCENE.instantiate()
-	hatch.position = _cell_to_world(
-		rooms[far_index].get_center() + Vector2i(1, 0), 0.5)
+	hatch.position = _cell_to_world(hatch_cell, 0.5)
 	add_child(hatch)
+
+
+func _harden_cell(cell: Vector2i) -> void:
+	# Key objects (hatch, trigger plates) never sit on wooden floor —
+	# an object hovering over a hole would strand progression.
+	var grid_cell := Vector3i(cell.x, 0, cell.y)
+	if grid_map.get_cell_item(grid_cell) == floor_wood_id:
+		grid_map.set_cell_item(grid_cell, floor_id)
 
 
 func _cell_to_world(cell: Vector2i, y: float = 1.5) -> Vector3:

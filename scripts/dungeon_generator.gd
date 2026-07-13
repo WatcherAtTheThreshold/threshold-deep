@@ -19,6 +19,8 @@ extends RefCounted
 
 const WOOD_WALL_CHANCE := 0.12
 const WOOD_FLOOR_ROOM_CHANCE := 0.35
+const DIRS: Array[Vector2i] = [
+	Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 
 
 static func generate(width: int, height: int, room_attempts: int, rng: RandomNumberGenerator) -> Dictionary:
@@ -84,6 +86,36 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 			if (ns or ew) and rng.randf() < WOOD_WALL_CHANCE:
 				wood_wall[c] = true
 
+	# Collapse solvability (docs/level-gen-fix.md): in the worst case —
+	# every wooden floor cell already a hole, breakable walls treated
+	# as passable — the dungeon must stay fully connected from spawn.
+	# Demote wooden cells to stone until it is; then no sequence of
+	# collapses can ever trap the player.
+	var demoted: Array[Vector2i] = []
+	var spawn := rooms[0].get_center()
+	if wood_floor.has(spawn):
+		wood_floor.erase(spawn)
+		demoted.append(spawn)
+	while true:
+		var passable := {}
+		for c: Vector2i in floor_cells:
+			if not wood_floor.has(c):
+				passable[c] = true
+		for c: Vector2i in wood_wall:
+			passable[c] = true
+		var reachable := _flood(spawn, passable)
+		var stranded := {}
+		for c: Vector2i in floor_cells:
+			if not wood_floor.has(c) and not reachable.has(c):
+				stranded[c] = true
+		if stranded.is_empty():
+			break
+		var bridge := _pick_bridge(wood_floor, reachable, stranded)
+		if bridge == Vector2i(-1, -1):
+			break  # cannot happen: the carved floor graph is connected
+		wood_floor.erase(bridge)
+		demoted.append(bridge)
+
 	# Render the sets out to rows of characters.
 	var map: Array[String] = []
 	for cy in height:
@@ -98,7 +130,42 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 				row += "#"
 		map.append(row)
 
-	return {"map": map, "rooms": rooms}
+	return {"map": map, "rooms": rooms, "demoted": demoted}
+
+
+static func _flood(start: Vector2i, passable: Dictionary) -> Dictionary:
+	var reached := {}
+	var queue: Array[Vector2i] = [start]
+	reached[start] = true
+	while queue.size() > 0:
+		var c: Vector2i = queue.pop_back()
+		for d in DIRS:
+			var n := c + d
+			if passable.has(n) and not reached.has(n):
+				reached[n] = true
+				queue.append(n)
+	return reached
+
+
+static func _pick_bridge(wood_floor: Dictionary, reachable: Dictionary, stranded: Dictionary) -> Vector2i:
+	# Prefer a wooden cell touching both sides of the cut; otherwise
+	# any wooden cell on the reachable frontier (walks wooden chains
+	# one cell per pass).
+	var frontier := Vector2i(-1, -1)
+	for c: Vector2i in wood_floor:
+		var touches_reachable := false
+		var touches_stranded := false
+		for d in DIRS:
+			var n: Vector2i = c + d
+			if reachable.has(n):
+				touches_reachable = true
+			if stranded.has(n):
+				touches_stranded = true
+		if touches_reachable and touches_stranded:
+			return c
+		if touches_reachable and frontier == Vector2i(-1, -1):
+			frontier = c
+	return frontier
 
 
 static func _carve_h(cells: Dictionary, x1: int, x2: int, y: int) -> void:
