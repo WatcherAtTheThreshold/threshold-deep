@@ -3,6 +3,9 @@ extends CharacterBody3D
 const FRAME_A := preload("res://assets/sprites/wizard1.png")
 const FRAME_B := preload("res://assets/sprites/wizard2.png")
 const DEAD_TEXTURE := preload("res://assets/sprites/wizard_dead.png")
+const TEX_SHOOT_1 := preload("res://assets/sprites/wizard_shoot1.png")
+const TEX_SHOOT_2 := preload("res://assets/sprites/wizard_shoot2.png")
+const TEX_SHOOT_3 := preload("res://assets/sprites/wizard_shoot3.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const POTION_DROP_CHANCE := 0.25
@@ -15,18 +18,21 @@ const SIGHT_RANGE := 12.0
 const INFIGHT_SIGHT_RANGE := 20.0
 const BASE_CAST_COOLDOWN := 2.2
 const CHARGE_TIME := 0.45
+const RECOVERY_TIME := 0.4
 const MAX_HEALTH := 2
-const CHARGE_TINT := Color(1.6, 1.3, 2.0)
 
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
 var cast_timer := 1.0
 var charge_timer := 0.0
+var recovery_timer := 0.0
 var charging := false
 var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
+var glow_tween: Tween
 
+@onready var cast_glow: OmniLight3D = $CastGlow
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
 @onready var player: Player = get_tree().get_first_node_in_group("player")
@@ -46,15 +52,17 @@ func _physics_process(delta: float) -> void:
 	var sees_target := dist < sight and _can_see(t)
 
 	if charging:
-		# Rooted while the cast winds up — the telegraph is the tell.
+		# Rooted while the cast winds up — orb at the chest, glow
+		# swelling: the telegraph is the tell.
 		velocity.x = 0.0
 		velocity.z = 0.0
 		charge_timer -= delta
 		if charge_timer <= 0.0:
 			charging = false
-			sprite.modulate = Color.WHITE
+			_stop_cast_glow()
 			if sees_target:
 				_fire_orb(t)
+				recovery_timer = RECOVERY_TIME
 			cast_timer = cast_cooldown
 	elif sees_target:
 		# Keep respectful distance: back away if the target closes in.
@@ -69,7 +77,7 @@ func _physics_process(delta: float) -> void:
 		if cast_timer <= 0.0 and dist <= CAST_RANGE:
 			charging = true
 			charge_timer = CHARGE_TIME
-			sprite.modulate = CHARGE_TINT
+			_start_cast_glow()
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, SPEED)
 		velocity.z = move_toward(velocity.z, 0.0, SPEED)
@@ -77,7 +85,14 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
-	if moving:
+	if charging:
+		# Anticipation: the orb drawn to the chest.
+		sprite.texture = TEX_SHOOT_1
+	elif recovery_timer > 0.0:
+		# Release, then follow-through.
+		recovery_timer -= delta
+		sprite.texture = TEX_SHOOT_2 if recovery_timer > RECOVERY_TIME * 0.5 else TEX_SHOOT_3
+	elif moving:
 		walk_time += delta
 		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
 	else:
@@ -103,6 +118,22 @@ func _get_target() -> PhysicsBody3D:
 		return target
 	target = null
 	return player
+
+
+func _start_cast_glow() -> void:
+	# The chest-orb powers up: light swells across the whole charge.
+	if glow_tween != null:
+		glow_tween.kill()
+	cast_glow.light_energy = 0.25
+	glow_tween = create_tween()
+	glow_tween.tween_property(cast_glow, "light_energy", 1.5, CHARGE_TIME)
+
+
+func _stop_cast_glow() -> void:
+	# The orb has left (or the cast broke) — the wizard goes dark.
+	if glow_tween != null:
+		glow_tween.kill()
+	cast_glow.light_energy = 0.0
 
 
 func _fire_orb(t: PhysicsBody3D) -> void:
@@ -139,6 +170,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The corpse stays: crumpled robes where the wizard fell.
 	dead = true
+	_stop_cast_glow()
 	step_sound.stop()
 	if by_player:
 		RunState.record_kill(kill_label())
