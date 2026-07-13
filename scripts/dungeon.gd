@@ -92,7 +92,7 @@ func _ready() -> void:
 
 	_build(map)
 	if kind == RunState.FloorKind.BOSS:
-		arena_room_idx = _farthest_room(rooms)
+		arena_room_idx = _largest_room(rooms)
 		_fortify_room_ring(rooms[arena_room_idx])
 		_populate(rooms, arena_room_idx, false)
 		_setup_boss_room()
@@ -411,6 +411,24 @@ func _setup_item_room() -> void:
 
 # ------------------------------------------------------------------
 # Shared special-room helpers
+
+func _largest_room(rooms: Array[Rect2i]) -> int:
+	# Boss arenas want space: area first, distance from spawn as the
+	# tiebreaker. Never the spawn room.
+	if rooms.size() == 1:
+		return 0
+	var spawn := rooms[0].get_center()
+	var best := 1
+	var best_score := -1.0
+	for i in range(1, rooms.size()):
+		var area := float(rooms[i].size.x * rooms[i].size.y)
+		var dist := Vector2(rooms[i].get_center() - spawn).length()
+		var score := area * 100.0 + dist
+		if score > best_score:
+			best_score = score
+			best = i
+	return best
+
 
 func _farthest_room(rooms: Array[Rect2i]) -> int:
 	var spawn := rooms[0].get_center()

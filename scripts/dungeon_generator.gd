@@ -26,8 +26,11 @@ const DIRS: Array[Vector2i] = [
 static func generate(width: int, height: int, room_attempts: int, rng: RandomNumberGenerator) -> Dictionary:
 	var rooms: Array[Rect2i] = []
 	for i in room_attempts:
-		var w := rng.randi_range(3, 7)
-		var h := rng.randi_range(3, 7)
+		# The second room placed is always arena-sized, so boss floors
+		# never stage their fight in a closet.
+		var big := rooms.size() == 1
+		var w := rng.randi_range(6, 8) if big else rng.randi_range(3, 7)
+		var h := rng.randi_range(6, 8) if big else rng.randi_range(3, 7)
 		var x := rng.randi_range(1, width - w - 1)
 		var y := rng.randi_range(1, height - h - 1)
 		var room := Rect2i(x, y, w, h)
