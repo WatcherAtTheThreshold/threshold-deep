@@ -2,8 +2,11 @@
 
 *Drafted 2026-07-13. Implemented 2026-07-13 (all-at-once strictness;
 flood source is the player spawn so boss floors without hatches are
-covered; hatch/trigger cells are additionally hardened to stone at
-placement so key objects never hover over holes).*
+covered). Amended same day after a stuck-hatch playtest: key objects,
+pickups, and potions are placed only on already-stone cells — the
+cells the flood fill actually proved. Converting a wooden cell to
+stone at placement time created stone the proof never covered; never
+patch around the invariant, place inside it.*
 
 ## The problem
 

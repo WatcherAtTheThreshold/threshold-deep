@@ -164,13 +164,12 @@ func _populate(rooms: Array[Rect2i]) -> void:
 			enemy.position = _cell_to_world(cell)
 			add_child(enemy)
 		if randf() < ROOM_POTION_CHANCE:
-			var room := rooms[i]
-			var potion_cell := room.position + Vector2i(
-				randi_range(0, room.size.x - 1),
-				randi_range(0, room.size.y - 1))
-			var potion := POTION_SCENE.instantiate()
-			potion.position = _cell_to_world(potion_cell, 0.5)
-			add_child(potion)
+			var stone := _stone_cells(rooms[i])
+			if stone.size() > 0:
+				var potion := POTION_SCENE.instantiate()
+				potion.position = _cell_to_world(
+					stone[randi_range(0, stone.size() - 1)], 0.5)
+				add_child(potion)
 	floor_rooms = rooms
 	_place_item_trigger(rooms)
 	_place_hatch(rooms)
@@ -190,34 +189,39 @@ func _place_item_trigger(rooms: Array[Rect2i]) -> void:
 		else:
 			trigger_scene = HEART_TRIGGER_SCENE
 			pickup_scene = CONTAINER_PICKUP_SCENE
-	var idx := 0 if rooms.size() == 1 else randi_range(1, rooms.size() - 1)
-	var room := rooms[idx]
-	var cell := room.position + Vector2i(
-		randi_range(0, room.size.x - 1),
-		randi_range(0, room.size.y - 1))
-	_harden_cell(cell)
-	var trigger := trigger_scene.instantiate()
-	trigger.position = _cell_to_world(cell, 0.5)
-	trigger.activated.connect(_spawn_triggered_item.bind(idx, pickup_scene))
-	add_child(trigger)
+	var order: Array[int] = []
+	for i in range(1, rooms.size()):
+		order.append(i)
+	order.shuffle()
+	order.append(0)
+	for i in order:
+		var cells := _stone_cells(rooms[i])
+		if cells.size() > 0:
+			var trigger := trigger_scene.instantiate()
+			trigger.position = _cell_to_world(
+				cells[randi_range(0, cells.size() - 1)], 0.5)
+			trigger.activated.connect(_spawn_triggered_item.bind(i, pickup_scene))
+			add_child(trigger)
+			return
 
 
 func _spawn_triggered_item(trigger_room_idx: int, pickup_scene: PackedScene) -> void:
-	# Somewhere else: any room but the plate's own, when possible.
-	var candidates: Array[int] = []
+	# Somewhere else: any room but the plate's own, when possible —
+	# and only on proven stone, never wood.
+	var order: Array[int] = []
 	for i in floor_rooms.size():
 		if i != trigger_room_idx:
-			candidates.append(i)
-	var idx := trigger_room_idx
-	if candidates.size() > 0:
-		idx = candidates[randi_range(0, candidates.size() - 1)]
-	var room := floor_rooms[idx]
-	var cell := room.position + Vector2i(
-		randi_range(0, room.size.x - 1),
-		randi_range(0, room.size.y - 1))
-	var pickup := pickup_scene.instantiate()
-	pickup.position = _cell_to_world(cell, 0.5)
-	add_child(pickup)
+			order.append(i)
+	order.shuffle()
+	order.append(trigger_room_idx)
+	for i in order:
+		var cells := _stone_cells(floor_rooms[i])
+		if cells.size() > 0:
+			var pickup := pickup_scene.instantiate()
+			pickup.position = _cell_to_world(
+				cells[randi_range(0, cells.size() - 1)], 0.5)
+			add_child(pickup)
+			return
 
 
 func _place_hatch(rooms: Array[Rect2i]) -> void:
@@ -232,19 +236,35 @@ func _place_hatch(rooms: Array[Rect2i]) -> void:
 			far_index = i
 	if far_index == 0:
 		return
-	var hatch_cell := rooms[far_index].get_center() + Vector2i(1, 0)
-	_harden_cell(hatch_cell)
-	var hatch := HATCH_SCENE.instantiate()
-	hatch.position = _cell_to_world(hatch_cell, 0.5)
-	add_child(hatch)
+	# Farthest room first, but only ever on proven stone — fall back
+	# through rooms by distance if a room is wooden wall-to-wall.
+	var order: Array[int] = []
+	for i in range(1, rooms.size()):
+		order.append(i)
+	order.sort_custom(func(a: int, b: int) -> bool:
+		return Vector2(rooms[a].get_center() - spawn).length() \
+				> Vector2(rooms[b].get_center() - spawn).length())
+	order.append(0)
+	for i in order:
+		var cells := _stone_cells(rooms[i])
+		if cells.size() > 0:
+			var hatch := HATCH_SCENE.instantiate()
+			hatch.position = _cell_to_world(
+				cells[randi_range(0, cells.size() - 1)], 0.5)
+			add_child(hatch)
+			return
 
 
-func _harden_cell(cell: Vector2i) -> void:
-	# Key objects (hatch, trigger plates) never sit on wooden floor —
-	# an object hovering over a hole would strand progression.
-	var grid_cell := Vector3i(cell.x, 0, cell.y)
-	if grid_map.get_cell_item(grid_cell) == floor_wood_id:
-		grid_map.set_cell_item(grid_cell, floor_id)
+func _stone_cells(room: Rect2i) -> Array[Vector2i]:
+	# Cells the worst-case flood fill has proven reachable: stone
+	# floor only. Key objects and pickups never sit on wood — a thing
+	# hovering over a future hole is a stranded thing.
+	var cells: Array[Vector2i] = []
+	for cy in range(room.position.y, room.end.y):
+		for cx in range(room.position.x, room.end.x):
+			if grid_map.get_cell_item(Vector3i(cx, 0, cy)) == floor_id:
+				cells.append(Vector2i(cx, cy))
+	return cells
 
 
 func _cell_to_world(cell: Vector2i, y: float = 1.5) -> Vector3:
