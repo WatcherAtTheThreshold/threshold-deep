@@ -34,7 +34,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	# The roll: a slow drift of the texture through the doorway.
-	material.uv1_offset += Vector2(0.03, 0.05) * delta
+	material.uv1_offset += Vector3(0.03, 0.05, 0.0) * delta
 
 
 func seal() -> void:

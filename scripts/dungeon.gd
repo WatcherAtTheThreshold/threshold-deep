@@ -43,7 +43,7 @@ var ceiling_id := -1
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
 var floor_rooms: Array[Rect2i] = []
-var kind := RunState.FloorKind.REGULAR
+var kind: int = RunState.FloorKind.REGULAR
 
 # Boss floor state
 var arena_room_idx := -1
@@ -91,19 +91,18 @@ func _ready() -> void:
 			RunState.FloorKind.keys()[kind]])
 
 	_build(map)
-	match kind:
-		RunState.FloorKind.BOSS:
-			arena_room_idx = _farthest_room(rooms)
-			_fortify_room_ring(rooms[arena_room_idx])
-			_populate(rooms, arena_room_idx, false)
-			_setup_boss_room()
-		RunState.FloorKind.ITEM:
-			item_room_idx = _farthest_room(rooms)
-			_fortify_room_ring(rooms[item_room_idx])
-			_populate(rooms, item_room_idx, true, item_room_idx)
-			_setup_item_room()
-		_:
-			_populate(rooms)
+	if kind == RunState.FloorKind.BOSS:
+		arena_room_idx = _farthest_room(rooms)
+		_fortify_room_ring(rooms[arena_room_idx])
+		_populate(rooms, arena_room_idx, false)
+		_setup_boss_room()
+	elif kind == RunState.FloorKind.ITEM:
+		item_room_idx = _farthest_room(rooms)
+		_fortify_room_ring(rooms[item_room_idx])
+		_populate(rooms, item_room_idx, true, item_room_idx)
+		_setup_item_room()
+	else:
+		_populate(rooms)
 	last_player_cell = _player_cell()
 
 
