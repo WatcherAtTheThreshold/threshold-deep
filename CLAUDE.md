@@ -87,11 +87,19 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   carried health/max health/magic hearts, sword ownership, and the
   killer's name + sprite for the death report. Descent keeps it,
   death resets it. New persistent run state belongs there.
-- Health: start 3 red containers, cap 8 (1-up plates add one,
-  filled). Magic hearts (yellow, cap 6) absorb damage before red
-  and can't be healed by potions. One item trigger plate spawns per
-  floor (sword until claimed, then 65% magic / 35% container);
-  stepping it summons the pickup in a different room.
+- Health: start 3 red containers, cap 8 (containers arrive filled).
+  Magic hearts (yellow, cap 6) absorb damage before red and can't
+  be healed by potions.
+- Run structure (docs/structure.md): floor cadence repeats
+  regular/BOSS/item (bosses at depth 2/5/8…, items at 3/6/9…),
+  continuing below the depth-8 victory for endless descent. Mist
+  doors (mist_door.tscn: cold = boss, gold = item) fill a special
+  room's doorways — passable until sealed. Boss floors have no
+  hatch; a consent plate starts the fight, the seal drops, and the
+  hatch + reward (boss 1: sword; boss 2: container) spawn on clear;
+  boss 3 triggers the victory report. Item rooms seal on entry
+  until a pedestal (always_consume pickups) is taken. R is inert
+  during a boss fight. Trigger-plate item hunts are retired.
 - Holes live in a second GridMap (`HoleMap`, collision layer 2):
   they block bodies (characters use `collision_mask = 3`) but not
   sight rays or orbs, which query only layer 1.

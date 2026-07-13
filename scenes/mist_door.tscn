@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/mist_door.gd" id="1_mist"]
+
+[node name="MistDoor" type="Node3D"]
+
+script = ExtResource("1_mist")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.8, 0)
+
+[node name="Wall" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Wall"]
+position = Vector3(0, 2, 0)

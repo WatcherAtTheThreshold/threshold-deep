@@ -6,7 +6,11 @@ extends Node
 
 signal changed
 
+enum FloorKind { REGULAR, BOSS, ITEM }
+
 var depth := 1
+var bosses_defeated := 0
+var victory_shown := false
 var kills := 0
 var carried_health := -1  # -1 = fresh run, spawn with full hearts
 var carried_max_health := -1  # -1 = fresh run, base containers
@@ -18,6 +22,17 @@ var damage_taken := 0
 var kills_by_type := {}
 var killer_name := ""
 var killer_texture: Texture2D = null
+
+
+func floor_kind(d: int) -> FloorKind:
+	# The run cadence (docs/structure.md): 1 regular, 2 BOSS, 3 item,
+	# repeating — bosses at 2/5/8..., items at 3/6/9..., and the
+	# pattern continues below the victory floor for endless descent.
+	if d % 3 == 2:
+		return FloorKind.BOSS
+	if d > 2 and d % 3 == 0:
+		return FloorKind.ITEM
+	return FloorKind.REGULAR
 
 
 func record_kill(label: String) -> void:
@@ -52,6 +67,8 @@ func reset() -> void:
 			% [depth, kills, damage_dealt, damage_taken])
 	depth = 1
 	kills = 0
+	bosses_defeated = 0
+	victory_shown = false
 	carried_health = -1
 	carried_max_health = -1
 	carried_magic = 0

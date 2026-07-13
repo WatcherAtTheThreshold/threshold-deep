@@ -45,7 +45,30 @@ func _go_down() -> void:
 	get_tree().reload_current_scene()
 
 
+func show_victory() -> void:
+	# Boss three is down. The run is won — and the dungeon continues
+	# below for whoever wants to know how deep it goes.
+	death_label.text = "YOU PREVAILED"
+	death_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
+	death_stats.text = _build_death_stats()
+	death_label.modulate.a = 0.0
+	death_stats.modulate.a = 0.0
+	death_label.visible = true
+	death_stats.visible = true
+	var tween := create_tween()
+	tween.tween_property(death_label, "modulate:a", 1.0, 1.2)
+	tween.parallel().tween_property(death_stats, "modulate:a", 1.0, 1.2)
+	tween.tween_interval(6.0)
+	tween.tween_property(death_label, "modulate:a", 0.0, 1.5)
+	tween.parallel().tween_property(death_stats, "modulate:a", 0.0, 1.5)
+	tween.tween_callback(func() -> void:
+		death_label.visible = false
+		death_stats.visible = false)
+
+
 func _on_player_died() -> void:
+	death_label.text = "YOU DIED"
+	death_label.add_theme_color_override("font_color", Color(0.85, 0.2, 0.25))
 	death_cause.text = "Slain by %s" % _killer_phrase()
 	death_stats.text = _build_death_stats()
 	killer_face.texture = RunState.killer_texture

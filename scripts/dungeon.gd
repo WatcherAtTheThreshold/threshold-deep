@@ -8,11 +8,10 @@ const FROGMAN_SCENE := preload("res://scenes/frogman.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
-const SWORD_TRIGGER_SCENE := preload("res://scenes/sword_trigger.tscn")
-const MAGIC_TRIGGER_SCENE := preload("res://scenes/magic_heart_trigger.tscn")
-const HEART_TRIGGER_SCENE := preload("res://scenes/heart_trigger.tscn")
 const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
+const MIST_SCENE := preload("res://scenes/mist_door.tscn")
+const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -32,6 +31,7 @@ const FROGMAN_MIN_DEPTH := 3
 
 const WOOD_WALL_HITS := 2
 const FLOOR_COLLAPSE_CHANCE := 0.35
+const FIGHT_GRACE_TIME := 2.5
 
 var floor_id := -1
 var wall_id := -1
@@ -43,6 +43,21 @@ var ceiling_id := -1
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
 var floor_rooms: Array[Rect2i] = []
+var kind := RunState.FloorKind.REGULAR
+
+# Boss floor state
+var arena_room_idx := -1
+var arena_mists: Array[Node3D] = []
+var boss_index := 0
+var fight_active := false
+var fight_grace := 0.0
+
+# Item floor state
+var item_room_idx := -1
+var item_mists: Array[Node3D] = []
+var item_pedestals: Array[Node3D] = []
+var item_sealed := false
+var item_resolved := false
 
 @onready var grid_map: GridMap = $GridMap
 @onready var hole_map: GridMap = $HoleMap
@@ -62,6 +77,8 @@ func _ready() -> void:
 	var dungeon := DungeonGenerator.generate(GRID_WIDTH, GRID_HEIGHT, ROOM_ATTEMPTS, rng)
 	var map: Array[String] = dungeon.map
 	var rooms: Array[Rect2i] = dungeon.rooms
+	floor_rooms = rooms
+	kind = RunState.floor_kind(RunState.depth)
 
 	# Print the blueprint to the Output panel — same grid, new every run.
 	for row in map:
@@ -70,9 +87,23 @@ func _ready() -> void:
 	if demoted.size() > 0:
 		print("gen-fix: demoted %d wooden floor cell(s) to stone for solvability: %s" \
 				% [demoted.size(), str(demoted)])
+	print("floor %d: %s" % [RunState.depth,
+			RunState.FloorKind.keys()[kind]])
 
 	_build(map)
-	_populate(rooms)
+	match kind:
+		RunState.FloorKind.BOSS:
+			arena_room_idx = _farthest_room(rooms)
+			_fortify_room_ring(rooms[arena_room_idx])
+			_populate(rooms, arena_room_idx, false)
+			_setup_boss_room()
+		RunState.FloorKind.ITEM:
+			item_room_idx = _farthest_room(rooms)
+			_fortify_room_ring(rooms[item_room_idx])
+			_populate(rooms, item_room_idx, true, item_room_idx)
+			_setup_item_room()
+		_:
+			_populate(rooms)
 	last_player_cell = _player_cell()
 
 
@@ -86,6 +117,32 @@ func _physics_process(_delta: float) -> void:
 			grid_map.set_cell_item(last_player_cell, GridMap.INVALID_CELL_ITEM)
 			hole_map.set_cell_item(last_player_cell, hole_id)
 		last_player_cell = cell
+
+	if fight_active:
+		fight_grace = maxf(fight_grace - _delta, 0.0)
+		if fight_grace == 0.0 and not _arena_has_living_enemies():
+			_finish_boss_fight()
+
+	if item_room_idx >= 0 and not item_resolved:
+		if not item_sealed:
+			if _player_inside_room(floor_rooms[item_room_idx]):
+				item_sealed = true
+				for m in item_mists:
+					if is_instance_valid(m):
+						m.seal()
+		else:
+			var taken := false
+			for p in item_pedestals:
+				if not is_instance_valid(p):
+					taken = true
+			if taken:
+				item_resolved = true
+				for p in item_pedestals:
+					if is_instance_valid(p):
+						p.queue_free()
+				for m in item_mists:
+					if is_instance_valid(m):
+						m.dissolve()
 
 
 func damage_wall(hit_pos: Vector3, hit_normal: Vector3) -> void:
@@ -102,8 +159,10 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# R rerolls the whole dungeon.
+	# R rerolls the whole dungeon (debug key) — never mid-boss-fight.
 	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_R:
+		if fight_active:
+			return
 		get_tree().reload_current_scene()
 
 
@@ -111,6 +170,11 @@ func _player_cell() -> Vector3i:
 	var cell := grid_map.local_to_map(grid_map.to_local(player.global_position))
 	cell.y = 0
 	return cell
+
+
+func _player_inside_room(room: Rect2i) -> bool:
+	var cell := _player_cell()
+	return room.has_point(Vector2i(cell.x, cell.z))
 
 
 func _build(map: Array[String]) -> void:
@@ -131,7 +195,8 @@ func _build(map: Array[String]) -> void:
 				grid_map.set_cell_item(Vector3i(x, 1, z), ceiling_id)
 
 
-func _populate(rooms: Array[Rect2i]) -> void:
+func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
+		hatch_exclude := -1) -> void:
 	# Player starts in the first room; every other room gets enemies.
 	player.position = _cell_to_world(rooms[0].get_center())
 	var extra_chance := minf(
@@ -144,6 +209,8 @@ func _populate(rooms: Array[Rect2i]) -> void:
 		FROGMAN_CHANCE_PER_DEPTH * maxf(RunState.depth - FROGMAN_MIN_DEPTH + 1, 0.0),
 		FROGMAN_CHANCE_MAX)
 	for i in range(1, rooms.size()):
+		if i == skip_idx:
+			continue
 		var spawn_cells: Array[Vector2i] = [rooms[i].get_center()]
 		if randf() < extra_chance:
 			spawn_cells.append(rooms[i].get_center() + Vector2i(-1, 0))
@@ -170,62 +237,155 @@ func _populate(rooms: Array[Rect2i]) -> void:
 				potion.position = _cell_to_world(
 					stone[randi_range(0, stone.size() - 1)], 0.5)
 				add_child(potion)
-	floor_rooms = rooms
-	_place_item_trigger(rooms)
-	_place_hatch(rooms)
+	if with_hatch:
+		_place_hatch(rooms, hatch_exclude)
 
 
-func _place_item_trigger(rooms: Array[Rect2i]) -> void:
-	# One trigger plate per floor, two-stage hunt: step on the plate
-	# and its item appears elsewhere on the floor. The sword plate
-	# takes priority until the sword is claimed; after that, floors
-	# roll magic hearts (65%) or a heart container (35%).
-	var trigger_scene := SWORD_TRIGGER_SCENE
-	var pickup_scene := SWORD_SCENE
-	if RunState.has_sword:
-		if player.max_health >= player.MAX_HEALTH_CAP or randf() < 0.65:
-			trigger_scene = MAGIC_TRIGGER_SCENE
-			pickup_scene = MAGIC_PICKUP_SCENE
-		else:
-			trigger_scene = HEART_TRIGGER_SCENE
-			pickup_scene = CONTAINER_PICKUP_SCENE
-	var order: Array[int] = []
-	for i in range(1, rooms.size()):
-		order.append(i)
-	order.shuffle()
-	order.append(0)
-	for i in order:
-		var cells := _stone_cells(rooms[i])
-		if cells.size() > 0:
-			var trigger := trigger_scene.instantiate()
-			trigger.position = _cell_to_world(
-				cells[randi_range(0, cells.size() - 1)], 0.5)
-			trigger.activated.connect(_spawn_triggered_item.bind(i, pickup_scene))
-			add_child(trigger)
-			return
+# ------------------------------------------------------------------
+# Boss floors (docs/structure.md)
+
+func _setup_boss_room() -> void:
+	var arena := floor_rooms[arena_room_idx]
+	arena_mists = _spawn_mists(arena, false)
+	boss_index = mini(RunState.bosses_defeated, 2)
+	# The consent plate: an empty, quiet arena, and a plate. Stepping
+	# it starts the fight.
+	var cells := _stone_cells(arena)
+	var plate_cell: Vector2i
+	if cells.size() > 0:
+		plate_cell = cells[randi_range(0, cells.size() - 1)]
+	else:
+		plate_cell = arena.get_center()
+		grid_map.set_cell_item(Vector3i(plate_cell.x, 0, plate_cell.y), floor_id)
+	var plate := BOSS_PLATE_SCENE.instantiate()
+	plate.position = _cell_to_world(plate_cell, 0.5)
+	plate.activated.connect(_start_boss_fight)
+	add_child(plate)
 
 
-func _spawn_triggered_item(trigger_room_idx: int, pickup_scene: PackedScene) -> void:
-	# Somewhere else: any room but the plate's own, when possible —
-	# and only on proven stone, never wood.
-	var order: Array[int] = []
-	for i in floor_rooms.size():
-		if i != trigger_room_idx:
-			order.append(i)
-	order.shuffle()
-	order.append(trigger_room_idx)
-	for i in order:
-		var cells := _stone_cells(floor_rooms[i])
-		if cells.size() > 0:
-			var pickup := pickup_scene.instantiate()
-			pickup.position = _cell_to_world(
-				cells[randi_range(0, cells.size() - 1)], 0.5)
-			add_child(pickup)
-			return
+func _start_boss_fight() -> void:
+	fight_active = true
+	fight_grace = FIGHT_GRACE_TIME
+	for m in arena_mists:
+		if is_instance_valid(m):
+			m.seal()
+	var arena := floor_rooms[arena_room_idx]
+	var center := arena.get_center()
+	match boss_index:
+		0:
+			# Boss 1 — the Large Slime: positioning, not DPS.
+			var slime := SLIME_SCENE.instantiate()
+			slime.position = _cell_to_world(center)
+			add_child(slime)
+			slime.health = 10
+			slime.spawn_timer = 1.2
+		1:
+			# Boss 2 — the Mega Mush: four seconds to kill a half
+			# before it reassembles.
+			var mush := MUSH_SCENE.instantiate()
+			mush.configure(mush.State.MEGA, 14)
+			mush.position = _cell_to_world(center)
+			add_child(mush)
+		_:
+			# Boss 3 placeholder: a wave of skeletons and wizards.
+			# TODO(structure.md): the Skeletal Wizard amalgam —
+			# phase two assembles from the corpses this wave leaves.
+			var spots := _stone_cells(arena)
+			spots.shuffle()
+			for n in 6:
+				var enemy: Node3D
+				if n < 2:
+					enemy = WIZARD_SCENE.instantiate()
+				else:
+					enemy = SKELETON_SCENE.instantiate()
+				enemy.setup(RunState.depth)
+				var cell := center if spots.is_empty() \
+						else spots[n % spots.size()]
+				enemy.position = _cell_to_world(cell)
+				add_child(enemy)
 
 
-func _place_hatch(rooms: Array[Rect2i]) -> void:
-	# The way down lives in the room farthest from where you start.
+func _arena_has_living_enemies() -> bool:
+	var arena := floor_rooms[arena_room_idx]
+	var min_x := arena.position.x * CELL_SIZE - 3.0
+	var max_x := arena.end.x * CELL_SIZE + 3.0
+	var min_z := arena.position.y * CELL_SIZE - 3.0
+	var max_z := arena.end.y * CELL_SIZE + 3.0
+	for group in ["enemies", "slimes"]:
+		for e: Node3D in get_tree().get_nodes_in_group(group):
+			if not is_instance_valid(e) or e.get("dead"):
+				continue
+			var p := e.global_position
+			if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
+				return true
+	return false
+
+
+func _finish_boss_fight() -> void:
+	fight_active = false
+	for m in arena_mists:
+		if is_instance_valid(m):
+			m.dissolve()
+	var arena := floor_rooms[arena_room_idx]
+	var cells := _stone_cells(arena)
+	cells.shuffle()
+	var hatch_cell: Vector2i = arena.get_center()
+	if cells.size() > 0:
+		hatch_cell = cells[0]
+	else:
+		grid_map.set_cell_item(Vector3i(hatch_cell.x, 0, hatch_cell.y), floor_id)
+	var hatch := HATCH_SCENE.instantiate()
+	hatch.position = _cell_to_world(hatch_cell, 0.5)
+	add_child(hatch)
+	# The reward is earned by the fight.
+	var reward: Node3D = null
+	match boss_index:
+		0:
+			if not RunState.has_sword:
+				reward = SWORD_SCENE.instantiate()
+		1:
+			reward = CONTAINER_PICKUP_SCENE.instantiate()
+	if reward != null:
+		var reward_cell := hatch_cell + Vector2i(1, 0)
+		if cells.size() > 1:
+			reward_cell = cells[1]
+		reward.position = _cell_to_world(reward_cell, 0.5)
+		add_child(reward)
+	RunState.bosses_defeated += 1
+	if RunState.bosses_defeated >= 3 and not RunState.victory_shown:
+		RunState.victory_shown = true
+		player.get_node("HUD").show_victory()
+
+
+# ------------------------------------------------------------------
+# Item floors (docs/structure.md)
+
+func _setup_item_room() -> void:
+	var room := floor_rooms[item_room_idx]
+	item_mists = _spawn_mists(room, true)
+	var cells := _stone_cells(room)
+	cells.shuffle()
+	if cells.is_empty():
+		var center := room.get_center()
+		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
+		cells.append(center)
+	var magic := MAGIC_PICKUP_SCENE.instantiate()
+	magic.always_consume = true
+	magic.position = _cell_to_world(cells[0], 0.5)
+	add_child(magic)
+	item_pedestals.append(magic)
+	if cells.size() > 1:
+		var container := CONTAINER_PICKUP_SCENE.instantiate()
+		container.always_consume = true
+		container.position = _cell_to_world(cells[1], 0.5)
+		add_child(container)
+		item_pedestals.append(container)
+
+
+# ------------------------------------------------------------------
+# Shared special-room helpers
+
+func _farthest_room(rooms: Array[Rect2i]) -> int:
 	var spawn := rooms[0].get_center()
 	var far_index := 0
 	var far_dist := -1.0
@@ -234,13 +394,55 @@ func _place_hatch(rooms: Array[Rect2i]) -> void:
 		if dist > far_dist:
 			far_dist = dist
 			far_index = i
-	if far_index == 0:
-		return
-	# Farthest room first, but only ever on proven stone — fall back
-	# through rooms by distance if a room is wooden wall-to-wall.
+	return far_index
+
+
+func _fortify_room_ring(room: Rect2i) -> void:
+	# Wooden walls bordering a sealed room would be a hole in the
+	# seal — turn them to stone.
+	for cy in range(room.position.y - 1, room.end.y + 1):
+		for cx in range(room.position.x - 1, room.end.x + 1):
+			if room.has_point(Vector2i(cx, cy)):
+				continue
+			var cell := Vector3i(cx, 0, cy)
+			if grid_map.get_cell_item(cell) == wall_wood_id:
+				grid_map.set_cell_item(cell, wall_id)
+
+
+func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
+	# A mist door in every doorway cell on the room's ring.
+	var mists: Array[Node3D] = []
+	for cy in range(room.position.y, room.end.y):
+		for side in [room.position.x - 1, room.end.x]:
+			mists.append_array(_try_mist(Vector2i(side, cy), true, gold))
+	for cx in range(room.position.x, room.end.x):
+		for side in [room.position.y - 1, room.end.y]:
+			mists.append_array(_try_mist(Vector2i(cx, side), false, gold))
+	return mists
+
+
+func _try_mist(cell: Vector2i, horizontal: bool, gold: bool) -> Array[Node3D]:
+	var id := grid_map.get_cell_item(Vector3i(cell.x, 0, cell.y))
+	if id != floor_id and id != floor_wood_id:
+		return []
+	var mist := MIST_SCENE.instantiate()
+	mist.gold = gold
+	mist.position = _cell_to_world(cell, 0.5)
+	if horizontal:
+		mist.rotation_degrees = Vector3(0, 90, 0)
+	add_child(mist)
+	return [mist]
+
+
+func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
+	# The way down lives in the room farthest from where you start —
+	# but only ever on proven stone; fall back through rooms by
+	# distance if a room is wooden wall-to-wall.
+	var spawn := rooms[0].get_center()
 	var order: Array[int] = []
 	for i in range(1, rooms.size()):
-		order.append(i)
+		if i != exclude_idx:
+			order.append(i)
 	order.sort_custom(func(a: int, b: int) -> bool:
 		return Vector2(rooms[a].get_center() - spawn).length() \
 				> Vector2(rooms[b].get_center() - spawn).length())
