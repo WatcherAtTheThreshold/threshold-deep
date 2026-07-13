@@ -50,6 +50,10 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   world sounds are positional `AudioStreamPlayer3D` (max_distance 18).
 - One-shots that outlive their emitter (e.g. potion pickup): spawn a
   self-freeing `AudioStreamPlayer3D` into the world.
+- Music: `assets/audio/music/` (mp3 is fine — Ableton can't export
+  ogg; convert only if web build size matters someday). The
+  `MusicDrift` autoload drifts random segments of the track in and
+  out with 8 s fades and long silences, surviving reloads.
 
 ## Layout
 

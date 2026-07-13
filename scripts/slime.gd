@@ -7,7 +7,9 @@ const TEX_LARGE_2 := preload("res://assets/sprites/slime/slime-large/slime-large
 const TEX_SMALL_1 := preload("res://assets/sprites/slime/slime-small/slimes-small-down1.png")
 const TEX_SMALL_2 := preload("res://assets/sprites/slime/slime-small/slimes-small-down2.png")
 const TEX_SPAWN := preload("res://assets/sprites/slime/slime-spawn.png")
+const TEX_MID_SPAWN := preload("res://assets/sprites/slime/slime-mid-spawn.png")
 const TEX_DEAD := preload("res://assets/sprites/slime/slime_dead.png")
+const MID_SPAWN_TIME := 0.45
 const WALK_FRAME_TIME := 0.25
 
 const SPAWN_TIME_MIN := 1.0
@@ -88,6 +90,9 @@ func _physics_process(delta: float) -> void:
 
 	if state == State.PUDDLE:
 		spawn_timer -= delta
+		# Half-risen blob for the final moment before emerging.
+		if spawn_timer <= MID_SPAWN_TIME and sprite.texture != TEX_MID_SPAWN:
+			_show_mid_spawn()
 		if spawn_timer <= 0.0:
 			_emerge()
 		move_and_slide()
@@ -230,6 +235,13 @@ func _apply_state() -> void:
 		sprite.texture = TEX_SMALL_1
 		sprite.position = Vector3.ZERO
 		step_sound.pitch_scale = 1.2
+
+
+func _show_mid_spawn() -> void:
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	sprite.rotation = Vector3.ZERO
+	sprite.position = Vector3(0, 0.5, 0)
+	sprite.texture = TEX_MID_SPAWN
 
 
 func _show_flat(tex: Texture2D) -> void:
