@@ -7,7 +7,7 @@ const HEART_SIZE := Vector2(48, 48)
 
 const FADE_IN_TIME := 0.7
 const DESCENT_FADE_TIME := 0.5
-const DEATH_HOLD_TIME := 4.0
+const DEATH_HOLD_TIME := 5.0
 
 var last_total := 0
 

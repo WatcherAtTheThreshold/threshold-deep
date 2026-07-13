@@ -104,10 +104,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   random spin + height jitter, the frogman's coat). New creatures
   and events should always answer "what does it leave behind?"
 - Bestiary: **skeleton** (melee chaser, 3 HP), **wizard** (keeps
-  distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle →
-  large 6 HP → splits at ≤3 HP into two smalls that re-merge on
-  contact unless the player is within 5 m; also in group `"slimes"`
-  and dissolves potions it touches), **mush family** (mush 8 HP →
+  distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle with random
+  1–10 s incubation → large 6 HP → splits at ≤3 HP into two smalls
+  that re-merge on contact unless the player is within 5 m; in group
+  `"slimes"`, dissolves potions; 15% of corpses respawn as a 2 HP
+  small after 8–20 s — the splat swaps to spawn-puddle art 3 s
+  before rising), **mush family** (mush 8 HP →
   two minis at ≤4; mushes actively seek visible kin to fuse with —
   grudges override; two full mushes within 1.2 m fuse into a mega —
   14 HP cap, 2-damage hits, splits back at ≤7; 4 s merge cooldown

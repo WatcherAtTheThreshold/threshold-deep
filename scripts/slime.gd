@@ -10,7 +10,12 @@ const TEX_SPAWN := preload("res://assets/sprites/slime/slime-spawn.png")
 const TEX_DEAD := preload("res://assets/sprites/slime/slime_dead.png")
 const WALK_FRAME_TIME := 0.25
 
-const SPAWN_TIME := 1.3
+const SPAWN_TIME_MIN := 1.0
+const SPAWN_TIME_MAX := 10.0
+const RESPAWN_CHANCE := 0.15
+const RESPAWN_DELAY_MIN := 8.0
+const RESPAWN_DELAY_MAX := 20.0
+const RESPAWN_TELL_TIME := 3.0
 const LARGE_MAX_HEALTH := 6
 const SPLIT_HEALTH := 3
 const LARGE_SPEED := 1.4
@@ -25,7 +30,9 @@ const PLAYER_PRIORITY_RANGE := 5.0
 var state := State.PUDDLE
 var health := LARGE_MAX_HEALTH
 var speed_scale := 1.0
-var spawn_timer := SPAWN_TIME
+var spawn_timer := 2.0
+var respawn_timer := -1.0
+var emerge_small := false
 var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
@@ -39,6 +46,9 @@ var partner: CharacterBody3D = null  # fellow small to re-merge with
 
 func _ready() -> void:
 	if state == State.PUDDLE:
+		# Random incubation: this puddle might erupt long after you
+		# walked past it.
+		spawn_timer = randf_range(SPAWN_TIME_MIN, SPAWN_TIME_MAX)
 		_show_flat(TEX_SPAWN)
 	else:
 		# Split-spawned smalls skip the puddle and are live immediately.
@@ -63,6 +73,14 @@ func kill_label() -> String:
 
 func _physics_process(delta: float) -> void:
 	if dead:
+		# Semi-rarely, a death puddle stirs again. The splat swaps to
+		# spawn-puddle art a few seconds before rising — the tell.
+		if respawn_timer > 0.0:
+			respawn_timer -= delta
+			if respawn_timer <= RESPAWN_TELL_TIME and sprite.texture != TEX_SPAWN:
+				sprite.texture = TEX_SPAWN
+			if respawn_timer <= 0.0:
+				_respawn()
 		return
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -141,9 +159,20 @@ func _partner_alive() -> bool:
 
 
 func _emerge() -> void:
-	state = State.LARGE
+	state = State.SMALL if emerge_small else State.LARGE
 	add_to_group("enemies")
 	_apply_state()
+
+
+func _respawn() -> void:
+	# Back from the puddle — smaller, weaker, still hungry.
+	dead = false
+	emerge_small = true
+	health = 2
+	state = State.PUDDLE
+	spawn_timer = randf_range(1.0, 4.0)
+	$CollisionShape3D.set_deferred("disabled", false)
+	_show_flat(TEX_SPAWN)
 
 
 func _merge() -> void:
@@ -257,3 +286,5 @@ func _die(by_player: bool) -> void:
 	velocity = Vector3.ZERO
 	sprite.modulate = Color.WHITE
 	_show_flat(TEX_DEAD)
+	if randf() < RESPAWN_CHANCE:
+		respawn_timer = randf_range(RESPAWN_DELAY_MIN, RESPAWN_DELAY_MAX)
