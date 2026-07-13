@@ -182,7 +182,7 @@ func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i)
 			return true
 		if id != floor_wood_id and c != start:
 			continue
-		for d in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
 			var n := c + d
 			if n == banned or visited.has(n):
 				continue
