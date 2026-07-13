@@ -6,6 +6,10 @@ const SPEED := 6.0
 const LIFETIME := 4.0
 const FRAME_TIME := 0.15
 
+# Overridable per shooter (the Skeletal Wizard fires its own frames).
+var frame_a: Texture2D = FRAME_A
+var frame_b: Texture2D = FRAME_B
+var damage := 1
 var direction := Vector3.FORWARD
 var shooter: PhysicsBody3D = null
 var time := 0.0
@@ -23,7 +27,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	position += direction * SPEED * delta
-	sprite.texture = FRAME_A if int(time / FRAME_TIME) % 2 == 0 else FRAME_B
+	sprite.texture = frame_a if int(time / FRAME_TIME) % 2 == 0 else frame_b
 	# Keep the flight sizzle going for as long as the orb lives.
 	if not $FlightSound.playing:
 		$FlightSound.play()
@@ -33,9 +37,9 @@ func _on_body_entered(body: Node3D) -> void:
 	if body == shooter:
 		return
 	if body is Player:
-		# Credit the wizard who cast it.
-		body.take_damage(1, direction, shooter if is_instance_valid(shooter) else null)
+		# Credit the caster.
+		body.take_damage(damage, direction, shooter if is_instance_valid(shooter) else null)
 	elif body.is_in_group("enemies"):
 		# Friendly fire: a stray orb starts an infight.
-		body.take_damage(1, direction, shooter)
+		body.take_damage(damage, direction, shooter)
 	queue_free()

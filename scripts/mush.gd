@@ -8,6 +8,7 @@ const TEX_MUSH_1 := preload("res://assets/sprites/mush/mush/mush1.png")
 const TEX_MUSH_2 := preload("res://assets/sprites/mush/mush/mush2.png")
 const TEX_MINI_1 := preload("res://assets/sprites/mush/mini-mush/mini-mush1.png")
 const TEX_MINI_2 := preload("res://assets/sprites/mush/mini-mush/mini-mush2.png")
+const TEX_MINI_SURPRISE := preload("res://assets/sprites/mush/mini-mush/mini-mush-suprise.png")
 const TEX_DEAD_MEGA := preload("res://assets/sprites/mush/mega-mush/mega_mush_dead.png")
 const TEX_DEAD_MUSH := preload("res://assets/sprites/mush/mush/mush_dead.png")
 const TEX_DEAD_MINI := preload("res://assets/sprites/mush/mini-mush/mini_mush_dead.png")
@@ -24,12 +25,22 @@ const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.3
 const ATTACK_COOLDOWN := 1.2
 
+const HUNT_DEPTH := 10
+const STARTLE_TIME := 0.4
+const EAT_RANGE := 0.9
+const GREEN_TINT := Color(0.55, 1.05, 0.55)
+
 var state := State.MUSH
 var health := MUSH_MAX_HEALTH
 var speed := 1.6
 var damage := 1
 var body_radius := 0.5
 var speed_scale := 1.0
+var depth := 1
+var green := false
+var base_tint := Color.WHITE
+var hunt_target: PhysicsBody3D = null
+var startle_timer := 0.0
 var merge_cooldown := 0.0
 var attack_timer := 0.0
 var walk_time := 0.0
@@ -49,25 +60,29 @@ func _ready() -> void:
 	_apply_state()
 
 
-func configure(new_state: State, hp: int, cooldown := 0.0) -> void:
+func configure(new_state: State, hp: int, cooldown := 0.0, is_green := false) -> void:
 	# Called before add_child by a splitting parent.
 	state = new_state
 	health = hp
 	merge_cooldown = cooldown
+	green = is_green
+	if green:
+		base_tint = GREEN_TINT
 
 
-func setup(depth: int) -> void:
+func setup(new_depth: int) -> void:
+	depth = new_depth
 	speed_scale = 1.0 + minf(0.04 * (depth - 1), 0.4)
 
 
 func kill_label() -> String:
 	match state:
 		State.MEGA:
-			return "Mega Mush"
+			return "Green Mega Mush" if green else "Mega Mush"
 		State.MINI:
 			return "Mini-Mush"
 		_:
-			return "Mush"
+			return "Green Mush" if green else "Mush"
 
 
 func _physics_process(delta: float) -> void:
@@ -81,6 +96,20 @@ func _physics_process(delta: float) -> void:
 	if state == State.MUSH and merge_cooldown == 0.0:
 		_try_merge()
 
+	# Deep-floor hunger: a mini that spots a slime corpse goes for it.
+	if hunt_target != null and not is_instance_valid(hunt_target):
+		hunt_target = null
+	if state == State.MINI and depth >= HUNT_DEPTH and hunt_target == null:
+		_acquire_slime_corpse()
+	if startle_timer > 0.0:
+		# The startle: it just had an idea. Freeze, little hop, then run.
+		startle_timer -= delta
+		velocity.x = 0.0
+		velocity.z = 0.0
+		sprite.texture = TEX_MINI_SURPRISE
+		move_and_slide()
+		return
+
 	var t := _get_target()
 	var goal := _pick_goal(t)
 	var to_goal := goal.global_position - global_position
@@ -88,7 +117,9 @@ func _physics_process(delta: float) -> void:
 	var dist := to_goal.length()
 	var sight := SIGHT_RANGE if goal == player else INFIGHT_SIGHT_RANGE
 
-	if dist < sight and _can_see(goal):
+	if goal == hunt_target and dist < EAT_RANGE:
+		_eat_slime()
+	elif dist < sight and _can_see(goal):
 		if goal != t or dist > ATTACK_RANGE:
 			# Walking toward a merge mate, or closing on a target.
 			var dir := to_goal.normalized()
@@ -120,12 +151,42 @@ func _physics_process(delta: float) -> void:
 
 func _pick_goal(t: PhysicsBody3D) -> PhysicsBody3D:
 	# Union over war: an unhurried mush would rather find its kin and
-	# fuse than fight. Pain (a grudge target) overrides that.
-	if t == player and state == State.MUSH and merge_cooldown == 0.0:
-		var mate := _find_merge_mate()
-		if mate != null:
-			return mate
+	# fuse than fight — and an unhurried mini would rather eat a slime
+	# corpse than fight. Pain (a grudge target) overrides everything.
+	if t == player:
+		if state == State.MINI and hunt_target != null:
+			return hunt_target
+		if state == State.MUSH and merge_cooldown == 0.0:
+			var mate := _find_merge_mate()
+			if mate != null:
+				return mate
 	return t
+
+
+func _acquire_slime_corpse() -> void:
+	for s: PhysicsBody3D in get_tree().get_nodes_in_group("slimes"):
+		if not is_instance_valid(s) or s.get("dead") != true:
+			continue
+		var to_corpse := s.global_position - global_position
+		to_corpse.y = 0.0
+		if to_corpse.length() < SIGHT_RANGE and _can_see(s):
+			hunt_target = s
+			startle_timer = STARTLE_TIME
+			velocity.y = 3.0  # the little hop
+			break
+
+
+func _eat_slime() -> void:
+	if is_instance_valid(hunt_target):
+		hunt_target.queue_free()
+	hunt_target = null
+	# Fed and transformed: a green mush, with everything that implies.
+	green = true
+	base_tint = GREEN_TINT
+	state = State.MUSH
+	health = MUSH_MAX_HEALTH
+	merge_cooldown = 1.0
+	_apply_state()
 
 
 func _find_merge_mate() -> PhysicsBody3D:
@@ -158,6 +219,9 @@ func _try_merge() -> void:
 		between.y = 0.0
 		if between.length() < MERGE_RANGE:
 			health = clampi(health + other.health, 1, MEGA_MAX_HEALTH)
+			if other.green:
+				green = true
+				base_tint = GREEN_TINT
 			other.queue_free()
 			position += between * 0.5
 			state = State.MEGA
@@ -173,7 +237,8 @@ func _split(child_state: State) -> void:
 	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/mush.tscn") as PackedScene).instantiate()
-	other.configure(child_state, h2, MERGE_COOLDOWN)
+	other.configure(child_state, h2, MERGE_COOLDOWN, green)
+	other.setup(depth)
 	other.position = global_position + side * 0.8
 	other.velocity = side * 3.5
 	get_parent().add_child.call_deferred(other)
@@ -190,6 +255,7 @@ func _drop_splat() -> void:
 	# layer instead of z-fighting.
 	var splat := Sprite3D.new()
 	splat.texture = TEX_DEAD_MEGA if state == State.MEGA else TEX_DEAD_MUSH
+	splat.modulate = base_tint
 	splat.pixel_size = 0.03125
 	splat.shaded = true
 	splat.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
@@ -232,6 +298,7 @@ func _apply_state() -> void:
 			damage = 1
 	$CollisionShape3D.shape.radius = body_radius
 	sprite.texture = frame_a
+	sprite.modulate = base_tint
 
 
 func _get_target() -> PhysicsBody3D:
@@ -259,7 +326,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		# Pain redirects attention to whoever caused it.
 		target = attacker
 	sprite.modulate = Color(1.0, 0.3, 0.3)
-	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
+	create_tween().tween_property(sprite, "modulate", base_tint, 0.25)
 	if health <= 0:
 		_die(attacker == null or attacker is Player)
 	elif state == State.MEGA and health <= MEGA_SPLIT_HEALTH:
@@ -278,7 +345,7 @@ func _die(by_player: bool) -> void:
 	remove_from_group("mushes")
 	$CollisionShape3D.set_deferred("disabled", true)
 	velocity = Vector3.ZERO
-	sprite.modulate = Color.WHITE
+	sprite.modulate = base_tint
 	sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	sprite.rotation_degrees = Vector3(-90, 0, 0)
 	# Body center rests at floor + radius; park the splat just above

@@ -12,6 +12,7 @@ const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
+const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -51,6 +52,7 @@ var arena_mists: Array[Node3D] = []
 var boss_index := 0
 var fight_active := false
 var fight_grace := 0.0
+var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
 
 # Item floor state
 var item_room_idx := -1
@@ -121,7 +123,12 @@ func _physics_process(_delta: float) -> void:
 	if fight_active:
 		fight_grace = maxf(fight_grace - _delta, 0.0)
 		if fight_grace == 0.0 and not _arena_has_living_enemies():
-			_finish_boss_fight()
+			if boss_index >= 2 and amalgam_stage == 0:
+				# Phase two: the bodies got up.
+				amalgam_stage = 1
+				_begin_assembly()
+			elif amalgam_stage != 1:
+				_finish_boss_fight()
 
 	if item_room_idx >= 0 and not item_resolved:
 		if not item_sealed:
@@ -330,6 +337,65 @@ func _start_boss_fight() -> void:
 						else spots[n % spots.size()]
 				enemy.position = _cell_to_world(cell)
 				add_child(enemy)
+
+
+func _begin_assembly() -> void:
+	# Everything stops. Every corpse in the arena — every body the
+	# player made — drags itself slowly toward the centre.
+	var arena := floor_rooms[arena_room_idx]
+	var min_x := arena.position.x * CELL_SIZE - 3.0
+	var max_x := arena.end.x * CELL_SIZE + 3.0
+	var min_z := arena.position.y * CELL_SIZE - 3.0
+	var max_z := arena.end.y * CELL_SIZE + 3.0
+	var corpses: Array[Node3D] = []
+	for child in get_children():
+		if not child is CharacterBody3D or child == player:
+			continue
+		if child.get("dead") != true:
+			continue
+		var p: Vector3 = child.global_position
+		if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
+			corpses.append(child)
+	# Assemble on stone nearest the centre (never over a hole).
+	var center_cell := arena.get_center()
+	var cells := _stone_cells(arena)
+	var best_d := INF
+	for c in cells:
+		var d := Vector2(c - center_cell).length_squared()
+		if d < best_d:
+			best_d = d
+			center_cell = c
+	var center := _cell_to_world(center_cell, 1.1)
+	var i := 0
+	for c in corpses:
+		c.set_physics_process(false)
+		var offset := Vector3(
+			randf_range(-0.5, 0.5), randf_range(-0.1, 0.5), randf_range(-0.5, 0.5))
+		var tw := create_tween()
+		tw.tween_interval(0.5 + i * 0.15)
+		tw.tween_property(c, "global_position", center + offset, 2.6) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		i += 1
+	var timer := Timer.new()
+	timer.wait_time = 0.5 + corpses.size() * 0.15 + 2.6 + 0.6
+	timer.one_shot = true
+	add_child(timer)
+	timer.timeout.connect(_spawn_amalgam.bind(corpses, center, corpses.size()))
+	timer.start()
+
+
+func _spawn_amalgam(corpses: Array, center: Vector3, body_count: int) -> void:
+	for c: Node3D in corpses:
+		if is_instance_valid(c):
+			c.queue_free()
+	var boss := SKELETAL_WIZARD_SCENE.instantiate()
+	boss.position = center + Vector3(0, 0.7, 0)
+	add_child(boss)
+	# The player built this boss: HP scales with the bodies, capped —
+	# panic must cost, but never spiral.
+	boss.health = clampi(10 + body_count * 2, 14, 34)
+	amalgam_stage = 2
+	fight_grace = 1.5
 
 
 func _arena_has_living_enemies() -> bool:
