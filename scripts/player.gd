@@ -19,7 +19,7 @@ const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
 const INVULN_TIME := 1.0
 const BOOTS_SPEED_MULT := 1.15
-const ARMOR_BLOCK_CHANCE := 0.25
+const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
 
@@ -72,9 +72,17 @@ func pickup_boots() -> bool:
 
 
 func pickup_armor() -> bool:
-	if RunState.has_armor:
+	if RunState.armor_tier >= 1:
 		return false
-	RunState.has_armor = true
+	RunState.armor_tier = 1
+	_apply_loadout()
+	return true
+
+
+func pickup_armor2() -> bool:
+	if RunState.armor_tier >= 2:
+		return false
+	RunState.armor_tier = 2
 	_apply_loadout()
 	return true
 
@@ -234,7 +242,7 @@ func add_heart_container() -> bool:
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
 		return
-	if RunState.has_armor and randf() < ARMOR_BLOCK_CHANCE:
+	if randf() < ARMOR_BLOCK_CHANCES[RunState.armor_tier]:
 		# The armor turns the blow — a glancing shove, nothing more.
 		blocked.emit()
 		velocity += push_dir * 2.5

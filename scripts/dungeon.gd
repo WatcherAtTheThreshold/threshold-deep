@@ -12,6 +12,7 @@ const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
 const BOOTS_PICKUP_SCENE := preload("res://scenes/boots_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
+const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
@@ -472,8 +473,10 @@ func _setup_item_room() -> void:
 		pool.append(CONTAINER_PICKUP_SCENE)
 	if not RunState.has_boots:
 		pool.append(BOOTS_PICKUP_SCENE)
-	if not RunState.has_armor:
+	if RunState.armor_tier == 0:
 		pool.append(ARMOR_PICKUP_SCENE)
+	elif RunState.armor_tier == 1:
+		pool.append(ARMOR2_PICKUP_SCENE)
 	if RunState.has_sword and not RunState.has_staff:
 		pool.append(STAFF_PICKUP_SCENE)
 	pool.shuffle()

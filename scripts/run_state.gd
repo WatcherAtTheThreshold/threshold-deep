@@ -18,7 +18,7 @@ var carried_magic := 0
 var has_sword := false
 var has_staff := false
 var has_boots := false
-var has_armor := false
+var armor_tier := 0  # 0 none, 1 leather (25% block), 2 steel (40%)
 
 var damage_dealt := 0
 var damage_taken := 0
@@ -78,7 +78,7 @@ func reset() -> void:
 	has_sword = false
 	has_staff = false
 	has_boots = false
-	has_armor = false
+	armor_tier = 0
 	damage_dealt = 0
 	damage_taken = 0
 	kills_by_type = {}
