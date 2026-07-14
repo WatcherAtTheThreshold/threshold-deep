@@ -12,6 +12,7 @@ const COLD := Color(0.72, 0.85, 1.0, 0.55)
 const GOLD := Color(1.0, 0.82, 0.45, 0.6)
 
 var gold := false
+var span := 2.0  # opening width in meters — one curtain per opening
 var material: ShaderMaterial
 var tint := COLD
 
@@ -21,18 +22,21 @@ var tint := COLD
 
 func _ready() -> void:
 	var quad := QuadMesh.new()
-	# Slightly wider than the cell: the feathered ends tuck into the
-	# flanking walls on normal doorways.
-	quad.size = Vector2(2.4, 3.6)
+	# Slightly wider than the opening: the feathered ends tuck into
+	# the flanking walls.
+	var width := span + 0.4
+	quad.size = Vector2(width, 3.6)
 	material = ShaderMaterial.new()
 	material.shader = MIST_SHADER
 	material.set_shader_parameter("mist_tex", MIST_TEXTURE)
+	material.set_shader_parameter("tiles", width / 2.0)
+	material.set_shader_parameter("feather", clampf(0.4 / width, 0.05, 0.18))
 	tint = GOLD if gold else COLD
 	material.set_shader_parameter("tint", tint)
 	quad.material = material
 	visual.mesh = quad
 	var box := BoxShape3D.new()
-	box.size = Vector3(2.0, 4.0, 0.6)
+	box.size = Vector3(span, 4.0, 0.6)
 	wall_shape.shape = box
 	wall_shape.disabled = true
 

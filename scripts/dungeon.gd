@@ -560,28 +560,53 @@ func _fortify_room_ring(room: Rect2i) -> void:
 
 
 func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
-	# A mist door in every doorway cell on the room's ring.
+	# One continuous curtain per contiguous opening on the room's
+	# ring — a corridor running alongside can open a whole side, and
+	# that gets a single spanning curtain, not a bank of panels.
 	var mists: Array[Node3D] = []
-	for cy in range(room.position.y, room.end.y):
-		for side in [room.position.x - 1, room.end.x]:
-			mists.append_array(_try_mist(Vector2i(side, cy), true, gold))
-	for cx in range(room.position.x, room.end.x):
-		for side in [room.position.y - 1, room.end.y]:
-			mists.append_array(_try_mist(Vector2i(cx, side), false, gold))
+	for side_y in [room.position.y - 1, room.end.y]:
+		var run_start := -1
+		for cx in range(room.position.x, room.end.x + 1):
+			var open := cx < room.end.x and _is_open_cell(Vector2i(cx, side_y))
+			if open and run_start < 0:
+				run_start = cx
+			elif not open and run_start >= 0:
+				mists.append(_spawn_curtain(
+					Vector2(run_start, cx - 1), side_y, false, gold))
+				run_start = -1
+	for side_x in [room.position.x - 1, room.end.x]:
+		var run_start := -1
+		for cy in range(room.position.y, room.end.y + 1):
+			var open := cy < room.end.y and _is_open_cell(Vector2i(side_x, cy))
+			if open and run_start < 0:
+				run_start = cy
+			elif not open and run_start >= 0:
+				mists.append(_spawn_curtain(
+					Vector2(run_start, cy - 1), side_x, true, gold))
+				run_start = -1
 	return mists
 
 
-func _try_mist(cell: Vector2i, horizontal: bool, gold: bool) -> Array[Node3D]:
+func _is_open_cell(cell: Vector2i) -> bool:
 	var id := grid_map.get_cell_item(Vector3i(cell.x, 0, cell.y))
-	if id != floor_id and id != floor_wood_id:
-		return []
+	return id == floor_id or id == floor_wood_id
+
+
+func _spawn_curtain(run: Vector2, side: int, horizontal: bool, gold: bool) -> Node3D:
+	# run = first/last cell index along the open edge.
+	var length := (run.y - run.x + 1.0) * CELL_SIZE
+	var mid := (run.x + run.y) * 0.5 * CELL_SIZE + 1.0
+	var side_center := side * CELL_SIZE + 1.0
 	var mist := MIST_SCENE.instantiate()
 	mist.gold = gold
-	mist.position = _cell_to_world(cell, 0.5)
+	mist.span = length
 	if horizontal:
+		mist.position = Vector3(side_center, 0.5, mid)
 		mist.rotation_degrees = Vector3(0, 90, 0)
+	else:
+		mist.position = Vector3(mid, 0.5, side_center)
 	add_child(mist)
-	return [mist]
+	return mist
 
 
 func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
