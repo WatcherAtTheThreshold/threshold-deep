@@ -21,6 +21,7 @@ const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_f
 const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor_start.wav")
 const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor_start.wav")
 const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.wav")
+const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -150,6 +151,7 @@ func _physics_process(_delta: float) -> void:
 		if not item_sealed:
 			if _player_inside_room(floor_rooms[item_room_idx]):
 				item_sealed = true
+				_play_stinger(SOUND_ITEM_MIST)
 				for m in item_mists:
 					if is_instance_valid(m):
 						m.seal()
