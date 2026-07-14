@@ -40,6 +40,9 @@ func _on_body_entered(body: Node3D) -> void:
 		# Credit the caster.
 		body.take_damage(damage, direction, shooter if is_instance_valid(shooter) else null)
 	elif body.is_in_group("enemies"):
-		# Friendly fire: a stray orb starts an infight.
+		# Friendly fire: a stray orb starts an infight. Player orbs
+		# (the staff) count toward damage dealt.
 		body.take_damage(damage, direction, shooter)
+		if shooter is Player:
+			RunState.record_damage_dealt(damage)
 	queue_free()

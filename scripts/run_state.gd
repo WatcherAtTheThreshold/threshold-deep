@@ -16,6 +16,9 @@ var carried_health := -1  # -1 = fresh run, spawn with full hearts
 var carried_max_health := -1  # -1 = fresh run, base containers
 var carried_magic := 0
 var has_sword := false
+var has_staff := false
+var has_boots := false
+var has_armor := false
 
 var damage_dealt := 0
 var damage_taken := 0
@@ -73,6 +76,9 @@ func reset() -> void:
 	carried_max_health = -1
 	carried_magic = 0
 	has_sword = false
+	has_staff = false
+	has_boots = false
+	has_armor = false
 	damage_dealt = 0
 	damage_taken = 0
 	kills_by_type = {}

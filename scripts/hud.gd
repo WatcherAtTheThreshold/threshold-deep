@@ -26,6 +26,7 @@ func _ready() -> void:
 	RunState.changed.connect(_update_run_info)
 	_update_run_info()
 	player.health_changed.connect(_on_health_changed)
+	player.blocked.connect(_on_blocked)
 	player.died.connect(_on_player_died)
 	last_total = player.health + player.magic_hearts
 	_rebuild_hearts(player.health, player.max_health, player.magic_hearts)
@@ -121,6 +122,15 @@ func _build_death_stats() -> String:
 func _restart_run() -> void:
 	RunState.reset()
 	get_tree().reload_current_scene()
+
+
+func _on_blocked() -> void:
+	# The armor turned the blow: a steel-blue flash instead of red.
+	hurt_flash.color = Color(0.55, 0.7, 0.95, 0.35)
+	var tween := create_tween()
+	tween.tween_property(hurt_flash, "color:a", 0.0, 0.35)
+	tween.tween_callback(func() -> void:
+		hurt_flash.color = Color(0.7, 0.08, 0.08, 0.0))
 
 
 func _on_health_changed(current: int, maximum: int, magic: int) -> void:

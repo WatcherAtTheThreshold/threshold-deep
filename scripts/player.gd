@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal health_changed(current: int, maximum: int, magic: int)
 signal attacked
+signal blocked
 signal died
 
 const SPEED := 5.0
@@ -17,11 +18,16 @@ const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
 const INVULN_TIME := 1.0
+const BOOTS_SPEED_MULT := 1.15
+const ARMOR_BLOCK_CHANCE := 0.25
+const ORB_SCENE := preload("res://scenes/orb.tscn")
+const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
 var magic_hearts := 0
 var attack_damage := 1
+var move_speed := SPEED
 var attack_timer := 0.0
 var invuln_timer := 0.0
 var dash_timer := 0.0
@@ -49,10 +55,40 @@ func pickup_sword() -> void:
 	_apply_loadout()
 
 
+func pickup_staff() -> bool:
+	if RunState.has_staff:
+		return false
+	RunState.has_staff = true
+	_apply_loadout()
+	return true
+
+
+func pickup_boots() -> bool:
+	if RunState.has_boots:
+		return false
+	RunState.has_boots = true
+	_apply_loadout()
+	return true
+
+
+func pickup_armor() -> bool:
+	if RunState.has_armor:
+		return false
+	RunState.has_armor = true
+	_apply_loadout()
+	return true
+
+
 func _apply_loadout() -> void:
-	attack_damage = 2 if RunState.has_sword else 1
-	$HUD/HandTorch.set_sword(RunState.has_sword)
-	$HUD/LeftTorch.visible = RunState.has_sword
+	var weapon := "torch"
+	if RunState.has_staff:
+		weapon = "staff"
+	elif RunState.has_sword:
+		weapon = "sword"
+	attack_damage = 1 if weapon == "torch" else 2
+	move_speed = SPEED * (BOOTS_SPEED_MULT if RunState.has_boots else 1.0)
+	$HUD/HandTorch.set_weapon(weapon)
+	$HUD/LeftTorch.visible = weapon != "torch"
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -110,11 +146,11 @@ func _physics_process(delta: float) -> void:
 		velocity.x = dash_dir.x * DASH_SPEED
 		velocity.z = dash_dir.z * DASH_SPEED
 	elif direction:
-		velocity.x = direction.x * SPEED
-		velocity.z = direction.z * SPEED
+		velocity.x = direction.x * move_speed
+		velocity.z = direction.z * move_speed
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
-		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		velocity.x = move_toward(velocity.x, 0.0, move_speed)
+		velocity.z = move_toward(velocity.z, 0.0, move_speed)
 
 	move_and_slide()
 	_update_step_audio()
@@ -136,15 +172,27 @@ func _attack() -> void:
 		return
 	attack_timer = ATTACK_COOLDOWN
 	attacked.emit()
-	# Melee arc: hit every enemy close enough and roughly in front.
-	var forward := -global_transform.basis.z
-	for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
-		var to := enemy.global_position - global_position
-		to.y = 0.0
-		if to.length() <= ATTACK_RANGE \
-				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
-			enemy.take_damage(attack_damage, to.normalized(), self)
-			RunState.record_damage_dealt(attack_damage)
+	if RunState.has_staff:
+		# The staff's verb: a bolt where you're looking, pitch and all.
+		var aim := -camera.global_transform.basis.z
+		var orb := ORB_SCENE.instantiate()
+		orb.shooter = self
+		orb.frame_a = STAFF_ORB_TEXTURE
+		orb.frame_b = STAFF_ORB_TEXTURE
+		orb.damage = attack_damage
+		orb.direction = aim
+		orb.position = camera.global_position + aim * 0.9
+		get_parent().add_child.call_deferred(orb)
+	else:
+		# Melee arc: hit every enemy close enough and roughly in front.
+		var forward := -global_transform.basis.z
+		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
+			var to := enemy.global_position - global_position
+			to.y = 0.0
+			if to.length() <= ATTACK_RANGE \
+					and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
+				enemy.take_damage(attack_damage, to.normalized(), self)
+				RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable.
 	var from := camera.global_position
@@ -185,6 +233,11 @@ func add_heart_container() -> bool:
 
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if not controls_enabled or invuln_timer > 0.0 or health <= 0:
+		return
+	if RunState.has_armor and randf() < ARMOR_BLOCK_CHANCE:
+		# The armor turns the blow — a glancing shove, nothing more.
+		blocked.emit()
+		velocity += push_dir * 2.5
 		return
 	invuln_timer = INVULN_TIME
 	# Magic hearts absorb damage first; the spill hits red hearts.

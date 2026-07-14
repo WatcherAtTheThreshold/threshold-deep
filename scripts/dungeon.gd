@@ -10,6 +10,9 @@ const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
 const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
+const BOOTS_PICKUP_SCENE := preload("res://scenes/boots_pickup.tscn")
+const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
+const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
@@ -462,17 +465,25 @@ func _setup_item_room() -> void:
 		var center := room.get_center()
 		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
 		cells.append(center)
-	var magic := MAGIC_PICKUP_SCENE.instantiate()
-	magic.always_consume = true
-	magic.position = _cell_to_world(cells[0], 0.5)
-	add_child(magic)
-	item_pedestals.append(magic)
-	if cells.size() > 1:
-		var container := CONTAINER_PICKUP_SCENE.instantiate()
-		container.always_consume = true
-		container.position = _cell_to_world(cells[1], 0.5)
-		add_child(container)
-		item_pedestals.append(container)
+	# The pedestal pool: what the run hasn't granted yet. Two are
+	# offered; taking one seals away the other.
+	var pool: Array[PackedScene] = [MAGIC_PICKUP_SCENE]
+	if player.max_health < player.MAX_HEALTH_CAP:
+		pool.append(CONTAINER_PICKUP_SCENE)
+	if not RunState.has_boots:
+		pool.append(BOOTS_PICKUP_SCENE)
+	if not RunState.has_armor:
+		pool.append(ARMOR_PICKUP_SCENE)
+	if RunState.has_sword and not RunState.has_staff:
+		pool.append(STAFF_PICKUP_SCENE)
+	pool.shuffle()
+	var count := mini(2, mini(pool.size(), cells.size()))
+	for i in count:
+		var pedestal := pool[i].instantiate()
+		pedestal.always_consume = true
+		pedestal.position = _cell_to_world(cells[i], 0.5)
+		add_child(pedestal)
+		item_pedestals.append(pedestal)
 
 
 # ------------------------------------------------------------------

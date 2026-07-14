@@ -90,6 +90,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - Health: start 3 red containers, cap 8 (containers arrive filled).
   Magic hearts (yellow, cap 6) absorb damage before red and can't
   be healed by potions.
+- Relics (one-time flags in RunState, pedestal pool in item rooms):
+  speed boots (move speed ×1.15), armor (25% chance a blow is fully
+  turned — steel-blue flash, no damage/invuln), magic staff
+  (replaces the sword: attacks fire a 2-damage orb along the camera
+  aim; offered only after the sword). relic_pickup.gd + `grant`
+  method name is the pattern for new relics.
 - Run structure (docs/structure.md): floor cadence repeats
   regular/BOSS/item (bosses at depth 2/5/8…, items at 3/6/9…),
   continuing below the depth-8 victory for endless descent. Mist

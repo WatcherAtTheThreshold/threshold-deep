@@ -1,9 +1,16 @@
 extends TextureRect
 
+const FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/left-hand-torch.png"),
+	preload("res://assets/sprites/left-hand-torch2.png"),
+	preload("res://assets/sprites/left-hand-torch3.png"),
+]
+const FLICKER_TIME := 0.16
 const SWAY_AMOUNT := 6.0
 
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
+var flicker_clock := 0.0
 var bob_time := 0.0
 var base_offset: Vector2
 var strike_offset := Vector2.ZERO
@@ -21,6 +28,9 @@ func _process(delta: float) -> void:
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
+	# The flame never rests.
+	flicker_clock += delta
+	texture = FRAMES[int(flicker_clock / FLICKER_TIME) % FRAMES.size()]
 	# Mirrored sway of the right hand, pinned to the bottom-left corner.
 	var corner_base := Vector2(0.0, get_viewport_rect().size.y) + base_offset \
 			+ pivot_offset * (scale - Vector2.ONE)
