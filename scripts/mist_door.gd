@@ -3,13 +3,17 @@ extends Node3D
 ## A wall of rolling mist filling a doorway cell (docs/structure.md).
 ## Cold/pale marks a boss room, warm gold an item room. Always
 ## passable until seal() — mist = commitment, the plate is the lock.
+## The shader feathers the quad's edges so wonky doorways never show
+## a hard cut, and scrolls the texture on its own clock.
 
+const MIST_SHADER := preload("res://assets/shaders/mist.gdshader")
 const MIST_TEXTURE := preload("res://assets/textures/mist-overlay.png")
 const COLD := Color(0.72, 0.85, 1.0, 0.55)
 const GOLD := Color(1.0, 0.82, 0.45, 0.6)
 
 var gold := false
-var material: StandardMaterial3D
+var material: ShaderMaterial
+var tint := COLD
 
 @onready var visual: MeshInstance3D = $Visual
 @onready var wall_shape: CollisionShape3D = $Wall/CollisionShape3D
@@ -17,13 +21,14 @@ var material: StandardMaterial3D
 
 func _ready() -> void:
 	var quad := QuadMesh.new()
-	quad.size = Vector2(2.0, 3.6)
-	material = StandardMaterial3D.new()
-	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.albedo_texture = MIST_TEXTURE
-	material.albedo_color = GOLD if gold else COLD
+	# Slightly wider than the cell: the feathered ends tuck into the
+	# flanking walls on normal doorways.
+	quad.size = Vector2(2.4, 3.6)
+	material = ShaderMaterial.new()
+	material.shader = MIST_SHADER
+	material.set_shader_parameter("mist_tex", MIST_TEXTURE)
+	tint = GOLD if gold else COLD
+	material.set_shader_parameter("tint", tint)
 	quad.material = material
 	visual.mesh = quad
 	var box := BoxShape3D.new()
@@ -32,18 +37,19 @@ func _ready() -> void:
 	wall_shape.disabled = true
 
 
-func _process(delta: float) -> void:
-	# The roll: a slow drift of the texture through the doorway.
-	material.uv1_offset += Vector3(0.03, 0.05, 0.0) * delta
-
-
 func seal() -> void:
 	wall_shape.disabled = false
-	material.albedo_color.a = minf(material.albedo_color.a + 0.3, 0.9)
+	tint.a = minf(tint.a + 0.3, 0.9)
+	material.set_shader_parameter("tint", tint)
 
 
 func dissolve() -> void:
 	wall_shape.set_deferred("disabled", true)
 	var tween := create_tween()
-	tween.tween_property(material, "albedo_color:a", 0.0, 1.4)
+	tween.tween_method(_set_tint_alpha, tint.a, 0.0, 1.4)
 	tween.tween_callback(queue_free)
+
+
+func _set_tint_alpha(a: float) -> void:
+	tint.a = a
+	material.set_shader_parameter("tint", tint)
