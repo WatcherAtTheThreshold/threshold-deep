@@ -121,7 +121,10 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   persistent bright residue (billboard corpses, flat splats with
   random spin + height jitter, the frogman's coat). New creatures
   and events should always answer "what does it leave behind?"
-- Bestiary: **skeleton** (melee chaser, 3 HP), **wizard** (keeps
+- Bestiary: **skeleton** (melee chaser, 3 HP; 15% of bone piles are
+  restless — they stir when the player comes within 3.5 m after a
+  4 s grace, take 1 s to rise at 2 HP, and one hit mid-rise scatters
+  them for good), **wizard** (keeps
   distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle with random
   1–10 s incubation → large 6 HP → splits at ≤3 HP into two smalls
   that re-merge on contact unless the player is within 5 m; in group

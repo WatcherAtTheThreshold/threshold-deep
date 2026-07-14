@@ -6,7 +6,14 @@ const POTION_DROP_CHANCE := 0.25
 const FRAME_A := preload("res://assets/sprites/skeleton.png")
 const FRAME_B := preload("res://assets/sprites/skeleton2.png")
 const DEAD_TEXTURE := preload("res://assets/sprites/skeleton_dead.png")
+const RISE_TEXTURE := preload("res://assets/sprites/skeleton_mid_rise.png")
 const WALK_FRAME_TIME := 0.3
+
+const RISE_CHANCE := 0.15
+const RISE_RANGE := 3.5
+const RISE_TIME := 1.0
+const RISE_GRACE := 4.0
+const RISEN_HEALTH := 2
 
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
@@ -21,6 +28,10 @@ var health := MAX_HEALTH
 var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
+var restless := false
+var rising := false
+var rise_timer := 0.0
+var rise_delay := 0.0
 var target: PhysicsBody3D = null
 
 @onready var sprite: Sprite3D = $Sprite
@@ -30,6 +41,22 @@ var target: PhysicsBody3D = null
 
 func _physics_process(delta: float) -> void:
 	if dead:
+		# Some piles are restless: stir when the player comes close,
+		# take a slow second to stand — smash them mid-rise to
+		# scatter the bones for good.
+		if restless:
+			rise_delay = maxf(rise_delay - delta, 0.0)
+			if rising:
+				rise_timer -= delta
+				if rise_timer <= 0.0:
+					_rise()
+			elif rise_delay == 0.0 and is_instance_valid(player):
+				var to_p := player.global_position - global_position
+				to_p.y = 0.0
+				if to_p.length() < RISE_RANGE:
+					rising = true
+					rise_timer = RISE_TIME
+					sprite.texture = RISE_TEXTURE
 		return
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	if not is_on_floor():
@@ -97,8 +124,25 @@ func _can_see(t: PhysicsBody3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func _rise() -> void:
+	# It remembers you.
+	dead = false
+	restless = false
+	rising = false
+	health = RISEN_HEALTH
+	target = player
+	add_to_group("enemies")
+	$CollisionShape3D.set_deferred("disabled", false)
+	sprite.texture = FRAME_A
+
+
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if dead:
+		if rising:
+			# Caught it mid-rise: the bones scatter for good.
+			restless = false
+			rising = false
+			sprite.texture = DEAD_TEXTURE
 		return
 	health -= amount
 	velocity += push_dir * 6.0
@@ -121,6 +165,8 @@ func _die(by_player: bool) -> void:
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.texture = DEAD_TEXTURE
 	velocity = Vector3.ZERO
+	restless = randf() < RISE_CHANCE
+	rise_delay = RISE_GRACE
 	if randf() < POTION_DROP_CHANCE:
 		# Roll the bottle off the corpse so the sprites never share a
 		# depth (coplanar billboards z-fight).
