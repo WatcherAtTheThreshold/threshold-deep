@@ -12,12 +12,15 @@ const PLAY_MAX := 80.0
 const SILENCE_MIN := 30.0
 const SILENCE_MAX := 90.0
 
-var track: AudioStream = preload("res://assets/audio/music/threshold-deep.mp3")
+const TRACKS: Array[AudioStream] = [
+	preload("res://assets/audio/music/threshold-deep.ogg"),
+	preload("res://assets/audio/music/AMinorLament.ogg"),
+]
+
 var player := AudioStreamPlayer.new()
 
 
 func _ready() -> void:
-	player.stream = track
 	player.volume_db = -60.0
 	add_child(player)
 	_drift()
@@ -27,6 +30,9 @@ func _drift() -> void:
 	# First entrance comes fairly soon; after that, its own rhythm.
 	await get_tree().create_timer(randf_range(5.0, 15.0)).timeout
 	while true:
+		# Each surfacing picks a song, then a place within it.
+		var track := TRACKS[randi_range(0, TRACKS.size() - 1)]
+		player.stream = track
 		var length := track.get_length()
 		var start := randf_range(0.0, maxf(length - PLAY_MIN - FADE_TIME, 0.0))
 		var play_time := randf_range(PLAY_MIN, PLAY_MAX)
