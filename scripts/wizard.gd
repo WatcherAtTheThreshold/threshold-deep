@@ -9,6 +9,8 @@ const TEX_SHOOT_3 := preload("res://assets/sprites/wizard_shoot3.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const POTION_DROP_CHANCE := 0.25
+const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
+const HEART_DROP_CHANCE := 0.12
 const WALK_FRAME_TIME := 0.3
 
 const SPEED := 1.6
@@ -179,10 +181,14 @@ func _die(by_player: bool) -> void:
 	sprite.texture = DEAD_TEXTURE
 	sprite.modulate = Color.WHITE
 	velocity = Vector3.ZERO
+	# Roll drops off the corpse so the sprites never share a depth
+	# (coplanar billboards z-fight).
+	var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
 	if randf() < POTION_DROP_CHANCE:
-		# Roll the bottle off the corpse so the sprites never share a
-		# depth (coplanar billboards z-fight).
-		var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
 		var potion := POTION_SCENE.instantiate()
 		potion.position = global_position + Vector3(0, -0.9, 0) + roll
 		get_parent().add_child.call_deferred(potion)
+	elif randf() < HEART_DROP_CHANCE:
+		var heart := HEART_DROP_SCENE.instantiate()
+		heart.position = global_position + Vector3(0, -0.9, 0) + roll
+		get_parent().add_child.call_deferred(heart)

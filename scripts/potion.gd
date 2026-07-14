@@ -1,7 +1,11 @@
 extends Area3D
 
 const HEAL_AMOUNT := 1
-const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_potion.wav")
+const PICKUP_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/items/pickup_potion1.wav"),
+	preload("res://assets/audio/sfx/items/pickup_potion2.wav"),
+	preload("res://assets/audio/sfx/items/pickup_potion3.wav"),
+]
 
 
 func _ready() -> void:
@@ -23,7 +27,7 @@ func _play_pickup_sound() -> void:
 	# One-shot that outlives this node: parented to the world,
 	# autoplays on entering the tree, frees itself when done.
 	var one_shot := AudioStreamPlayer3D.new()
-	one_shot.stream = PICKUP_SOUND
+	one_shot.stream = PICKUP_SOUNDS[randi_range(0, PICKUP_SOUNDS.size() - 1)]
 	one_shot.position = global_position
 	one_shot.autoplay = true
 	one_shot.finished.connect(one_shot.queue_free)

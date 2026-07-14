@@ -17,6 +17,10 @@ const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
+const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_floor_start.wav")
+const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor_start.wav")
+const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor_start.wav")
+const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.wav")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -111,6 +115,14 @@ func _ready() -> void:
 		_populate(rooms)
 	last_player_cell = _player_cell()
 
+	# Every floor announces itself.
+	if kind == RunState.FloorKind.BOSS:
+		_play_stinger(SOUND_FLOOR_BOSS)
+	elif kind == RunState.FloorKind.ITEM:
+		_play_stinger(SOUND_FLOOR_ITEM)
+	else:
+		_play_stinger(SOUND_FLOOR_NORMAL)
+
 
 func _physics_process(_delta: float) -> void:
 	# Wooden floors give way behind you: when the player leaves a
@@ -202,6 +214,16 @@ func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i)
 				visited[n] = true
 				queue.append(n)
 	return false
+
+
+func _play_stinger(stream: AudioStream, db := -8.0) -> void:
+	# Non-positional one-shot for floor announcements and seals.
+	var p := AudioStreamPlayer.new()
+	p.stream = stream
+	p.volume_db = db
+	p.autoplay = true
+	p.finished.connect(p.queue_free)
+	add_child(p)
 
 
 func _player_cell() -> Vector3i:
@@ -304,6 +326,7 @@ func _setup_boss_room() -> void:
 func _start_boss_fight() -> void:
 	fight_active = true
 	fight_grace = FIGHT_GRACE_TIME
+	_play_stinger(SOUND_DOOR_LOCK)
 	for m in arena_mists:
 		if is_instance_valid(m):
 			m.seal()

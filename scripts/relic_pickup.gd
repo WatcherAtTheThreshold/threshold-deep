@@ -3,7 +3,7 @@ extends Area3D
 ## One script for the one-time relics (boots, armor, staff): set
 ## `grant` to the Player method that claims it.
 
-const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_potion.wav")
+const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item.wav")
 
 @export var grant := "pickup_boots"
 
