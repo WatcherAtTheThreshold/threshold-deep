@@ -565,6 +565,10 @@ func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
 	# that gets a single spanning curtain, not a bank of panels.
 	var mists: Array[Node3D] = []
 	for side_y in [room.position.y - 1, room.end.y]:
+		# The curtain hangs in the wall plane between ring and room,
+		# not at the ring cell's center.
+		var boundary := float(side_y + 1 if side_y < room.position.y else side_y) \
+				* CELL_SIZE
 		var run_start := -1
 		for cx in range(room.position.x, room.end.x + 1):
 			var open := cx < room.end.x and _is_open_cell(Vector2i(cx, side_y))
@@ -572,9 +576,11 @@ func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
 				run_start = cx
 			elif not open and run_start >= 0:
 				mists.append(_spawn_curtain(
-					Vector2(run_start, cx - 1), side_y, false, gold))
+					Vector2(run_start, cx - 1), boundary, false, gold))
 				run_start = -1
 	for side_x in [room.position.x - 1, room.end.x]:
+		var boundary := float(side_x + 1 if side_x < room.position.x else side_x) \
+				* CELL_SIZE
 		var run_start := -1
 		for cy in range(room.position.y, room.end.y + 1):
 			var open := cy < room.end.y and _is_open_cell(Vector2i(side_x, cy))
@@ -582,7 +588,7 @@ func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
 				run_start = cy
 			elif not open and run_start >= 0:
 				mists.append(_spawn_curtain(
-					Vector2(run_start, cy - 1), side_x, true, gold))
+					Vector2(run_start, cy - 1), boundary, true, gold))
 				run_start = -1
 	return mists
 
@@ -592,19 +598,19 @@ func _is_open_cell(cell: Vector2i) -> bool:
 	return id == floor_id or id == floor_wood_id
 
 
-func _spawn_curtain(run: Vector2, side: int, horizontal: bool, gold: bool) -> Node3D:
-	# run = first/last cell index along the open edge.
+func _spawn_curtain(run: Vector2, boundary: float, horizontal: bool, gold: bool) -> Node3D:
+	# run = first/last cell index along the open edge; boundary = the
+	# world coordinate of the wall plane the mist stands in for.
 	var length := (run.y - run.x + 1.0) * CELL_SIZE
 	var mid := (run.x + run.y) * 0.5 * CELL_SIZE + 1.0
-	var side_center := side * CELL_SIZE + 1.0
 	var mist := MIST_SCENE.instantiate()
 	mist.gold = gold
 	mist.span = length
 	if horizontal:
-		mist.position = Vector3(side_center, 0.5, mid)
+		mist.position = Vector3(boundary, 0.5, mid)
 		mist.rotation_degrees = Vector3(0, 90, 0)
 	else:
-		mist.position = Vector3(mid, 0.5, side_center)
+		mist.position = Vector3(mid, 0.5, boundary)
 	add_child(mist)
 	return mist
 

@@ -30,7 +30,7 @@ func _ready() -> void:
 	material.shader = MIST_SHADER
 	material.set_shader_parameter("mist_tex", MIST_TEXTURE)
 	material.set_shader_parameter("tiles", width / 2.0)
-	material.set_shader_parameter("feather", clampf(0.4 / width, 0.05, 0.18))
+	material.set_shader_parameter("feather", clampf(0.5 / width, 0.08, 0.18))
 	tint = GOLD if gold else COLD
 	material.set_shader_parameter("tint", tint)
 	quad.material = material
