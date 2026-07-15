@@ -35,7 +35,8 @@ uv1_triplanar = true
 uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 [sub_resource type="StandardMaterial3D" id="mat_hole"]
-albedo_color = Color(0.02, 0.015, 0.02, 1)
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 1)
 roughness = 1.0
 
 [sub_resource type="StandardMaterial3D" id="mat_ceiling"]
@@ -97,7 +98,7 @@ item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6, 0)
 item/3/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
 item/4/name = "hole"
 item/4/mesh = SubResource("mesh_hole")
-item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.25, 0)
+item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.65, 0)
 item/4/shapes = [SubResource("shape_hole"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)]
 item/5/name = "ceiling"
 item/5/mesh = SubResource("mesh_ceiling")
