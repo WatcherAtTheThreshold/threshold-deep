@@ -107,12 +107,10 @@ func _ready() -> void:
 	_build(map)
 	if kind == RunState.FloorKind.BOSS:
 		arena_room_idx = _largest_room(rooms)
-		_fortify_room_ring(rooms[arena_room_idx])
 		_populate(rooms, arena_room_idx, false)
 		_setup_boss_room()
 	elif kind == RunState.FloorKind.ITEM:
 		item_room_idx = _farthest_room(rooms)
-		_fortify_room_ring(rooms[item_room_idx])
 		_populate(rooms, item_room_idx, true, item_room_idx)
 		_setup_item_room()
 	else:
@@ -577,18 +575,6 @@ func _farthest_room(rooms: Array[Rect2i]) -> int:
 	return far_index
 
 
-func _fortify_room_ring(room: Rect2i) -> void:
-	# Wooden walls bordering a sealed room would be a hole in the
-	# seal — turn them to stone.
-	for cy in range(room.position.y - 1, room.end.y + 1):
-		for cx in range(room.position.x - 1, room.end.x + 1):
-			if room.has_point(Vector2i(cx, cy)):
-				continue
-			var cell := Vector3i(cx, 0, cy)
-			if grid_map.get_cell_item(cell) == wall_wood_id:
-				grid_map.set_cell_item(cell, wall_id)
-
-
 func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
 	# One continuous curtain per contiguous opening on the room's
 	# ring — a corridor running alongside can open a whole side, and
@@ -620,11 +606,31 @@ func _spawn_mists(room: Rect2i, gold: bool) -> Array[Node3D]:
 				mists.append(_spawn_curtain(
 					Vector2(run_start, cy - 1), boundary, true, gold))
 				run_start = -1
+	# Wooden walls on the ring get a hidden curtain just inside the
+	# room: smash the wall mid-fight and the seal is already there.
+	# (Never convert ring wood to stone — that broke the solvability
+	# proof and stranded players.)
+	for side_y in [room.position.y - 1, room.end.y]:
+		var b := float(side_y + 1 if side_y < room.position.y else side_y) * CELL_SIZE
+		b += 0.06 if side_y < room.position.y else -0.06
+		for cx in range(room.position.x, room.end.x):
+			if _cell_id(Vector2i(cx, side_y)) == wall_wood_id:
+				mists.append(_spawn_curtain(Vector2(cx, cx), b, false, gold))
+	for side_x in [room.position.x - 1, room.end.x]:
+		var b := float(side_x + 1 if side_x < room.position.x else side_x) * CELL_SIZE
+		b += 0.06 if side_x < room.position.x else -0.06
+		for cy in range(room.position.y, room.end.y):
+			if _cell_id(Vector2i(side_x, cy)) == wall_wood_id:
+				mists.append(_spawn_curtain(Vector2(cy, cy), b, true, gold))
 	return mists
 
 
+func _cell_id(cell: Vector2i) -> int:
+	return grid_map.get_cell_item(Vector3i(cell.x, 0, cell.y))
+
+
 func _is_open_cell(cell: Vector2i) -> bool:
-	var id := grid_map.get_cell_item(Vector3i(cell.x, 0, cell.y))
+	var id := _cell_id(cell)
 	return id == floor_id or id == floor_wood_id
 
 

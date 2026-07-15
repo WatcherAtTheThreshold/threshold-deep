@@ -51,7 +51,7 @@ size = Vector3(2, 0.5, 2)
 
 [sub_resource type="BoxMesh" id="mesh_wall"]
 material = SubResource("mat_wall")
-size = Vector3(2, 4, 2)
+size = Vector3(2, 5.2, 2)
 
 [sub_resource type="BoxMesh" id="mesh_floor_wood"]
 material = SubResource("mat_floor_wood")
@@ -59,7 +59,7 @@ size = Vector3(2, 0.5, 2)
 
 [sub_resource type="BoxMesh" id="mesh_wall_wood"]
 material = SubResource("mat_wall_wood")
-size = Vector3(2, 4, 2)
+size = Vector3(2, 5.2, 2)
 
 [sub_resource type="BoxMesh" id="mesh_hole"]
 material = SubResource("mat_hole")
@@ -85,7 +85,7 @@ item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
 item/0/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
 item/1/name = "wall"
 item/1/mesh = SubResource("mesh_wall")
-item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6, 0)
 item/1/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
 item/2/name = "floor_wood"
 item/2/mesh = SubResource("mesh_floor_wood")
@@ -93,7 +93,7 @@ item/2/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
 item/2/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
 item/3/name = "wall_wood"
 item/3/mesh = SubResource("mesh_wall_wood")
-item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.6, 0)
 item/3/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
 item/4/name = "hole"
 item/4/mesh = SubResource("mesh_hole")

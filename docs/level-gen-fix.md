@@ -16,6 +16,14 @@ suppressed if that specific collapse would sever the player's path
 to all stone. Every other collapse proceeds; the floor still burns
 behind you, but there is always one creaking way back.*
 
+*Third amendment, 2026-07-15, after an item-room trapping: two more
+post-proof mutations were found and removed. Special rooms no longer
+convert their ring's wooden walls to stone (a hidden mist curtain
+behind each ring wood wall keeps the seal instead), and the
+generator now guarantees every room a stone anchor at its centre so
+nothing ever needs to mint stone after the proof. The rule stands:
+all stone must be proven stone.*
+
 ## The problem
 
 Wooden floor patches sometimes sit in a doorway. When they collapse,

@@ -74,6 +74,13 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 				for cx in range(px, px + pw):
 					wood_floor[Vector2i(cx, cy)] = true
 
+	# Every room keeps a stone anchor at its centre — proven ground
+	# for pedestals, plates, and hatches, so nothing ever has to
+	# convert wood to stone after the solvability proof runs.
+	for room in rooms:
+		wood_floor.erase(room.get_center())
+		wood_floor.erase(room.get_center() + Vector2i(1, 0))
+
 	# Wooden walls: only where a wall separates two walkable cells,
 	# so breaking one always opens a real shortcut.
 	var wood_wall := {}
