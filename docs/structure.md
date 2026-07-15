@@ -2,6 +2,12 @@
 
 *Plan drafted 2026-07-13. Supersedes the two-stage trigger-plate hunt.*
 
+*Status 2026-07-16: implemented, with deliberate deviations — the
+cadence became explore/item/BOSS per world (item before boss, not
+after), bosses are the crown tiers of their families, and the win
+currently lands at 3-3. See docs/roadmap.md for the three-act plan
+that extends this.*
+
 ## The problem
 
 The run has no shape. Floors get denser, not different — depth 14 is

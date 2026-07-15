@@ -8,21 +8,20 @@ sprite creatures and items in a real 3D space, run-based structure.
 
 ## Status
 
-Playable roguelike loop: procedurally generated, torch-lit dungeons
-under stone ceilings, descended floor by floor through a hatch, with
-depth scaling and health and gear carried between floors. Five
-hand-drawn creature families — skeletons (melee), wizards (dodgeable
-ranged orbs), slimes (split at half health, re-merge, dissolve
-potions), mushrooms (split into minis; mushes actively seek each
-other to fuse into a mega), and frogmen (two frogs in a trenchcoat:
-coat-off reveal, then a hopping frog and a toad) — with Doom-style
-monster infighting. Every death and split leaves persistent bright
-remains: corpses, goo splats, a crumpled coat. Breakable wooden
-walls open shortcuts; wooden floors collapse into holes behind you.
-Torch and sword jab attacks, dash instead of jump, positional
-creature footsteps, hearts HUD, potions, and a death report naming
-(and picturing) your killer with full run stats, in a pixel UI font.
-Press R in-game to reroll the floor.
+A completable roguelike: three worlds of explore → item room → boss,
+each floor announced by a misted title card, victory at 3-3 and
+endless descent below. Five hand-drawn creature families with
+distinct verbs and distinct afterlives (bones rise from their piles,
+slime corpses respawn, mushrooms eat dead slimes and turn green,
+flesh stays down), Doom-style infighting, and boss tiers that
+cascade — the Slime Boss bursts into larges into smalls; the
+Skeletal Wizard assembles itself from the corpses you made in its
+arena. Weapon fork: torch → sword → magic staff or boomerang.
+Relics, a two-currency heart economy, sealed mist doors, breakable
+wooden walls, collapsing plank floors over wall-deep shafts (provably
+never trapping you), an original three-song score that drifts in and
+out, positional creature footsteps, and a death report naming and
+picturing your killer. Press R in-game to reroll the floor (debug).
 
 ## Tech
 

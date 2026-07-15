@@ -1,125 +1,126 @@
 # Threshold Deep — Roadmap
 
+*Rewritten 2026-07-16. Supersedes the phase-era roadmap and folds in
+docs/structure.md (implemented) and the item/act plans.*
+
 ## Vision
 
-A first-person dungeon crawler where every creature, item, and wall is
-hand-drawn pixel art living in a real 3D space — Doom's presentation,
-Isaac's run structure, Barony's dungeon feel. Runs are short, deaths
-are cheap, and the dungeon is different every time.
+A first-person dungeon crawler where every creature, item, wall, and
+song is hand-made — Doom's presentation, Isaac's run structure,
+Barony's dungeon feel. Runs are short, deaths are cheap, the dungeon
+is different every time, and a full run is a three-act descent with
+a real ending.
 
 ## Pillars (test every feature against these)
 
-1. **The art is the game.** Billboarded drawings in torchlight are the
-   identity — no feature is worth breaking that look.
+1. **The art is the game.** Billboarded drawings in torchlight are
+   the identity — no feature is worth breaking that look.
 2. **Runs, not saves.** Death rerolls the world. Progression happens
    across runs (unlocks), not within them.
 3. **Readable danger.** You can always tell what's about to hurt you —
-   slow enemies, visible telegraphs, forgiving melee.
+   telegraphs, tells, glows. Light equals meaning: everything
+   interactive glows, nothing decorative does.
+4. **Aftermath is the art style.** Every death, split, and choice
+   leaves persistent bright residue. The dungeon remembers.
 
-## Where we are (2026-07-12)
+## Where we are (2026-07-16)
 
-Full run loop, live: procedural dungeons (rooms + L-corridors →
-GridMap) with stone and wooden tiles under stone ceilings — torch-lit
-interiors, wooden walls break open into shortcuts (two hits), wooden
-floors collapse into impassable holes behind you. Five creature
-families, each with its own verb: skeleton (rush), wizard (ranged,
-telegraphed), slime (splits down, re-merges), mush (fuses up into
-emergent megas, actively seeks kin), frogman (two frogs in a
-trenchcoat — coat-off reveal, then a hopping frog and a toad).
-Doom-style infighting. The signature look: every death and split
-leaves persistent bright residue — corpses, splats, puddles, a
-crumpled coat — battle aftermath accumulating on drab stone.
-Torch/sword jab attacks (pull down, piston back), the sword as first
-Item, hatch descent with depth scaling and carried health/gear,
-dash instead of jump. Death report: killer portrait and name, depth,
-kills, damage dealt/taken, per-creature tally, held 4 s. UI text in
-Press Start 2P. Audio: per-creature positional footstep loops,
-potion pickup, orb flight. Web export validated. Playtest record:
-depth 14, 123 kills.
+A completable game. Worlds read as x-1 / x-2 / x-3 (explore → item
+room → boss) with misted title cards; victory at 3-3, endless below.
+Five creature families with distinct verbs, infighting, grudges, and
+different afterlives (bones rise, goo respawns, mushes get eaten,
+flesh stays down). Boss tiers cascade (Slime Boss → larges → smalls;
+Mush Boss → megas → mushes → minis; the Skeletal Wizard assembles
+from the corpses the player made). Weapon fork: sword → staff or
+boomerang. Relics: boots, two armor tiers, heart economy (3 red
+start, cap 8; magic hearts absorb first). Wooden walls break (melee
+and orbs), wooden floors collapse into wall-deep shafts, provably
+never trapping the player. Original three-song score drifts in and
+out; per-creature positional footsteps; per-item pickup voices;
+floor stingers; door-lock and mist sounds. Death report with killer
+portrait; the fall between floors. Web export validated.
 
-## Phases
+## Next: the item wave
 
-Each phase is independently shippable and playtestable.
+Planned items (art incoming), with the system each touches:
 
-### Phase 1 — Staying alive is interesting ✅ 2026-07-10
-- **Health pickups**: hearts dropped by skeletons (chance) or found in
-  rooms. *Art: 16×16 world-heart or potion sprite.*
-- **Score/depth counter** on the HUD: kills this run, or floor number
-  once stairs exist.
-- *Done when: a careful player survives noticeably longer than a
-  reckless one.*
+1. **Strength** — +hit damage (`attack_damage` modifier).
+2. **Dex** — better dash: longer or faster (dash constants).
+3. **Double Dash** — two dash charges before the cooldown.
+4. **Shot Speed Up** — faster staff orbs / boomerang flight
+   (needs per-projectile speed vars, currently consts).
+5. **Halberd** — longer melee reach (melee-weapon upgrade or third
+   rival; decide when art exists).
+6. **Hole-strider** — pass over single holes (movement/collision
+   trick; design open).
+7. **Sands of Time** — enemies slowed (global enemy speed factor
+   all creatures read).
+8. **Luck** — more golden heart drops (drop-chance modifier; could
+   grow into a general luck stat).
+9. **Splash Damage** — hits damage adjacent enemies.
 
-### Phase 2 — Descent ✅ 2026-07-10 (incl. on-screen death summary + floor-transition fades)
-- **Stairs down** placed in the room farthest from spawn; walking in
-  generates the next floor. *Art: 64×64 stairwell/hole sprite or tile.*
-- **Depth scaling**: more/faster/tougher skeletons per floor.
-- **Run summary on death**: floors reached, kills.
-- *Done when: "how deep did you get?" is a meaningful question.*
+### Damage rework (prerequisite for the wave)
 
-### Phase 3 — Bestiary ✅ 2026-07-10/11
-- **Wizard** (2026-07-10): keeps distance, telegraphed dodgeable orbs,
-  full art including corpse.
-- **Slime** (2026-07-11): puddle spawn → large → splits at half
-  health → smalls re-merge unless the player is close; eats potions;
-  first 32×32 creature.
-- **Spawn tables by depth**; monster infighting with grudge aggro.
-- **Mush family** (2026-07-11): mush splits into two minis at half
-  health; two full mushes that meet fuse into a mega mush (splits
-  back into mushes when hurt; 4s re-merge cooldown after any split).
-  Mega never spawns naturally — reserved as a future boss. Mush
-  spawn rate climbs with depth, so deep floors breed megas.
-- **Frogman** (2026-07-12): two frogs in a trenchcoat. Melee chaser;
-  at low HP an invulnerable 0.7 s coat-off reveal, then splits
-  one-way into a hopping frog and a toad, leaving the crumpled coat
-  on the floor. Depth 3+. Full art including corpses.
-- *Done when: seeing a room's occupants changes how you enter it.* ✓
+Weapons should feel equal-but-different so item pools stay random:
+damage-modifying items only work if damage has room to gradiate.
+**Plan: half-heart internal units** — multiply every HP and damage
+number by 2 and let "1" mean half a heart. Integers stay integers
+(no float damage), the HUD needs half-heart states (art: half-full
+red and magic hearts), and items like Strength can add +1 (half a
+heart) without breaking the economy. Enemy HP re-tuned in the same
+pass so current feel is preserved as the baseline.
 
-### Phase 4 — Things to find (started 2026-07-11: sword)
-- **Sword** ✅: two-stage hunt — step on a trigger plate to summon
-  the sword elsewhere on the floor (a fresh plate spawns each floor
-  until claimed, per run). 2 damage, planted-in-stone pickup, moves
-  the torch to the left hand; two-handed viewmodel.
-- **Heart economy** ✅ (2026-07-12): start at 3 containers (cap 8);
-  1-up plates grant a filled container, magic plates grant 3 yellow
-  hearts (cap 6) that absorb damage first and can't be healed. One
-  trigger plate per floor: sword until claimed, then 65% magic /
-  35% container.
-- **Items**: torch upgrades (light radius), weapons (swing arc/damage),
-  Isaac-style stat trinkets. *Art: 32×32 item sprites.*
-- **Pedestal rooms** in the generator (special room type) — future
-  home of the choice chamber: all plates in one room, picking one
-  seals the others.
-- *Done when: two runs feel different because of what you found.*
+## Secret rooms
 
-### Phase 5 — Juice (started 2026-07-11)
-- **Footsteps** ✅ (player flat loop; enemies/slimes positional 3D,
-  slime pitch by size), **potion pickup** ✅, **orb flight** ✅.
-- **Pixel UI font** ✅ (Press Start 2P, bundled + OFL).
-- **Death report** ✅ (killer portrait/name, damage dealt/taken,
-  per-creature kill tally).
-- Remaining sound: swing, hits, wooden wall crack/break, floor
-  collapse, mush merge/split, frogman reveal, ambient drips.
-- Torch flicker, screen-shake on hits, main menu, pause.
-- *Done when: someone else plays it without you explaining anything.*
+Two kinds, sharing the sliding-wall reveal (sfx: wall grinding open):
 
-### Interlude — the dungeon fights back ✅ 2026-07-11 (unplanned, Jessop's design)
+- **The commoner** — always discoverable. A collapsed wooden tile
+  can expose a floor trigger (or a lever in a revealed alcove);
+  activating it slides open a wall section. Prize: golden hearts or
+  a modest treasure.
+- **The trial** — only discoverable while **no red-heart damage has
+  been taken this floor**; take red damage before finding it and the
+  chance is gone. Prize: a special fight, then an item.
+- The synergy is the design: finding the commoner's golden hearts
+  armors you in yellow, which protects your red hearts, which keeps
+  the trial findable. One secret feeds the other.
+- Needs: per-floor red-damage tracking in RunState, sliding-wall
+  door (GridMap cell swap + sfx + maybe a tween), lever art,
+  secret-room generation (a sealed room the main proof ignores,
+  connected only by the hidden door).
 
-Breakable wooden walls (guaranteed shortcuts), wooden floor patches
-that collapse into holes behind the player, holes as a "wall you can
-see over" (block bodies, not sight or orbs). Stone ceilings over
-every walkable cell — interiors lit by torch and ambient only.
-Jump removed in favor of a short dash (Space, ~1s cooldown) for a
-grounded, heavy underground feel.
+## The three acts
+
+Repeat the world pattern to three chapters — victory at 9-3:
+
+- **Act structure**: each act = three worlds (explore/item/boss ×3)
+  ending in a Skeletal-Wizard-tier finale. Acts 2 and 3 need:
+  **two new mini-bosses** (Slime Boss / Mush Boss tier) and
+  **two new act-final bosses** (Skeletal Wizard tier).
+- **Environment changes per act**: new floor/wall/ceiling textures
+  (triplanar makes a reskin = three 64×64 tiles), possibly bigger
+  grids and rooms deeper down.
+- Spawn tables, escalation curves, and music can also shift per act.
+- Open question: whether acts 2/3 reuse the existing mini-bosses in
+  harder forms or field entirely new ones — decide when the new
+  bestiary art starts arriving.
+
+## Sound wishlist (mic era)
+
+Bone rattle (the rise), swing/hit, wooden wall crack + break, floor
+collapse, mush merge/split squelch, frogman reveal fwump, boomerang
+whirr + catch slap, descending A-minor fall stinger, amalgam
+assembly (or its deliberate silence), secret-wall grind, ambient
+drips.
 
 ## Parking lot (ideas, not commitments)
 
+- **Meta-progression** — still the highest-leverage missing system:
+  a MetaState saved to disk banking runs into unlocks that enter
+  the item pool. Structure now exists for it to feed.
+- Fall-in hole state (pits/lava/spikes — collision plumbing ready)
 - 4/8-directional creature sprites (Doom-style)
 - Doors, keys, locked treasure rooms
-- Bosses every N floors
 - Minimap from the ASCII grid
-- Fall-in state for holes (pits/lava/spikes — the collision-layer
-  plumbing already supports it)
-- Web export for the portfolio site — **validated 2026-07-10**: runs in
-  browser via the single-threaded Web preset; web builds use the
-  Compatibility renderer (`rendering_method.web` override), desktop
-  stays Forward+. Deploy whenever wanted.
+- Full-shroud mist room (aesthetic variant, shader ready)
+- Web deploy to the portfolio site (validated, deploy whenever)
