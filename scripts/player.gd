@@ -22,6 +22,7 @@ const BOOTS_SPEED_MULT := 1.15
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
+const BOOMERANG_SCENE := preload("res://scenes/boomerang.tscn")
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -33,6 +34,7 @@ var invuln_timer := 0.0
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_dir := Vector3.ZERO
+var boomerang_out := false
 var controls_enabled := true
 
 @onready var camera: Camera3D = $Camera3D
@@ -63,6 +65,18 @@ func pickup_staff() -> bool:
 	return true
 
 
+func pickup_boomerang() -> bool:
+	if RunState.has_boomerang:
+		return false
+	RunState.has_boomerang = true
+	_apply_loadout()
+	return true
+
+
+func boomerang_returned() -> void:
+	boomerang_out = false
+
+
 func pickup_boots() -> bool:
 	if RunState.has_boots:
 		return false
@@ -89,7 +103,9 @@ func pickup_armor2() -> bool:
 
 func _apply_loadout() -> void:
 	var weapon := "torch"
-	if RunState.has_staff:
+	if RunState.has_boomerang:
+		weapon = "boomerang"
+	elif RunState.has_staff:
 		weapon = "staff"
 	elif RunState.has_sword:
 		weapon = "sword"
@@ -178,9 +194,20 @@ func _update_step_audio() -> void:
 func _attack() -> void:
 	if attack_timer > 0.0:
 		return
+	if RunState.has_boomerang and boomerang_out:
+		# The hand is empty until the boomerang comes home.
+		return
 	attack_timer = ATTACK_COOLDOWN
 	attacked.emit()
-	if RunState.has_staff:
+	if RunState.has_boomerang:
+		var aim := -camera.global_transform.basis.z
+		var boomerang := BOOMERANG_SCENE.instantiate()
+		boomerang.thrower = self
+		boomerang.direction = aim
+		boomerang.position = camera.global_position + aim * 0.9
+		get_parent().add_child.call_deferred(boomerang)
+		boomerang_out = true
+	elif RunState.has_staff:
 		# The staff's verb: a bolt where you're looking, pitch and all.
 		var aim := -camera.global_transform.basis.z
 		var orb := ORB_SCENE.instantiate()

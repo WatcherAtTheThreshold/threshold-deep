@@ -10,6 +10,8 @@ const SWORD_IDLE := preload("res://assets/sprites/hand-sword.png")
 const SWORD_SWING := preload("res://assets/sprites/hand-sword-swing.png")
 const STAFF_IDLE := preload("res://assets/sprites/magic_staff.png")
 const STAFF_SWING := preload("res://assets/sprites/magic_staff_swing.png")
+const BOOMERANG_IDLE := preload("res://assets/sprites/hand-boomerang.png")
+const BOOMERANG_SWING := preload("res://assets/sprites/hand-boomerang-swing.png")
 const SWAY_AMOUNT := 6.0
 const FLICKER_TIME := 0.16
 
@@ -35,6 +37,9 @@ func _ready() -> void:
 func set_weapon(weapon: String) -> void:
 	# The right hand holds the best weapon; the torch moves left.
 	match weapon:
+		"boomerang":
+			idle_frames = [BOOMERANG_IDLE]
+			swing_texture = BOOMERANG_SWING
 		"staff":
 			idle_frames = [STAFF_IDLE]
 			swing_texture = STAFF_SWING

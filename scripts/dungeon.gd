@@ -14,6 +14,7 @@ const BOOTS_PICKUP_SCENE := preload("res://scenes/boots_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
+const BOOMERANG_PICKUP_SCENE := preload("res://scenes/boomerang_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
@@ -528,8 +529,11 @@ func _setup_item_room() -> void:
 		pool.append(ARMOR_PICKUP_SCENE)
 	elif RunState.armor_tier == 1:
 		pool.append(ARMOR2_PICKUP_SCENE)
-	if RunState.has_sword and not RunState.has_staff:
+	if RunState.has_sword and not RunState.has_staff \
+			and not RunState.has_boomerang:
+		# Rival weapons: taking either removes both from future pools.
 		pool.append(STAFF_PICKUP_SCENE)
+		pool.append(BOOMERANG_PICKUP_SCENE)
 	pool.shuffle()
 	var count := mini(2, mini(pool.size(), cells.size()))
 	for i in count:

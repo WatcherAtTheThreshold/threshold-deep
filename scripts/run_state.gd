@@ -17,6 +17,7 @@ var carried_max_health := -1  # -1 = fresh run, base containers
 var carried_magic := 0
 var has_sword := false
 var has_staff := false
+var has_boomerang := false
 var has_boots := false
 var armor_tier := 0  # 0 none, 1 leather (25% block), 2 steel (40%)
 
@@ -85,6 +86,7 @@ func reset() -> void:
 	carried_magic = 0
 	has_sword = false
 	has_staff = false
+	has_boomerang = false
 	has_boots = false
 	armor_tier = 0
 	damage_dealt = 0
