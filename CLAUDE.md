@@ -94,10 +94,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   speed boots (move speed ×1.15), armor in two tiers — leather
   (25% chance a blow is fully turned) then steel (40%), offered as
   an upgrade only after leather; blocks flash steel-blue, no
-  damage/invuln. Magic staff (replaces the sword: attacks fire a
-  2-damage orb along the camera aim; offered only after the sword).
+  damage/invuln. Rival weapons, gated on the sword and mutually
+  exclusive per run: the magic staff (2-damage orb along the camera
+  aim, rapid) or the boomerang (2 damage, pierces, hits each enemy
+  once per leg, returns from walls or 9 m, one in flight at a time).
   relic_pickup.gd + `grant` method name is the pattern for new
   relics; tiered relics gate the next tier on the previous.
+  Asset split: `items/` = pickup art only; `sprites/` = viewmodel
+  hands + projectile frames.
 - Run structure (docs/structure.md): floors read as world - stage
   (1-1, 1-2… via RunState.floor_label) with a misted title card at
   each floor start, tinted by floor kind. Each world runs
