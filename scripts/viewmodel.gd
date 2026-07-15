@@ -86,10 +86,24 @@ func _process(delta: float) -> void:
 
 
 func _on_attacked() -> void:
-	# The jab, same for every weapon: yank the weapon down toward
+	swinging = true
+	if weapon == "boomerang":
+		# The throw: yank down and release. The hand exits the bottom
+		# of the frame and stays gone — the boomerang is out there
+		# now. The catch brings it back.
+		var throw_tween := create_tween().set_parallel(true)
+		throw_tween.tween_property(self, "swing_offset", Vector2(10.0, 110.0), 0.09) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		throw_tween.tween_property(self, "rotation", 0.05, 0.09)
+		throw_tween.chain().tween_callback(func() -> void:
+			swinging = false
+			swing_offset = Vector2.ZERO
+			rotation = 0.0
+			texture = idle_frames[0])
+		return
+	# The jab, same for torch and sword: yank the weapon down toward
 	# off-screen, then piston it back up past rest with only a slight
 	# arc, then settle. Stabby, not sweepy.
-	swinging = true
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(self, "swing_offset", Vector2(10.0, 110.0), 0.07) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
