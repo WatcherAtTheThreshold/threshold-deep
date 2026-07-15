@@ -19,7 +19,10 @@ const CATCH_RANGE := 0.9
 
 var damage := 2
 var direction := Vector3.FORWARD
-var thrower: Player = null
+# CharacterBody3D, not Player: a class-level Player type here forms a
+# preload cycle with player.gd (which preloads this scene) and kills
+# the scene load with "Parse Error: Busy".
+var thrower: CharacterBody3D = null
 var returning := false
 var origin := Vector3.ZERO
 var time := 0.0
