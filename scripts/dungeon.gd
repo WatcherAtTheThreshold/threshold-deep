@@ -170,13 +170,13 @@ func _physics_process(_delta: float) -> void:
 						m.dissolve()
 
 
-func damage_wall(hit_pos: Vector3, hit_normal: Vector3) -> void:
-	# Called by the player's swing when it lands on the GridMap.
+func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
+	# Called by the player's swing and by orbs landing on the GridMap.
 	# Nudge inward past the surface so we sample the struck cell.
 	var cell := grid_map.local_to_map(grid_map.to_local(hit_pos - hit_normal * 0.05))
 	if grid_map.get_cell_item(cell) != wall_wood_id:
 		return
-	wall_damage[cell] = wall_damage.get(cell, 0) + 1
+	wall_damage[cell] = wall_damage.get(cell, 0) + amount
 	if wall_damage[cell] >= WOOD_WALL_HITS:
 		grid_map.set_cell_item(cell, floor_id)
 		# The opened cell needs a lid too, or you'd see the void.
@@ -219,13 +219,9 @@ func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i)
 
 
 func _play_stinger(stream: AudioStream, db := -8.0) -> void:
-	# Non-positional one-shot for floor announcements and seals.
-	var p := AudioStreamPlayer.new()
-	p.stream = stream
-	p.volume_db = db
-	p.autoplay = true
-	p.finished.connect(p.queue_free)
-	add_child(p)
+	# Non-positional one-shot for floor announcements and seals —
+	# parented to the Sfx autoload so reloads never cut it off.
+	Sfx.play_ui(stream, db)
 
 
 func _player_cell() -> Vector3i:

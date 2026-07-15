@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 RunState="*res://scripts/run_state.gd"
 MusicDrift="*res://scripts/music.gd"
+Sfx="*res://scripts/sfx.gd"
 
 [display]
 

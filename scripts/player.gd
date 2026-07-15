@@ -210,7 +210,7 @@ func _attack() -> void:
 	if not hit.is_empty() and hit.collider is GridMap:
 		var scene := get_tree().current_scene
 		if scene.has_method("damage_wall"):
-			scene.damage_wall(hit.position, hit.normal)
+			scene.damage_wall(hit.position, hit.normal, attack_damage)
 
 
 func heal(amount: int) -> bool:

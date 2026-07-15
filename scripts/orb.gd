@@ -45,4 +45,10 @@ func _on_body_entered(body: Node3D) -> void:
 		body.take_damage(damage, direction, shooter)
 		if shooter is Player:
 			RunState.record_damage_dealt(damage)
+	elif body is GridMap:
+		# Orbs splinter wood — anyone's orbs. Each point of damage
+		# counts as a hit against the wall.
+		var scene := get_tree().current_scene
+		if scene != null and scene.has_method("damage_wall"):
+			scene.damage_wall(global_position + direction * 0.4, -direction, damage)
 	queue_free()
