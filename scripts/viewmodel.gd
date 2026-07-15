@@ -19,7 +19,9 @@ const FLICKER_TIME := 0.16
 
 var idle_frames: Array[Texture2D] = TORCH_FRAMES
 var swing_texture: Texture2D = TORCH_SWING
+var weapon := "torch"
 var swinging := false
+var was_out := false
 var flicker_clock := 0.0
 var bob_time := 0.0
 var base_offset: Vector2
@@ -34,8 +36,9 @@ func _ready() -> void:
 	player.attacked.connect(_on_attacked)
 
 
-func set_weapon(weapon: String) -> void:
+func set_weapon(new_weapon: String) -> void:
 	# The right hand holds the best weapon; the torch moves left.
+	weapon = new_weapon
 	match weapon:
 		"boomerang":
 			idle_frames = [BOOMERANG_IDLE]
@@ -57,6 +60,17 @@ func _process(delta: float) -> void:
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
+	# The boomerang hand is empty from throw to catch — the weapon is
+	# out there. The catch snaps it back with a little settle.
+	if weapon == "boomerang":
+		var out: bool = player.boomerang_out
+		if not out and was_out:
+			swing_offset = Vector2(0.0, 46.0)
+			var catch_tween := create_tween()
+			catch_tween.tween_property(self, "swing_offset", Vector2.ZERO, 0.18) \
+					.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		visible = not out or swinging
+		was_out = out
 	# The torch flame flickers while at rest in the hand.
 	if not swinging and idle_frames.size() > 1:
 		flicker_clock += delta
