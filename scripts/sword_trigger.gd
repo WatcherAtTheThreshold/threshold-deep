@@ -20,6 +20,9 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	used = true
 	$CollisionShape3D.set_deferred("disabled", true)
-	# The plate stays as spent decor, dimmed.
+	# The plate stays as spent decor, dimmed and dark.
 	sprite.modulate = Color(0.55, 0.55, 0.55)
+	var glow: OmniLight3D = get_node_or_null("Glow")
+	if glow != null:
+		glow.light_energy = 0.0
 	activated.emit()
