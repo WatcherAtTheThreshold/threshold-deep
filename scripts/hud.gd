@@ -1,8 +1,10 @@
 extends CanvasLayer
 
 const HEART_FULL := preload("res://assets/ui/heart_full.png")
+const HEART_HALF := preload("res://assets/ui/heart_half.png")
 const HEART_EMPTY := preload("res://assets/ui/heart_empty.png")
 const HEART_MAGIC := preload("res://assets/ui/heart_magic.png")
+const HEART_MAGIC_HALF := preload("res://assets/ui/heart_magic_half.png")
 const HEART_SIZE := Vector2(48, 48)
 
 const FADE_IN_TIME := 0.7
@@ -169,13 +171,28 @@ func _on_health_changed(current: int, maximum: int, magic: int) -> void:
 
 
 func _rebuild_hearts(current: int, maximum: int, magic: int) -> void:
-	# Red containers (full then empty), magic hearts appended after.
+	# Units are half-hearts: 2 units = one heart icon. Red containers
+	# (full/half/empty), magic hearts appended after.
 	for child in hearts_box.get_children():
 		child.queue_free()
-	for i in maximum:
-		hearts_box.add_child(_make_heart(HEART_FULL if i < current else HEART_EMPTY))
-	for i in magic:
+	@warning_ignore("integer_division")
+	var containers := maximum / 2
+	@warning_ignore("integer_division")
+	var full := current / 2
+	var has_half := current % 2 == 1
+	for i in containers:
+		var tex := HEART_EMPTY
+		if i < full:
+			tex = HEART_FULL
+		elif i == full and has_half:
+			tex = HEART_HALF
+		hearts_box.add_child(_make_heart(tex))
+	@warning_ignore("integer_division")
+	var magic_full := magic / 2
+	for i in magic_full:
 		hearts_box.add_child(_make_heart(HEART_MAGIC))
+	if magic % 2 == 1:
+		hearts_box.add_child(_make_heart(HEART_MAGIC_HALF))
 
 
 func _make_heart(tex: Texture2D) -> TextureRect:

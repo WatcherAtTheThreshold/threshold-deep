@@ -20,10 +20,10 @@ const RESPAWN_CHANCE := 0.15
 const RESPAWN_DELAY_MIN := 8.0
 const RESPAWN_DELAY_MAX := 20.0
 const RESPAWN_TELL_TIME := 3.0
-const LARGE_MAX_HEALTH := 6
-const SPLIT_HEALTH := 3
-const BOSS_MAX_HEALTH := 12
-const BOSS_SPLIT_HEALTH := 6
+const LARGE_MAX_HEALTH := 12
+const SPLIT_HEALTH := 6
+const BOSS_MAX_HEALTH := 24
+const BOSS_SPLIT_HEALTH := 12
 const BOSS_SPEED := 1.2
 const LARGE_SPEED := 1.4
 const SMALL_SPEED := 2.6
@@ -188,7 +188,7 @@ func _respawn() -> void:
 	# Back from the puddle — smaller, weaker, still hungry.
 	dead = false
 	emerge_state = State.SMALL
-	health = 2
+	health = 4
 	state = State.PUDDLE
 	spawn_timer = randf_range(1.0, 4.0)
 	$CollisionShape3D.set_deferred("disabled", false)
@@ -251,17 +251,17 @@ func _apply_state() -> void:
 		sprite.texture = TEX_BOSS_1
 		sprite.position = Vector3(0, 0.5, 0)
 		step_sound.pitch_scale = 0.7
-		damage = 2
+		damage = 4
 	elif state == State.LARGE:
 		sprite.texture = TEX_LARGE_1
 		sprite.position = Vector3(0, 0.5, 0)
 		step_sound.pitch_scale = 0.85
-		damage = 1
+		damage = 2
 	else:
 		sprite.texture = TEX_SMALL_1
 		sprite.position = Vector3.ZERO
 		step_sound.pitch_scale = 1.2
-		damage = 1
+		damage = 2
 
 
 func _show_mid_spawn() -> void:

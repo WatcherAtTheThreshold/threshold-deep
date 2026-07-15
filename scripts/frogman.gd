@@ -14,11 +14,11 @@ const TEX_FROG_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/frog
 const TEX_TOAD_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_dead.png")
 const WALK_FRAME_TIME := 0.3
 
-const COATED_HEALTH := 7
-const REVEAL_AT := 3
+const COATED_HEALTH := 14
+const REVEAL_AT := 6
 const REVEAL_TIME := 0.7
-const FROG_HEALTH := 2
-const TOAD_HEALTH := 3
+const FROG_HEALTH := 4
+const TOAD_HEALTH := 6
 const COATED_SPEED := 1.8
 const TOAD_SPEED := 1.6
 const FROG_HOP_SPEED := 5.0
@@ -31,7 +31,7 @@ const ATTACK_COOLDOWN := 1.2
 
 var state := State.COATED
 var health := COATED_HEALTH
-var damage := 1
+var damage := 2
 var speed_scale := 1.0
 var reveal_timer := 0.0
 var hop_clock := 0.0

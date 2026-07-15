@@ -91,9 +91,13 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   carried health/max health/magic hearts, sword ownership, and the
   killer's name + sprite for the death report. Descent keeps it,
   death resets it. New persistent run state belongs there.
-- Health: start 3 red containers, cap 8 (containers arrive filled).
-  Magic hearts (yellow, cap 6) absorb damage before red and can't
-  be healed by potions.
+- Health and damage are in **half-heart units**: 2 units = one HUD
+  heart (full/half/empty states). Start 6 units (3 hearts), cap 16;
+  magic cap 12; containers add 2, filled. Torch deals 2, all other
+  weapons 4; enemy touch attacks 2 (bosses 4). When adding numbers,
+  think in units, not hearts. Magic hearts absorb damage before red
+  and can't be healed by potions; half potions/half heart drops
+  grant 1 unit.
 - Relics (flags/tiers in RunState, pedestal pool in item rooms):
   speed boots (move speed ×1.15), armor in two tiers — leather
   (25% chance a blow is fully turned) then steel (40%), offered as

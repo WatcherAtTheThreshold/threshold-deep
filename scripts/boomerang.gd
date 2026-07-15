@@ -17,7 +17,7 @@ const LIFETIME := 8.0
 const FRAME_TIME := 0.08
 const CATCH_RANGE := 0.9
 
-var damage := 2
+var damage := 4
 var direction := Vector3.FORWARD
 # CharacterBody3D, not Player: a class-level Player type here forms a
 # preload cycle with player.gd (which preloads this scene) and kills

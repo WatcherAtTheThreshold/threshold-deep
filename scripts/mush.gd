@@ -17,12 +17,12 @@ const TEX_DEAD_MUSH := preload("res://assets/sprites/mush/mush/mush_dead.png")
 const TEX_DEAD_MINI := preload("res://assets/sprites/mush/mini-mush/mini_mush_dead.png")
 const WALK_FRAME_TIME := 0.28
 
-const MUSH_MAX_HEALTH := 8
-const MUSH_SPLIT_HEALTH := 4
-const MEGA_MAX_HEALTH := 14
-const MEGA_SPLIT_HEALTH := 7
-const BOSS_MAX_HEALTH := 20
-const BOSS_SPLIT_HEALTH := 10
+const MUSH_MAX_HEALTH := 16
+const MUSH_SPLIT_HEALTH := 8
+const MEGA_MAX_HEALTH := 28
+const MEGA_SPLIT_HEALTH := 14
+const BOSS_MAX_HEALTH := 40
+const BOSS_SPLIT_HEALTH := 20
 const MERGE_RANGE := 1.2
 const MERGE_COOLDOWN := 4.0
 const SIGHT_RANGE := 9.0
@@ -293,7 +293,7 @@ func _apply_state() -> void:
 			sprite.position = Vector3(0, 0.2, 0)
 			step_sound.pitch_scale = 0.7
 			speed = 1.1
-			damage = 2
+			damage = 4
 		State.MEGA:
 			frame_a = TEX_MEGA_1
 			frame_b = TEX_MEGA_2
@@ -301,7 +301,7 @@ func _apply_state() -> void:
 			sprite.position = Vector3(0, 0.3, 0)
 			step_sound.pitch_scale = 0.85
 			speed = 1.2
-			damage = 2
+			damage = 4
 		State.MUSH:
 			frame_a = TEX_MUSH_1
 			frame_b = TEX_MUSH_2
@@ -309,7 +309,7 @@ func _apply_state() -> void:
 			sprite.position = Vector3(0, 0.5, 0)
 			step_sound.pitch_scale = 1.05
 			speed = 1.6
-			damage = 1
+			damage = 2
 		State.MINI:
 			frame_a = TEX_MINI_1
 			frame_b = TEX_MINI_2
@@ -317,7 +317,7 @@ func _apply_state() -> void:
 			sprite.position = Vector3(0, 0.15, 0)
 			step_sound.pitch_scale = 1.3
 			speed = 2.8
-			damage = 1
+			damage = 2
 	$CollisionShape3D.shape.radius = body_radius
 	sprite.texture = frame_a
 	sprite.modulate = base_tint

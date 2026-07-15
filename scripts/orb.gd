@@ -9,7 +9,7 @@ const FRAME_TIME := 0.15
 # Overridable per shooter (the Skeletal Wizard fires its own frames).
 var frame_a: Texture2D = FRAME_A
 var frame_b: Texture2D = FRAME_B
-var damage := 1
+var damage := 2  # half-heart units: a full heart per orb
 var direction := Vector3.FORWARD
 var shooter: PhysicsBody3D = null
 var time := 0.0

@@ -11,9 +11,10 @@ const DASH_SPEED := 14.0
 const DASH_TIME := 0.18
 const DASH_COOLDOWN := 1.1
 const MOUSE_SENSITIVITY := 0.002
-const BASE_MAX_HEALTH := 3
-const MAX_HEALTH_CAP := 8
-const MAGIC_CAP := 6
+# Health is measured in half-hearts: 2 units = one heart on the HUD.
+const BASE_MAX_HEALTH := 6
+const MAX_HEALTH_CAP := 16
+const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
@@ -109,7 +110,7 @@ func _apply_loadout() -> void:
 		weapon = "staff"
 	elif RunState.has_sword:
 		weapon = "sword"
-	attack_damage = 1 if weapon == "torch" else 2
+	attack_damage = 2 if weapon == "torch" else 4
 	move_speed = SPEED * (BOOTS_SPEED_MULT if RunState.has_boots else 1.0)
 	$HUD/HandTorch.set_weapon(weapon)
 	$HUD/LeftTorch.visible = weapon != "torch"
@@ -203,6 +204,7 @@ func _attack() -> void:
 		var aim := -camera.global_transform.basis.z
 		var boomerang := BOOMERANG_SCENE.instantiate()
 		boomerang.thrower = self
+		boomerang.damage = attack_damage
 		boomerang.direction = aim
 		boomerang.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(boomerang)
@@ -260,8 +262,8 @@ func add_magic_hearts(amount: int) -> bool:
 func add_heart_container() -> bool:
 	if max_health >= MAX_HEALTH_CAP:
 		return false
-	max_health += 1
-	health = mini(health + 1, max_health)  # the new container comes filled
+	max_health += 2
+	health = mini(health + 2, max_health)  # the new container comes filled
 	health_changed.emit(health, max_health, magic_hearts)
 	return true
 

@@ -8,9 +8,9 @@ const TEX_SHOOT_2 := preload("res://assets/sprites/wizard_shoot2.png")
 const TEX_SHOOT_3 := preload("res://assets/sprites/wizard_shoot3.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
-const POTION_DROP_CHANCE := 0.25
+const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
-const HEART_DROP_CHANCE := 0.12
+const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn")
 const WALK_FRAME_TIME := 0.3
 
 const SPEED := 1.6
@@ -21,7 +21,7 @@ const INFIGHT_SIGHT_RANGE := 20.0
 const BASE_CAST_COOLDOWN := 2.2
 const CHARGE_TIME := 0.45
 const RECOVERY_TIME := 0.4
-const MAX_HEALTH := 2
+const MAX_HEALTH := 4
 
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
@@ -182,13 +182,19 @@ func _die(by_player: bool) -> void:
 	sprite.modulate = Color.WHITE
 	velocity = Vector3.ZERO
 	# Roll drops off the corpse so the sprites never share a depth
-	# (coplanar billboards z-fight).
+	# (coplanar billboards z-fight). Halves are the common change,
+	# full drops the treat.
 	var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
-	if randf() < POTION_DROP_CHANCE:
-		var potion := POTION_SCENE.instantiate()
-		potion.position = global_position + Vector3(0, -0.9, 0) + roll
-		get_parent().add_child.call_deferred(potion)
-	elif randf() < HEART_DROP_CHANCE:
-		var heart := HEART_DROP_SCENE.instantiate()
-		heart.position = global_position + Vector3(0, -0.9, 0) + roll
-		get_parent().add_child.call_deferred(heart)
+	var r := randf()
+	var drop: Node3D = null
+	if r < 0.12:
+		drop = POTION_SCENE.instantiate()
+	elif r < 0.28:
+		drop = HALF_POTION_SCENE.instantiate()
+	elif r < 0.34:
+		drop = HEART_DROP_SCENE.instantiate()
+	elif r < 0.44:
+		drop = HALF_HEART_DROP_SCENE.instantiate()
+	if drop != null:
+		drop.position = global_position + Vector3(0, -0.9, 0) + roll
+		get_parent().add_child.call_deferred(drop)

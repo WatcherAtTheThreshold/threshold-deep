@@ -1,9 +1,9 @@
 extends CharacterBody3D
 
 const POTION_SCENE := preload("res://scenes/potion.tscn")
-const POTION_DROP_CHANCE := 0.25
+const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
-const HEART_DROP_CHANCE := 0.12
+const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn")
 
 const FRAME_A := preload("res://assets/sprites/skeleton.png")
 const FRAME_B := preload("res://assets/sprites/skeleton2.png")
@@ -15,7 +15,7 @@ const RISE_CHANCE := 0.15
 const RISE_RANGE := 3.5
 const RISE_TIME := 1.0
 const RISE_GRACE := 4.0
-const RISEN_HEALTH := 2
+const RISEN_HEALTH := 4
 
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
@@ -23,7 +23,7 @@ const SIGHT_RANGE := 10.0
 const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
-const MAX_HEALTH := 3
+const MAX_HEALTH := 6
 
 var speed := BASE_SPEED
 var health := MAX_HEALTH
@@ -80,7 +80,7 @@ func _physics_process(delta: float) -> void:
 			velocity.z = 0.0
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
-				t.take_damage(1, to_target.normalized(), self)
+				t.take_damage(2, to_target.normalized(), self)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
@@ -104,7 +104,7 @@ func setup(depth: int) -> void:
 	# Deeper floors: faster bones, and a bit tougher every third floor.
 	speed = minf(BASE_SPEED + 0.1 * (depth - 1), MAX_SPEED)
 	@warning_ignore("integer_division")
-	health += (depth - 1) / 3
+	health += 2 * ((depth - 1) / 3)
 
 
 func kill_label() -> String:
@@ -171,13 +171,19 @@ func _die(by_player: bool) -> void:
 	restless = randf() < RISE_CHANCE
 	rise_delay = RISE_GRACE
 	# Roll drops off the corpse so the sprites never share a depth
-	# (coplanar billboards z-fight).
+	# (coplanar billboards z-fight). Halves are the common change,
+	# full drops the treat.
 	var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
-	if randf() < POTION_DROP_CHANCE:
-		var potion := POTION_SCENE.instantiate()
-		potion.position = global_position + Vector3(0, -0.9, 0) + roll
-		get_parent().add_child.call_deferred(potion)
-	elif randf() < HEART_DROP_CHANCE:
-		var heart := HEART_DROP_SCENE.instantiate()
-		heart.position = global_position + Vector3(0, -0.9, 0) + roll
-		get_parent().add_child.call_deferred(heart)
+	var r := randf()
+	var drop: Node3D = null
+	if r < 0.12:
+		drop = POTION_SCENE.instantiate()
+	elif r < 0.28:
+		drop = HALF_POTION_SCENE.instantiate()
+	elif r < 0.34:
+		drop = HEART_DROP_SCENE.instantiate()
+	elif r < 0.44:
+		drop = HALF_HEART_DROP_SCENE.instantiate()
+	if drop != null:
+		drop.position = global_position + Vector3(0, -0.9, 0) + roll
+		get_parent().add_child.call_deferred(drop)

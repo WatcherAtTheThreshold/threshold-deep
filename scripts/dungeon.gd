@@ -40,7 +40,7 @@ const FROGMAN_CHANCE_PER_DEPTH := 0.06
 const FROGMAN_CHANCE_MAX := 0.18
 const FROGMAN_MIN_DEPTH := 3
 
-const WOOD_WALL_HITS := 2
+const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
 const FIGHT_GRACE_TIME := 2.5
 
@@ -448,8 +448,8 @@ func _spawn_amalgam(corpses: Array, center: Vector3, body_count: int) -> void:
 	boss.position = center + Vector3(0, 0.7, 0)
 	add_child(boss)
 	# The player built this boss: HP scales with the bodies, capped —
-	# panic must cost, but never spiral.
-	boss.health = clampi(10 + body_count * 2, 14, 34)
+	# panic must cost, but never spiral. (Half-heart units.)
+	boss.health = clampi(20 + body_count * 4, 28, 68)
 	amalgam_stage = 2
 	fight_grace = 1.5
 

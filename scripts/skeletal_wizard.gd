@@ -15,7 +15,7 @@ const WALK_FRAME_TIME := 0.28
 const RUSH_TIME := 4.0
 const RUSH_SPEED := 3.0
 const MELEE_RANGE := 1.7
-const MELEE_DAMAGE := 2
+const MELEE_DAMAGE := 4
 const MELEE_COOLDOWN := 1.0
 const CHARGE_TIME := 0.55
 const VOLLEY_SIZE := 3
@@ -24,7 +24,7 @@ const CAST_RECOVER := 0.6
 
 enum Mode { RUSH, CHARGE, RECOVER }
 
-var health := 20
+var health := 40
 var mode := Mode.RUSH
 var mode_timer := RUSH_TIME
 var attack_timer := 0.0
