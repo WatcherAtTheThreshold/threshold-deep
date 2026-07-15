@@ -16,6 +16,10 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 - Typed GDScript: `:=` cannot infer from untyped sources (e.g.
   `get_nodes_in_group` items) — type loop vars (`for e: Node3D in ...`)
   or declare explicitly. Custom classes use `class_name` (see Player).
+  Scripts in scenes that player.gd preloads (projectiles, pickups)
+  must not declare class-level `Player`-typed members — that forms a
+  preload cycle ("Parse Error: Busy"); type them CharacterBody3D and
+  call dynamically. Function-body `is Player` checks are safe.
 
 ## Art Specs (settled — keep consistent)
 
