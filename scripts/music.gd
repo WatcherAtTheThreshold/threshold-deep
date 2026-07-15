@@ -15,6 +15,7 @@ const SILENCE_MAX := 90.0
 const TRACKS: Array[AudioStream] = [
 	preload("res://assets/audio/music/threshold-deep.ogg"),
 	preload("res://assets/audio/music/AMinorLament.ogg"),
+	preload("res://assets/audio/music/AMurderOfCrows.ogg"),
 ]
 
 var player := AudioStreamPlayer.new()
