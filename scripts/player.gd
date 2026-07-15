@@ -24,6 +24,11 @@ const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
 const BOOMERANG_SCENE := preload("res://scenes/boomerang.tscn")
+const TORCH_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/torch_hit1.wav"),
+	preload("res://assets/audio/sfx/player/torch_hit2.wav"),
+	preload("res://assets/audio/sfx/player/torch_hit3.wav"),
+]
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -44,6 +49,8 @@ var controls_enabled := true
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# The torch never stops burning; loop the crackle by hand.
+	$TorchCrackle.finished.connect($TorchCrackle.play)
 	if RunState.carried_max_health > 0:
 		max_health = RunState.carried_max_health
 	if RunState.carried_health > 0:
@@ -200,6 +207,10 @@ func _attack() -> void:
 		return
 	attack_timer = ATTACK_COOLDOWN
 	attacked.emit()
+	if not (RunState.has_boomerang or RunState.has_staff or RunState.has_sword):
+		# Torch swings: three takes, rotated.
+		Sfx.play_at(TORCH_HIT_SOUNDS[randi_range(0, TORCH_HIT_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	if RunState.has_boomerang:
 		var aim := -camera.global_transform.basis.z
 		var boomerang := BOOMERANG_SCENE.instantiate()

@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_death.wav")
+const REVIVE_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_revive.wav")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
@@ -59,6 +61,8 @@ func _physics_process(delta: float) -> void:
 					rising = true
 					rise_timer = RISE_TIME
 					sprite.texture = RISE_TEXTURE
+					# The rattle: bones stirring, heard before seen.
+					Sfx.play_at(REVIVE_SOUND, global_position, -2.0)
 		return
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	if not is_on_floor():
@@ -162,6 +166,7 @@ func _die(by_player: bool) -> void:
 	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
 	step_sound.stop()
+	Sfx.play_at(DEATH_SOUND, global_position, -3.0)
 	if by_player:
 		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
