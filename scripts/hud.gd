@@ -16,6 +16,8 @@ var last_total := 0
 @onready var hurt_flash: ColorRect = $HurtFlash
 @onready var run_info: Label = $RunInfo
 @onready var screen_fade: ColorRect = $ScreenFade
+@onready var level_mist: TextureRect = $LevelMist
+@onready var level_label: Label = $LevelLabel
 @onready var death_label: Label = $DeathLabel
 @onready var killer_face: TextureRect = $KillerFace
 @onready var death_cause: Label = $DeathCause
@@ -33,6 +35,30 @@ func _ready() -> void:
 	# Every floor and every run opens with a fade in from black.
 	screen_fade.color.a = 1.0
 	create_tween().tween_property(screen_fade, "color:a", 0.0, FADE_IN_TIME)
+	_show_level_card()
+
+
+func _show_level_card() -> void:
+	# The title card: mist across the screen, the level's name on it,
+	# tinted in the floor's color language.
+	level_label.text = RunState.floor_label(RunState.depth)
+	var kind := RunState.floor_kind(RunState.depth)
+	var card_tint := Color(0.8, 0.85, 0.95, 0.85)
+	if kind == RunState.FloorKind.BOSS:
+		card_tint = Color(0.72, 0.85, 1.0, 0.9)
+	elif kind == RunState.FloorKind.ITEM:
+		card_tint = Color(1.0, 0.82, 0.5, 0.9)
+	level_mist.modulate = card_tint
+	level_label.modulate.a = 1.0
+	level_mist.visible = true
+	level_label.visible = true
+	var card := create_tween()
+	card.tween_interval(1.6)
+	card.tween_property(level_mist, "modulate:a", 0.0, 0.9)
+	card.parallel().tween_property(level_label, "modulate:a", 0.0, 0.9)
+	card.tween_callback(func() -> void:
+		level_mist.visible = false
+		level_label.visible = false)
 
 
 func start_descent_fade() -> void:
@@ -103,7 +129,7 @@ func _killer_phrase() -> String:
 
 func _build_death_stats() -> String:
 	var lines: Array[String] = [
-		"Depth %d   ·   %d kills" % [RunState.depth, RunState.kills],
+		"Level %s   ·   %d kills" % [RunState.floor_label(RunState.depth), RunState.kills],
 		"Damage dealt %d   ·   taken %d" \
 				% [RunState.damage_dealt, RunState.damage_taken],
 	]
@@ -163,4 +189,4 @@ func _make_heart(tex: Texture2D) -> TextureRect:
 
 
 func _update_run_info() -> void:
-	run_info.text = "Depth %d   Kills %d" % [RunState.depth, RunState.kills]
+	run_info.text = "%s   Kills %d" % [RunState.floor_label(RunState.depth), RunState.kills]

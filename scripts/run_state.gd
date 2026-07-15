@@ -28,14 +28,22 @@ var killer_texture: Texture2D = null
 
 
 func floor_kind(d: int) -> FloorKind:
-	# The run cadence (docs/structure.md): 1 regular, 2 BOSS, 3 item,
-	# repeating — bosses at 2/5/8..., items at 3/6/9..., and the
+	# The run cadence: each world is explore → item → boss.
+	# 1-1 regular, 1-2 item, 1-3 BOSS, then world 2... and the
 	# pattern continues below the victory floor for endless descent.
 	if d % 3 == 2:
-		return FloorKind.BOSS
-	if d > 2 and d % 3 == 0:
 		return FloorKind.ITEM
+	if d % 3 == 0:
+		return FloorKind.BOSS
 	return FloorKind.REGULAR
+
+
+func floor_label(d: int) -> String:
+	# Depth rendered as world - stage: 1-1, 1-2, 1-3, 2-1...
+	@warning_ignore("integer_division")
+	var world := (d + 2) / 3
+	var stage := ((d - 1) % 3) + 1
+	return "%d - %d" % [world, stage]
 
 
 func record_kill(label: String) -> void:

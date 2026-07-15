@@ -98,9 +98,11 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   2-damage orb along the camera aim; offered only after the sword).
   relic_pickup.gd + `grant` method name is the pattern for new
   relics; tiered relics gate the next tier on the previous.
-- Run structure (docs/structure.md): floor cadence repeats
-  regular/BOSS/item (bosses at depth 2/5/8…, items at 3/6/9…),
-  continuing below the depth-8 victory for endless descent. Mist
+- Run structure (docs/structure.md): floors read as world - stage
+  (1-1, 1-2… via RunState.floor_label) with a misted title card at
+  each floor start, tinted by floor kind. Each world runs
+  explore (x-1) → item (x-2) → BOSS (x-3); victory at 3-3,
+  continuing below for endless descent. Mist
   doors (mist_door.tscn: cold = boss, gold = item) fill a special
   room's doorways — passable until sealed. Boss floors have no
   hatch; a consent plate starts the fight, the seal drops, and the
