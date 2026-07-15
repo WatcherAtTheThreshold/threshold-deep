@@ -44,4 +44,4 @@ func _on_body_entered(body: Node3D) -> void:
 	if closed or not armed:
 		return
 	if body is Player:
-		body.start_descent()
+		body.start_descent(global_position)

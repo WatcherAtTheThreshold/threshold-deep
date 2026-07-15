@@ -299,8 +299,16 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		died.emit()
 
 
-func start_descent() -> void:
+func start_descent(hatch_pos: Vector3) -> void:
 	if not controls_enabled:
 		return
 	controls_enabled = false
+	velocity = Vector3.ZERO
+	# The fall: glide to the hatch's mouth, then the view sinks into
+	# the shaft, gathering speed, as the dark closes over.
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(self, "global_position:x", hatch_pos.x, 0.25)
+	tween.tween_property(self, "global_position:z", hatch_pos.z, 0.25)
+	tween.tween_property(camera, "position:y", -1.4, 0.7) \
+			.set_delay(0.1).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	$HUD.start_descent_fade()
