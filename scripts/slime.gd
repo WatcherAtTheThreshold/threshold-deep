@@ -206,6 +206,7 @@ func _merge() -> void:
 func _split(child_state: State) -> void:
 	# Splits never fizzle: children get at least 1 HP each, so the
 	# full cascade (boss → larges → smalls) always runs its course.
+	@warning_ignore("integer_division")
 	var h2 := maxi(health / 2, 1)
 	var h1 := maxi(health - h2, 1)
 	_drop_splat()

@@ -103,6 +103,7 @@ func _physics_process(delta: float) -> void:
 func setup(depth: int) -> void:
 	# Deeper floors: faster bones, and a bit tougher every third floor.
 	speed = minf(BASE_SPEED + 0.1 * (depth - 1), MAX_SPEED)
+	@warning_ignore("integer_division")
 	health += (depth - 1) / 3
 
 
