@@ -1,7 +1,10 @@
 extends CharacterBody3D
 
-enum State { MEGA, MUSH, MINI }
+enum State { BOSS, MEGA, MUSH, MINI }
 
+const TEX_BOSS_1 := preload("res://assets/sprites/mush/boss-mush/boss-mush1.png")
+const TEX_BOSS_2 := preload("res://assets/sprites/mush/boss-mush/boss-mush2.png")
+const TEX_DEAD_BOSS := preload("res://assets/sprites/mush/boss-mush/boss_mush_dead.png")
 const TEX_MEGA_1 := preload("res://assets/sprites/mush/mega-mush/mega-mush1.png")
 const TEX_MEGA_2 := preload("res://assets/sprites/mush/mega-mush/mega-mush2.png")
 const TEX_MUSH_1 := preload("res://assets/sprites/mush/mush/mush1.png")
@@ -18,6 +21,8 @@ const MUSH_MAX_HEALTH := 8
 const MUSH_SPLIT_HEALTH := 4
 const MEGA_MAX_HEALTH := 14
 const MEGA_SPLIT_HEALTH := 7
+const BOSS_MAX_HEALTH := 20
+const BOSS_SPLIT_HEALTH := 10
 const MERGE_RANGE := 1.2
 const MERGE_COOLDOWN := 4.0
 const SIGHT_RANGE := 9.0
@@ -77,6 +82,8 @@ func setup(new_depth: int) -> void:
 
 func kill_label() -> String:
 	match state:
+		State.BOSS:
+			return "the Mush Boss"
 		State.MEGA:
 			return "Green Mega Mush" if green else "Mega Mush"
 		State.MINI:
@@ -254,7 +261,12 @@ func _drop_splat() -> void:
 	# spin for variety; slight height jitter so overlapping splats
 	# layer instead of z-fighting.
 	var splat := Sprite3D.new()
-	splat.texture = TEX_DEAD_MEGA if state == State.MEGA else TEX_DEAD_MUSH
+	var splat_tex := TEX_DEAD_MUSH
+	if state == State.BOSS:
+		splat_tex = TEX_DEAD_BOSS
+	elif state == State.MEGA:
+		splat_tex = TEX_DEAD_MEGA
+	splat.texture = splat_tex
 	splat.modulate = base_tint
 	splat.pixel_size = 0.03125
 	splat.shaded = true
@@ -272,6 +284,14 @@ func _apply_state() -> void:
 	# Body center rests at floor + radius; offsets stand each canvas's
 	# bottom edge on the floor surface.
 	match state:
+		State.BOSS:
+			frame_a = TEX_BOSS_1
+			frame_b = TEX_BOSS_2
+			body_radius = 0.8
+			sprite.position = Vector3(0, 0.2, 0)
+			step_sound.pitch_scale = 0.7
+			speed = 1.1
+			damage = 2
 		State.MEGA:
 			frame_a = TEX_MEGA_1
 			frame_b = TEX_MEGA_2
@@ -329,6 +349,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	create_tween().tween_property(sprite, "modulate", base_tint, 0.25)
 	if health <= 0:
 		_die(attacker == null or attacker is Player)
+	elif state == State.BOSS and health <= BOSS_SPLIT_HEALTH:
+		_split(State.MEGA)
 	elif state == State.MEGA and health <= MEGA_SPLIT_HEALTH:
 		_split(State.MUSH)
 	elif state == State.MUSH and health <= MUSH_SPLIT_HEALTH:
@@ -352,6 +374,8 @@ func _die(by_player: bool) -> void:
 	# the floor surface.
 	sprite.position = Vector3(0, 0.03 - body_radius, 0)
 	match state:
+		State.BOSS:
+			sprite.texture = TEX_DEAD_BOSS
 		State.MEGA:
 			sprite.texture = TEX_DEAD_MEGA
 		State.MUSH:

@@ -1,7 +1,9 @@
 extends CharacterBody3D
 
-enum State { PUDDLE, LARGE, SMALL }
+enum State { PUDDLE, BOSS, LARGE, SMALL }
 
+const TEX_BOSS_1 := preload("res://assets/sprites/slime/slime-boss/slime-boss-front1.png")
+const TEX_BOSS_2 := preload("res://assets/sprites/slime/slime-boss/slime-boss-front2.png")
 const TEX_LARGE_1 := preload("res://assets/sprites/slime/slime-large/slime-large-down1.png")
 const TEX_LARGE_2 := preload("res://assets/sprites/slime/slime-large/slime-large-down2.png")
 const TEX_SMALL_1 := preload("res://assets/sprites/slime/slime-small/slimes-small-down1.png")
@@ -20,6 +22,9 @@ const RESPAWN_DELAY_MAX := 20.0
 const RESPAWN_TELL_TIME := 3.0
 const LARGE_MAX_HEALTH := 6
 const SPLIT_HEALTH := 3
+const BOSS_MAX_HEALTH := 12
+const BOSS_SPLIT_HEALTH := 6
+const BOSS_SPEED := 1.2
 const LARGE_SPEED := 1.4
 const SMALL_SPEED := 2.6
 const SIGHT_RANGE := 9.0
@@ -34,7 +39,8 @@ var health := LARGE_MAX_HEALTH
 var speed_scale := 1.0
 var spawn_timer := 2.0
 var respawn_timer := -1.0
-var emerge_small := false
+var emerge_state := State.LARGE
+var damage := 1
 var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
@@ -58,9 +64,9 @@ func _ready() -> void:
 		_apply_state()
 
 
-func make_small(hp: int, buddy: CharacterBody3D) -> void:
+func make_child(child_state: State, hp: int, buddy: CharacterBody3D) -> void:
 	# Called before add_child by the splitting parent.
-	state = State.SMALL
+	state = child_state
 	health = hp
 	partner = buddy
 
@@ -70,7 +76,13 @@ func setup(depth: int) -> void:
 
 
 func kill_label() -> String:
-	return "Slime" if state == State.LARGE else "Small Slime"
+	match state:
+		State.BOSS:
+			return "the Slime Boss"
+		State.LARGE:
+			return "Slime"
+		_:
+			return "Small Slime"
 
 
 func _physics_process(delta: float) -> void:
@@ -98,7 +110,12 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
-	var speed := (LARGE_SPEED if state == State.LARGE else SMALL_SPEED) * speed_scale
+	var tier_speed := SMALL_SPEED
+	if state == State.BOSS:
+		tier_speed = BOSS_SPEED
+	elif state == State.LARGE:
+		tier_speed = LARGE_SPEED
+	var speed := tier_speed * speed_scale
 	var goal := _pick_goal()
 	var to_goal := goal.global_position - global_position
 	to_goal.y = 0.0
@@ -119,7 +136,7 @@ func _physics_process(delta: float) -> void:
 			velocity.z = 0.0
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
-				goal.take_damage(1, to_goal.normalized(), self)
+				goal.take_damage(damage, to_goal.normalized(), self)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, speed)
 		velocity.z = move_toward(velocity.z, 0.0, speed)
@@ -127,17 +144,15 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
+	var first := int(walk_time / WALK_FRAME_TIME) % 2 == 0 if moving else true
 	if moving:
 		walk_time += delta
-		var first := int(walk_time / WALK_FRAME_TIME) % 2 == 0
-		if state == State.LARGE:
-			sprite.texture = TEX_LARGE_1 if first else TEX_LARGE_2
-		else:
-			sprite.texture = TEX_SMALL_1 if first else TEX_SMALL_2
+	if state == State.BOSS:
+		sprite.texture = TEX_BOSS_1 if first else TEX_BOSS_2
 	elif state == State.LARGE:
-		sprite.texture = TEX_LARGE_1
+		sprite.texture = TEX_LARGE_1 if first else TEX_LARGE_2
 	else:
-		sprite.texture = TEX_SMALL_1
+		sprite.texture = TEX_SMALL_1 if first else TEX_SMALL_2
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
@@ -164,7 +179,7 @@ func _partner_alive() -> bool:
 
 
 func _emerge() -> void:
-	state = State.SMALL if emerge_small else State.LARGE
+	state = emerge_state
 	add_to_group("enemies")
 	_apply_state()
 
@@ -172,7 +187,7 @@ func _emerge() -> void:
 func _respawn() -> void:
 	# Back from the puddle — smaller, weaker, still hungry.
 	dead = false
-	emerge_small = true
+	emerge_state = State.SMALL
 	health = 2
 	state = State.PUDDLE
 	spawn_timer = randf_range(1.0, 4.0)
@@ -188,16 +203,20 @@ func _merge() -> void:
 	_apply_state()
 
 
-func _split(h1: int, h2: int) -> void:
+func _split(child_state: State) -> void:
+	# Splits never fizzle: children get at least 1 HP each, so the
+	# full cascade (boss → larges → smalls) always runs its course.
+	var h2 := maxi(health / 2, 1)
+	var h1 := maxi(health - h2, 1)
 	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/slime.tscn") as PackedScene).instantiate()
-	other.make_small(h2, self)
+	other.make_child(child_state, h2, self)
 	other.position = global_position + side * 0.7
 	other.velocity = side * 3.0
 	get_parent().add_child.call_deferred(other)
 	partner = other
-	state = State.SMALL
+	state = child_state
 	health = h1
 	velocity += -side * 3.0
 	_apply_state()
@@ -227,14 +246,21 @@ func _apply_state() -> void:
 	# Body center rests at floor + 0.5 (sphere radius), so the canvas
 	# bottom edge lands exactly on the floor surface at these offsets.
 	# Smalls squish at a higher pitch than the big one.
-	if state == State.LARGE:
+	if state == State.BOSS:
+		sprite.texture = TEX_BOSS_1
+		sprite.position = Vector3(0, 0.5, 0)
+		step_sound.pitch_scale = 0.7
+		damage = 2
+	elif state == State.LARGE:
 		sprite.texture = TEX_LARGE_1
 		sprite.position = Vector3(0, 0.5, 0)
 		step_sound.pitch_scale = 0.85
+		damage = 1
 	else:
 		sprite.texture = TEX_SMALL_1
 		sprite.position = Vector3.ZERO
 		step_sound.pitch_scale = 1.2
+		damage = 1
 
 
 func _show_mid_spawn() -> void:
@@ -280,11 +306,10 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:
 		_die(attacker == null or attacker is Player)
+	elif state == State.BOSS and health <= BOSS_SPLIT_HEALTH:
+		_split(State.LARGE)
 	elif state == State.LARGE and health <= SPLIT_HEALTH:
-		var h2 := health / 2
-		var h1 := health - h2
-		if h2 >= 1:
-			_split(h1, h2)
+		_split(State.SMALL)
 
 
 func _die(by_player: bool) -> void:

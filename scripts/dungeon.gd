@@ -336,17 +336,19 @@ func _start_boss_fight() -> void:
 	var center := arena.get_center()
 	match boss_index:
 		0:
-			# Boss 1 — the Large Slime: positioning, not DPS.
+			# Boss 1 — the Slime Boss: splits into two larges, each
+			# into two smalls. Positioning, not DPS.
 			var slime := SLIME_SCENE.instantiate()
 			slime.position = _cell_to_world(center)
 			add_child(slime)
-			slime.health = 10
+			slime.emerge_state = slime.State.BOSS
+			slime.health = slime.BOSS_MAX_HEALTH
 			slime.spawn_timer = 1.2
 		1:
-			# Boss 2 — the Mega Mush: four seconds to kill a half
-			# before it reassembles.
+			# Boss 2 — the Mush Boss: two megas, four mushes, eight
+			# minis. Four seconds to kill each half before re-fusion.
 			var mush := MUSH_SCENE.instantiate()
-			mush.configure(mush.State.MEGA, 14)
+			mush.configure(mush.State.BOSS, mush.BOSS_MAX_HEALTH)
 			mush.position = _cell_to_world(center)
 			add_child(mush)
 		_:
