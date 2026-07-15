@@ -62,6 +62,8 @@ var boss_index := 0
 var fight_active := false
 var fight_grace := 0.0
 var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
+var boss_hatch: Node3D = null
+var boss_hatch_cell := Vector2i(-1, -1)
 
 # Item floor state
 var item_room_idx := -1
@@ -306,19 +308,44 @@ func _setup_boss_room() -> void:
 	var arena := floor_rooms[arena_room_idx]
 	arena_mists = _spawn_mists(arena, false)
 	boss_index = mini(RunState.bosses_defeated, 2)
+	var cells := _stone_cells(arena)
+	if cells.is_empty():
+		var center := arena.get_center()
+		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
+		cells.append(center)
+	# The sealed hatch sits at the arena's heart from the start —
+	# visible, dark, waiting for the boss to die.
+	boss_hatch_cell = _nearest_cell_to_center(arena, cells)
+	boss_hatch = HATCH_SCENE.instantiate()
+	boss_hatch.closed = true
+	boss_hatch.position = _cell_to_world(boss_hatch_cell, 0.5)
+	add_child(boss_hatch)
 	# The consent plate: an empty, quiet arena, and a plate. Stepping
 	# it starts the fight.
-	var cells := _stone_cells(arena)
-	var plate_cell: Vector2i
-	if cells.size() > 0:
-		plate_cell = cells[randi_range(0, cells.size() - 1)]
-	else:
-		plate_cell = arena.get_center()
+	cells.shuffle()
+	var plate_cell := boss_hatch_cell + Vector2i(1, 0)
+	for c in cells:
+		if c != boss_hatch_cell:
+			plate_cell = c
+			break
+	if grid_map.get_cell_item(Vector3i(plate_cell.x, 0, plate_cell.y)) != floor_id:
 		grid_map.set_cell_item(Vector3i(plate_cell.x, 0, plate_cell.y), floor_id)
 	var plate := BOSS_PLATE_SCENE.instantiate()
 	plate.position = _cell_to_world(plate_cell, 0.5)
 	plate.activated.connect(_start_boss_fight)
 	add_child(plate)
+
+
+func _nearest_cell_to_center(room: Rect2i, cells: Array[Vector2i]) -> Vector2i:
+	var center := room.get_center()
+	var best := cells[0]
+	var best_d := INF
+	for c in cells:
+		var d := Vector2(c - center).length_squared()
+		if d < best_d:
+			best_d = d
+			best = c
+	return best
 
 
 func _start_boss_fight() -> void:
@@ -383,11 +410,14 @@ func _begin_assembly() -> void:
 		var p: Vector3 = child.global_position
 		if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
 			corpses.append(child)
-	# Assemble on stone nearest the centre (never over a hole).
+	# Assemble on stone nearest the centre (never over a hole, and
+	# not on the sealed hatch).
 	var center_cell := arena.get_center()
 	var cells := _stone_cells(arena)
 	var best_d := INF
 	for c in cells:
+		if c == boss_hatch_cell:
+			continue
 		var d := Vector2(c - center_cell).length_squared()
 		if d < best_d:
 			best_d = d
@@ -446,17 +476,10 @@ func _finish_boss_fight() -> void:
 	for m in arena_mists:
 		if is_instance_valid(m):
 			m.dissolve()
-	var arena := floor_rooms[arena_room_idx]
-	var cells := _stone_cells(arena)
-	cells.shuffle()
-	var hatch_cell: Vector2i = arena.get_center()
-	if cells.size() > 0:
-		hatch_cell = cells[0]
-	else:
-		grid_map.set_cell_item(Vector3i(hatch_cell.x, 0, hatch_cell.y), floor_id)
-	var hatch := HATCH_SCENE.instantiate()
-	hatch.position = _cell_to_world(hatch_cell, 0.5)
-	add_child(hatch)
+	# The sealed hatch at the arena's heart opens — but never under
+	# anyone's feet.
+	if is_instance_valid(boss_hatch):
+		boss_hatch.open()
 	# The reward is earned by the fight.
 	var reward: Node3D = null
 	match boss_index:
@@ -466,9 +489,14 @@ func _finish_boss_fight() -> void:
 		1:
 			reward = CONTAINER_PICKUP_SCENE.instantiate()
 	if reward != null:
-		var reward_cell := hatch_cell + Vector2i(1, 0)
-		if cells.size() > 1:
-			reward_cell = cells[1]
+		var arena := floor_rooms[arena_room_idx]
+		var cells := _stone_cells(arena)
+		cells.shuffle()
+		var reward_cell := boss_hatch_cell + Vector2i(1, 0)
+		for c in cells:
+			if c != boss_hatch_cell:
+				reward_cell = c
+				break
 		reward.position = _cell_to_world(reward_cell, 0.5)
 		add_child(reward)
 	RunState.bosses_defeated += 1
