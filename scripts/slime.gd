@@ -305,12 +305,14 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		target = attacker
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
-	if health <= 0:
-		_die(attacker == null or attacker is Player)
-	elif state == State.BOSS and health <= BOSS_SPLIT_HEALTH:
+	# Tiers above the bottom never die — lethal damage bursts them
+	# instead, so the cascade always completes down to the smalls.
+	if state == State.BOSS and health <= BOSS_SPLIT_HEALTH:
 		_split(State.LARGE)
 	elif state == State.LARGE and health <= SPLIT_HEALTH:
 		_split(State.SMALL)
+	elif health <= 0:
+		_die(attacker == null or attacker is Player)
 
 
 func _die(by_player: bool) -> void:
