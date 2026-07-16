@@ -2,6 +2,11 @@ extends Area3D
 
 const FRAME_A := preload("res://assets/sprites/wizard_orb1.png")
 const FRAME_B := preload("res://assets/sprites/wizard_orb2.png")
+const WIZARD_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.wav"),
+]
 const SPEED := 6.0
 const LIFETIME := 4.0
 const FRAME_TIME := 0.15
@@ -9,6 +14,7 @@ const FRAME_TIME := 0.15
 # Overridable per shooter (the Skeletal Wizard fires its own frames).
 var frame_a: Texture2D = FRAME_A
 var frame_b: Texture2D = FRAME_B
+var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
 var damage := 2  # half-heart units: a full heart per orb
 var direction := Vector3.FORWARD
 var shooter: PhysicsBody3D = null
@@ -36,6 +42,8 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body == shooter:
 		return
+	Sfx.play_at(impact_sounds[randi_range(0, impact_sounds.size() - 1)],
+			global_position, -4.0)
 	if body is Player:
 		# Credit the caster.
 		body.take_damage(damage, direction, shooter if is_instance_valid(shooter) else null)

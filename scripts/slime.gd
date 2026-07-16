@@ -8,6 +8,11 @@ const TEX_LARGE_1 := preload("res://assets/sprites/slime/slime-large/slime-large
 const TEX_LARGE_2 := preload("res://assets/sprites/slime/slime-large/slime-large-down2.png")
 const TEX_SMALL_1 := preload("res://assets/sprites/slime/slime-small/slimes-small-down1.png")
 const TEX_SMALL_2 := preload("res://assets/sprites/slime/slime-small/slimes-small-down2.png")
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits1.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits2.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits3.wav"),
+]
 const TEX_SPAWN := preload("res://assets/sprites/slime/slime-spawn.png")
 const TEX_MID_SPAWN := preload("res://assets/sprites/slime/slime-mid-spawn.png")
 const TEX_DEAD := preload("res://assets/sprites/slime/slime_dead.png")
@@ -299,6 +304,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if dead or state == State.PUDDLE:
 		return
 	health -= amount
+	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
 	velocity += push_dir * 6.0
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.

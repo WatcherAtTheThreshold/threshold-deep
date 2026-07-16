@@ -10,6 +10,16 @@ const DEAD_TEXTURE := preload("res://assets/sprites/skeletal-wizard/skeletal-wiz
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const ORB_FRAME_1 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb1.png")
 const ORB_FRAME_2 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb2.png")
+const ORB_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit1.wav"),
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit2.wav"),
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit3.wav"),
+]
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit1.wav"),
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit2.wav"),
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit3.wav"),
+]
 const WALK_FRAME_TIME := 0.28
 
 const RUSH_TIME := 4.0
@@ -108,6 +118,7 @@ func _fire_volley() -> void:
 		orb.shooter = self
 		orb.frame_a = ORB_FRAME_1
 		orb.frame_b = ORB_FRAME_2
+		orb.impact_sounds = ORB_IMPACTS
 		orb.direction = dir
 		orb.position = from + dir * 1.0
 		get_parent().add_child.call_deferred(orb)
@@ -125,6 +136,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if dead:
 		return
 	health -= amount
+	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
 	velocity += push_dir * 2.0  # too heavy to shove far
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)

@@ -13,6 +13,10 @@ exports/
 # Ableton analysis sidecars
 *.asd
 
+# Stray leftover locked by the editor; delete when Godot is closed
+assets/audio/sfx/wizard_orb_hit.wav
+assets/audio/sfx/wizard_orb_hit.wav.import
+
 # OS junk
 Thumbs.db
 .DS_Store

@@ -29,6 +29,21 @@ const TORCH_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/torch_hit2.wav"),
 	preload("res://assets/audio/sfx/player/torch_hit3.wav"),
 ]
+const SWORD_SLICE_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/sword_slice1.wav"),
+	preload("res://assets/audio/sfx/player/sword_slice2.wav"),
+	preload("res://assets/audio/sfx/player/sword_slice3.wav"),
+]
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/player_take_hit1.wav"),
+	preload("res://assets/audio/sfx/player/player_take_hit2.wav"),
+	preload("res://assets/audio/sfx/player/player_take_hit3.wav"),
+]
+const STAFF_ORB_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit1.wav"),
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit2.wav"),
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit3.wav"),
+]
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -207,9 +222,10 @@ func _attack() -> void:
 		return
 	attack_timer = ATTACK_COOLDOWN
 	attacked.emit()
-	if not (RunState.has_boomerang or RunState.has_staff or RunState.has_sword):
-		# Torch swings: three takes, rotated.
-		Sfx.play_at(TORCH_HIT_SOUNDS[randi_range(0, TORCH_HIT_SOUNDS.size() - 1)],
+	if not (RunState.has_boomerang or RunState.has_staff):
+		# Melee swings: three takes each, rotated.
+		var swings := SWORD_SLICE_SOUNDS if RunState.has_sword else TORCH_HIT_SOUNDS
+		Sfx.play_at(swings[randi_range(0, swings.size() - 1)],
 				global_position, -4.0)
 	if RunState.has_boomerang:
 		var aim := -camera.global_transform.basis.z
@@ -227,6 +243,7 @@ func _attack() -> void:
 		orb.shooter = self
 		orb.frame_a = STAFF_ORB_TEXTURE
 		orb.frame_b = STAFF_ORB_TEXTURE
+		orb.impact_sounds = STAFF_ORB_IMPACTS
 		orb.damage = attack_damage
 		orb.direction = aim
 		orb.position = camera.global_position + aim * 0.9
@@ -288,6 +305,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		velocity += push_dir * 2.5
 		return
 	invuln_timer = INVULN_TIME
+	Sfx.play_ui(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)], -5.0)
 	# Magic hearts absorb damage first; the spill hits red hearts.
 	var remaining := amount
 	var absorbed := mini(magic_hearts, remaining)

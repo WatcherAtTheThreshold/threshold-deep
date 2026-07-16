@@ -12,6 +12,16 @@ const TEX_MUSH_2 := preload("res://assets/sprites/mush/mush/mush2.png")
 const TEX_MINI_1 := preload("res://assets/sprites/mush/mini-mush/mini-mush1.png")
 const TEX_MINI_2 := preload("res://assets/sprites/mush/mini-mush/mini-mush2.png")
 const TEX_MINI_SURPRISE := preload("res://assets/sprites/mush/mini-mush/mini-mush-suprise.png")
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/mush_take_hit1.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_take_hit2.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_take_hit3.wav"),
+]
+const DISCOVER_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle1.wav"),
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle2.wav"),
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle3.wav"),
+]
 const TEX_DEAD_MEGA := preload("res://assets/sprites/mush/mega-mush/mega_mush_dead.png")
 const TEX_DEAD_MUSH := preload("res://assets/sprites/mush/mush/mush_dead.png")
 const TEX_DEAD_MINI := preload("res://assets/sprites/mush/mini-mush/mini_mush_dead.png")
@@ -180,6 +190,9 @@ func _acquire_slime_corpse() -> void:
 			hunt_target = s
 			startle_timer = STARTLE_TIME
 			velocity.y = 3.0  # the little hop
+			# It just had an idea — audibly.
+			Sfx.play_at(DISCOVER_SOUNDS[randi_range(0, DISCOVER_SOUNDS.size() - 1)],
+					global_position, -3.0)
 			break
 
 
@@ -343,6 +356,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if dead:
 		return
 	health -= amount
+	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
 	velocity += push_dir * 6.0
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.

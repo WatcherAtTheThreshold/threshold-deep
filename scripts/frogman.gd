@@ -12,6 +12,11 @@ const TEX_TOAD_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/toad2.p
 const TEX_COAT := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen-dead.png")
 const TEX_FROG_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_dead.png")
 const TEX_TOAD_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_dead.png")
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage1.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage2.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage3.wav"),
+]
 const WALK_FRAME_TIME := 0.3
 
 const COATED_HEALTH := 14
@@ -217,6 +222,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if dead or state == State.REVEAL:
 		return
 	health -= amount
+	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
 	velocity += push_dir * 6.0
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.

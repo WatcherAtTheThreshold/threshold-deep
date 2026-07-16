@@ -7,6 +7,11 @@ const TEX_SHOOT_1 := preload("res://assets/sprites/wizard_shoot1.png")
 const TEX_SHOOT_2 := preload("res://assets/sprites/wizard_shoot2.png")
 const TEX_SHOOT_3 := preload("res://assets/sprites/wizard_shoot3.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
+const TAKE_HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_take_hit1.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_take_hit2.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_take_hit3.wav"),
+]
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
@@ -159,6 +164,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if dead:
 		return
 	health -= amount
+	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
 	velocity += push_dir * 6.0
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
