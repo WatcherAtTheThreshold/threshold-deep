@@ -90,6 +90,20 @@ func setup(new_depth: int) -> void:
 	speed_scale = 1.0 + minf(0.04 * (depth - 1), 0.4)
 
 
+func _hit_pitch() -> float:
+	# The boss speaks at the original pitch; each generation down the
+	# family tree squeaks a little higher.
+	match state:
+		State.BOSS:
+			return 1.0
+		State.MEGA:
+			return 1.12
+		State.MUSH:
+			return 1.25
+		_:
+			return 1.45
+
+
 func kill_label() -> String:
 	match state:
 		State.BOSS:
@@ -357,7 +371,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		return
 	health -= amount
 	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
-			global_position, -4.0)
+			global_position, -4.0, _hit_pitch())
 	velocity += push_dir * 6.0
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
