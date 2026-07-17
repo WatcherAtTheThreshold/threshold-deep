@@ -517,9 +517,13 @@ func _setup_item_room() -> void:
 	var room := floor_rooms[item_room_idx]
 	item_mists = _spawn_mists(room, true)
 	var cells := _stone_cells(room)
-	cells.shuffle()
+	# Pedestals gather at the room's heart — spawned at the doorway,
+	# an item could be walked into blind through the mist. The bargain
+	# should be seen before it's struck.
+	var center := room.get_center()
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return (a - center).length_squared() < (b - center).length_squared())
 	if cells.is_empty():
-		var center := room.get_center()
 		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
 		cells.append(center)
 	# The pedestal pool: what the run hasn't granted yet. Two are
