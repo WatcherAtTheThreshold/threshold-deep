@@ -17,6 +17,7 @@ const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const BOOMERANG_PICKUP_SCENE := preload("res://scenes/boomerang_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const MIST_GATE_SCENE := preload("res://scenes/mist_gate.tscn")
+const ARRIVAL_DOOR_SCENE := preload("res://scenes/arrival_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
 const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_floor_start.wav")
@@ -116,6 +117,10 @@ func _ready() -> void:
 		_setup_item_room()
 	else:
 		_populate(rooms)
+	if RunState.stage(RunState.depth) != 1:
+		# The sealed doorway you arrived through — bare frame, stone
+		# showing through, no way back.
+		_place_against_wall(ARRIVAL_DOOR_SCENE, rooms[0])
 	last_player_cell = _player_cell()
 
 	# Every floor announces itself.
@@ -670,14 +675,8 @@ func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
 	# Prefer a stone cell against a wall: the gate presses into the
 	# wall face like a misty doorway, not a free-standing curtain.
 	for i in order:
-		var cells := _stone_cells(rooms[i])
-		cells.shuffle()
-		for c in cells:
-			for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
-				if _cell_id(c + d) != wall_id:
-					continue
-				_spawn_gate_against_wall(c, d)
-				return
+		if _place_against_wall(MIST_GATE_SCENE, rooms[i]):
+			return
 	# Fallback: no wall-adjacent stone anywhere — free-standing.
 	for i in order:
 		var cells := _stone_cells(rooms[i])
@@ -689,17 +688,28 @@ func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
 			return
 
 
-func _spawn_gate_against_wall(cell: Vector2i, dir: Vector2i) -> void:
-	var center := _cell_to_world(cell, 0.5)
-	var gate := MIST_GATE_SCENE.instantiate()
-	if dir.x != 0:
-		var face_x := (cell.x + (1 if dir.x > 0 else 0)) * CELL_SIZE
-		gate.position = Vector3(face_x - dir.x * 0.12, 0.5, center.z)
-		gate.rotation_degrees = Vector3(0, 90, 0)
-	else:
-		var face_z := (cell.y + (1 if dir.y > 0 else 0)) * CELL_SIZE
-		gate.position = Vector3(center.x, 0.5, face_z - dir.y * 0.12)
-	add_child(gate)
+func _place_against_wall(scene: PackedScene, room: Rect2i) -> bool:
+	# Stand something flat against a wall face, front toward the
+	# room. Used by mist gates and arrival doors.
+	var cells := _stone_cells(room)
+	cells.shuffle()
+	for c in cells:
+		for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			if _cell_id(c + d) != wall_id:
+				continue
+			var node := scene.instantiate()
+			var center := _cell_to_world(c, 0.5)
+			if d.x != 0:
+				var face_x := (c.x + (1 if d.x > 0 else 0)) * CELL_SIZE
+				node.position = Vector3(face_x - d.x * 0.12, 0.5, center.z)
+			else:
+				var face_z := (c.y + (1 if d.y > 0 else 0)) * CELL_SIZE
+				node.position = Vector3(center.x, 0.5, face_z - d.y * 0.12)
+			node.rotation_degrees = Vector3(0,
+					rad_to_deg(atan2(float(-d.x), float(-d.y))), 0)
+			add_child(node)
+			return true
+	return false
 
 
 func _stone_cells(room: Rect2i) -> Array[Vector2i]:

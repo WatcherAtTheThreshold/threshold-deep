@@ -39,12 +39,15 @@ func floor_kind(d: int) -> FloorKind:
 	return FloorKind.REGULAR
 
 
+func stage(d: int) -> int:
+	return ((d - 1) % 3) + 1
+
+
 func floor_label(d: int) -> String:
 	# Depth rendered as world - stage: 1-1, 1-2, 1-3, 2-1...
 	@warning_ignore("integer_division")
 	var world := (d + 2) / 3
-	var stage := ((d - 1) % 3) + 1
-	return "%d - %d" % [world, stage]
+	return "%d - %d" % [world, stage(d)]
 
 
 func record_kill(label: String) -> void:
