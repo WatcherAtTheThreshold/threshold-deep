@@ -114,7 +114,11 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   (1-1, 1-2… via RunState.floor_label) with a misted title card at
   each floor start, tinted by floor kind. Each world runs
   explore (x-1) → item (x-2) → BOSS (x-3); victory at 3-3,
-  continuing below for endless descent. Mist
+  continuing below for endless descent. Worlds are places: stages
+  within a world connect by standing pale mist gates (mist_gate.tscn
+  — walk through, the screen whitens into the next title card); only
+  boss floors have a true hatch and the fall. Mist grammar:
+  cold = fight, gold = bargain, pale = passage. Mist
   doors (mist_door.tscn: cold = boss, gold = item) fill a special
   room's doorways — passable until sealed. Boss floors have no
   hatch; a consent plate starts the fight, the seal drops, and the
