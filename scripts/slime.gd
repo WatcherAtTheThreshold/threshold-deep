@@ -178,7 +178,10 @@ func _pick_goal() -> PhysicsBody3D:
 
 func _partner_alive() -> bool:
 	if partner != null and is_instance_valid(partner) and not partner.dead:
-		return true
+		# A split-born twin enters the tree deferred: for the rest of
+		# that frame it exists but has no global transform. Not gone —
+		# just not chaseable yet, so don't null it.
+		return partner.is_inside_tree()
 	partner = null
 	return false
 
