@@ -112,7 +112,9 @@ func _ready() -> void:
 		_populate(rooms, arena_room_idx, false)
 		_setup_boss_room()
 	elif kind == RunState.FloorKind.ITEM:
-		item_room_idx = _farthest_room(rooms)
+		# Largest, not farthest: the guaranteed arena-sized room means
+		# center pedestals always sit well clear of the mist doors.
+		item_room_idx = _largest_room(rooms)
 		_populate(rooms, item_room_idx, true, item_room_idx)
 		_setup_item_room()
 	else:
