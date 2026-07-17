@@ -15,6 +15,11 @@ const HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/boomerang_hit2.wav"),
 	preload("res://assets/audio/sfx/player/boomerang_hit3.wav"),
 ]
+const CATCH_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap1.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap2.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap3.wav"),
+]
 const SPEED_OUT := 8.0
 const SPEED_BACK := 9.5
 const MAX_RANGE := 9.0
@@ -44,17 +49,20 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	time += delta
 	if time > LIFETIME:
-		_finish()
+		_finish(false)
 		return
 	sprite.texture = FRAMES[int(time / FRAME_TIME) % FRAMES.size()]
+	# The whirr rides the spin for the whole flight.
+	if not $Whirr.playing:
+		$Whirr.play()
 	if returning:
 		if thrower == null or not is_instance_valid(thrower):
-			_finish()
+			_finish(false)
 			return
 		var target := thrower.global_position + Vector3.UP * 0.4
 		var to_target := target - global_position
 		if to_target.length() < CATCH_RANGE:
-			_finish()
+			_finish(true)
 			return
 		direction = to_target.normalized()
 		position += direction * SPEED_BACK * delta
@@ -70,7 +78,9 @@ func _turn_back() -> void:
 	hit_this_leg.clear()
 
 
-func _finish() -> void:
+func _finish(caught := false) -> void:
+	if caught:
+		Sfx.play_ui(CATCH_SOUNDS[randi_range(0, CATCH_SOUNDS.size() - 1)], -4.0)
 	if thrower != null and is_instance_valid(thrower):
 		thrower.boomerang_returned()
 	queue_free()
@@ -79,7 +89,7 @@ func _finish() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body == thrower:
 		if returning:
-			_finish()
+			_finish(true)
 		return
 	if body.is_in_group("enemies"):
 		if not hit_this_leg.has(body.get_instance_id()):
