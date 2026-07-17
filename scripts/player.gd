@@ -58,6 +58,7 @@ var dash_cooldown_timer := 0.0
 var dash_dir := Vector3.ZERO
 var boomerang_out := false
 var controls_enabled := true
+var gate_pull := false  # a mist gate's tween owns the body; physics stands down
 
 @onready var camera: Camera3D = $Camera3D
 @onready var step_sound: AudioStreamPlayer = $StepSound
@@ -162,6 +163,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if gate_pull:
+		return
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
 	dash_timer = maxf(dash_timer - delta, 0.0)
@@ -332,12 +335,20 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		died.emit()
 
 
-func start_gate_crossing() -> void:
+func start_gate_crossing(through_dir := Vector3.ZERO) -> void:
 	# Walking through pale mist to the next stage — no fall, the
-	# world whitens into the next title card.
+	# world whitens into the next title card. The mist pulls you
+	# through the doorway plane as it does: a portal, not a wall stop.
 	if not controls_enabled:
 		return
 	controls_enabled = false
+	gate_pull = true
+	velocity = Vector3.ZERO
+	step_sound.stop()
+	if through_dir != Vector3.ZERO:
+		var pull := global_position + through_dir.normalized() * 1.6
+		create_tween().tween_property(self, "global_position", pull, 0.65) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	$HUD.start_gate_fade()
 
 

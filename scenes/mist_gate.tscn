@@ -1,10 +1,18 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/mist_gate.gd" id="1_gate"]
 [ext_resource type="Texture2D" path="res://assets/tiles/gate_doorframe.png" id="2_frame"]
 
 [sub_resource type="BoxShape3D" id="box_gate"]
 size = Vector3(2, 3.6, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="mat_depth"]
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 1)
+
+[sub_resource type="QuadMesh" id="quad_depth"]
+material = SubResource("mat_depth")
+size = Vector2(1.9, 3.3)
 
 [node name="MistGate" type="Area3D"]
 
@@ -13,6 +21,10 @@ script = ExtResource("1_gate")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 1.8, 0)
 shape = SubResource("box_gate")
+
+[node name="Depth" type="MeshInstance3D" parent="."]
+position = Vector3(0, 1.7, -0.015)
+mesh = SubResource("quad_depth")
 
 [node name="Visual" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.7, 0)

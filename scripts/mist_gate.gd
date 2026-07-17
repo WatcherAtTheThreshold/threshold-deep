@@ -33,4 +33,5 @@ func _on_body_entered(body: Node3D) -> void:
 		return
 	used = true
 	Sfx.play_ui(CROSS_SOUND, -10.0)
-	body.start_gate_crossing()
+	# The gate's front (+Z) faces the room, so -Z is through the wall.
+	body.start_gate_crossing(-global_transform.basis.z)
