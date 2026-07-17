@@ -1,15 +1,15 @@
 # Threshold Deep — Roadmap
 
-*Rewritten 2026-07-16. Supersedes the phase-era roadmap and folds in
-docs/structure.md (implemented) and the item/act plans.*
+*Rewritten 2026-07-17. Supersedes the three-act roadmap: the game we
+have IS the game — now it gets finished. Acts 2 and 3 become their
+own iterations after the demo ships, built the same way this one was.*
 
 ## Vision
 
 A first-person dungeon crawler where every creature, item, wall, and
 song is hand-made — Doom's presentation, Isaac's run structure,
 Barony's dungeon feel. Runs are short, deaths are cheap, the dungeon
-is different every time, and a full run is a three-act descent with
-a real ending.
+is different every time, and a run has a real ending.
 
 ## Pillars (test every feature against these)
 
@@ -23,104 +23,112 @@ a real ending.
 4. **Aftermath is the art style.** Every death, split, and choice
    leaves persistent bright residue. The dungeon remembers.
 
-## Where we are (2026-07-16)
+## The reframe: Polish to Demo
+
+The week-one loop worked because it had a finish line. So does this
+phase: **the current game — worlds 1 through 3, victory at 3-3 —
+polished into a shippable demo.** No new systems, no new worlds.
+The demo is done when all the sound and art we can think of is in,
+plus all the sound and art we find we need along the way.
+
+**The retune rule:** getting an asset in place is half the job.
+Every sprite and sound gets a second pass after it's seen and heard
+in the game — first placement is a draft, not a delivery. Budget for
+it; don't treat retunes as setbacks.
+
+Meta-progression and secret rooms enter the demo **only if the
+checklist below goes super quick**. Otherwise they lead the
+post-demo phase.
+
+## Where we are (2026-07-17)
 
 A completable game. Worlds read as x-1 / x-2 / x-3 (explore → item
 room → boss) with misted title cards; victory at 3-3, endless below.
-Five creature families with distinct verbs, infighting, grudges, and
-different afterlives (bones rise, goo respawns, mushes get eaten,
-flesh stays down). Boss tiers cascade (Slime Boss → larges → smalls;
-Mush Boss → megas → mushes → minis; the Skeletal Wizard assembles
-from the corpses the player made). Weapon fork: sword → staff or
-boomerang. Relics: boots, two armor tiers, heart economy (3 red
-start, cap 8; magic hearts absorb first). Wooden walls break (melee
-and orbs), wooden floors collapse into wall-deep shafts, provably
-never trapping the player. Original three-song score drifts in and
-out; per-creature positional footsteps; per-item pickup voices;
-floor stingers; door-lock and mist sounds. Death report with killer
-portrait; the fall between floors. Web export validated.
+Stages connect by pale mist gates in timber doorframes; sealed
+arrival doors close the way back; only boss floors have the true
+hatch and the fall. Five creature families with distinct verbs,
+infighting, grudges, and different afterlives (bones rise, goo
+respawns, mushes get eaten, flesh stays down). Boss tiers cascade;
+the Skeletal Wizard assembles from the corpses the player made.
+Weapon fork: sword → staff or boomerang (full flight audio). Relics:
+boots, two armor tiers. **Half-heart units shipped**: 2 units = one
+HUD heart, start 6 units, cap 16, magic cap 12 — the damage economy
+now has room for item modifiers. Wooden walls break, wooden floors
+collapse into wall-deep shafts, provably never trapping the player.
+Original three-song score drifts in and out; foley era in full
+swing (mic + interface). Death report with killer portrait.
+Web export validated.
 
-## Next: the item wave
+## The demo checklist
 
-Planned items (art incoming), with the system each touches:
+### Art (Jessop draws, Claude wires, both retune)
 
-1. **Strength** — +hit damage (`attack_damage` modifier).
-2. **Dex** — better dash: longer or faster (dash constants).
-3. **Double Dash** — two dash charges before the cooldown.
-4. **Shot Speed Up** — faster staff orbs / boomerang flight
-   (needs per-projectile speed vars, currently consts).
-5. **Halberd** — longer melee reach (melee-weapon upgrade or third
-   rival; decide when art exists).
-6. **Hole-strider** — pass over single holes (movement/collision
-   trick; design open).
-7. **Sands of Time** — enemies slowed (global enemy speed factor
-   all creatures read).
-8. **Luck** — more golden heart drops (drop-chance modifier; could
-   grow into a general luck stat).
-9. **Splash Damage** — hits damage adjacent enemies.
+- **The item wave** — nine items, unblocked by the half-heart
+  rework, art incoming:
+  1. **Strength** — +hit damage (`attack_damage` modifier).
+  2. **Dex** — better dash: longer or faster (dash constants).
+  3. **Double Dash** — two dash charges before the cooldown.
+  4. **Shot Speed Up** — faster staff orbs / boomerang flight
+     (needs per-projectile speed vars, currently consts).
+  5. **Halberd** — longer melee reach (upgrade or third rival;
+     decide when art exists).
+  6. **Hole-strider** — pass over single holes (design open).
+  7. **Sands of Time** — enemies slowed (global speed factor).
+  8. **Luck** — more golden heart drops (drop-chance modifier).
+  9. **Splash Damage** — hits damage adjacent enemies.
+- **Full turnaround sprites for all mobs** — Doom-style directional
+  billboards (promoted from the parking lot). Needs code support:
+  pick the frame from the viewer's angle to the creature's facing.
+  Settle the direction count (4 vs 8) on the first creature and
+  keep it consistent across the bestiary.
+- **Attack sprites for enemies** — wind-up and strike frames so
+  melee telegraphs are drawn, not just moved (pillar 3).
+- **Boss plate art** — the consent plate still wears sword-plate
+  art; it deserves its own.
+- **Polish sprites** — the running list of frames that need a
+  second pass once seen in place; grows as we look.
 
-### Damage rework (prerequisite for the wave)
+### Sound (the wishlist, plus what the game asks for)
 
-Weapons should feel equal-but-different so item pools stay random:
-damage-modifying items only work if damage has room to gradiate.
-**Plan: half-heart internal units** — multiply every HP and damage
-number by 2 and let "1" mean half a heart. Integers stay integers
-(no float damage), the HUD needs half-heart states (art: half-full
-red and magic hearts), and items like Strength can add +1 (half a
-heart) without breaking the economy. Enemy HP re-tuned in the same
-pass so current feel is preserved as the baseline.
+Wooden wall crack + break, floor collapse, mush merge/split
+squelch, frogman reveal fwump, descending A-minor fall stinger,
+amalgam assembly (or its deliberate silence), a dedicated pale-gate
+crossing voice, ambient drips. Plus retune passes on everything
+already in — levels, tails, pitch spreads — as the mix fills up.
 
-## Secret rooms
+### Finish work
 
-Two kinds, sharing the sliding-wall reveal (sfx: wall grinding open):
+- One pass on the death report and victory screen — a demo lives
+  or dies on its endings.
+- A fresh full-run balance pass once the item wave is in (the
+  half-heart baseline was tuned pre-items).
+- Web deploy to the portfolio site (validated; deploy when the
+  checklist is done — "does it run in a browser" is part of done).
 
-- **The commoner** — always discoverable. A collapsed wooden tile
-  can expose a floor trigger (or a lever in a revealed alcove);
-  activating it slides open a wall section. Prize: golden hearts or
-  a modest treasure.
-- **The trial** — only discoverable while **no red-heart damage has
-  been taken this floor**; take red damage before finding it and the
-  chance is gone. Prize: a special fight, then an item.
-- The synergy is the design: finding the commoner's golden hearts
-  armors you in yellow, which protects your red hearts, which keeps
-  the trial findable. One secret feeds the other.
-- Needs: per-floor red-damage tracking in RunState, sliding-wall
-  door (GridMap cell swap + sfx + maybe a tween), lever art,
-  secret-room generation (a sealed room the main proof ignores,
-  connected only by the hidden door).
-
-## The three acts
-
-Repeat the world pattern to three chapters — victory at 9-3:
-
-- **Act structure**: each act = three worlds (explore/item/boss ×3)
-  ending in a Skeletal-Wizard-tier finale. Acts 2 and 3 need:
-  **two new mini-bosses** (Slime Boss / Mush Boss tier) and
-  **two new act-final bosses** (Skeletal Wizard tier).
-- **Environment changes per act**: new floor/wall/ceiling textures
-  (triplanar makes a reskin = three 64×64 tiles), possibly bigger
-  grids and rooms deeper down.
-- Spawn tables, escalation curves, and music can also shift per act.
-- Open question: whether acts 2/3 reuse the existing mini-bosses in
-  harder forms or field entirely new ones — decide when the new
-  bestiary art starts arriving.
-
-## Sound wishlist (mic era)
-
-Bone rattle (the rise), swing/hit, wooden wall crack + break, floor
-collapse, mush merge/split squelch, frogman reveal fwump, boomerang
-whirr + catch slap, descending A-minor fall stinger, amalgam
-assembly (or its deliberate silence), secret-wall grind, ambient
-drips.
-
-## Parking lot (ideas, not commitments)
+## Post-demo (each unfolds the way the demo did)
 
 - **Meta-progression** — still the highest-leverage missing system:
   a MetaState saved to disk banking runs into unlocks that enter
-  the item pool. Structure now exists for it to feed.
+  the item pool. First candidate for the next phase — demos live
+  on "one more run."
+- **Secret rooms** — the commoner (always findable, golden hearts,
+  collapsed-tile trigger or lever) and the trial (findable only
+  while no red damage taken this floor; fight + item). The synergy
+  is the design: golden hearts protect red hearts, which keeps the
+  trial findable. Needs per-floor red-damage tracking, sliding-wall
+  door + grind sfx, lever art, sealed-room generation.
+- **The three acts** — repeat the world pattern to victory at 9-3:
+  two new mini-bosses, two new act-final bosses, per-act reskins
+  (triplanar makes a reskin = three 64×64 tiles), possibly bigger
+  grids deeper down. Each act is its own project with its own
+  finish line, built on a polished base.
+
+## Parking lot (ideas, not commitments)
+
 - Fall-in hole state (pits/lava/spikes — collision plumbing ready)
-- 4/8-directional creature sprites (Doom-style)
 - Doors, keys, locked treasure rooms
 - Minimap from the ASCII grid
 - Full-shroud mist room (aesthetic variant, shader ready)
-- Web deploy to the portfolio site (validated, deploy whenever)
+- Sealed-variant doorframe art (arrival doors currently show bare
+  stone through the open frame — works, but a drawn seal could
+  read stronger)
