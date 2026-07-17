@@ -701,10 +701,10 @@ func _place_against_wall(scene: PackedScene, room: Rect2i) -> bool:
 			var center := _cell_to_world(c, 0.5)
 			if d.x != 0:
 				var face_x := (c.x + (1 if d.x > 0 else 0)) * CELL_SIZE
-				node.position = Vector3(face_x - d.x * 0.12, 0.5, center.z)
+				node.position = Vector3(face_x - d.x * 0.03, 0.5, center.z)
 			else:
 				var face_z := (c.y + (1 if d.y > 0 else 0)) * CELL_SIZE
-				node.position = Vector3(center.x, 0.5, face_z - d.y * 0.12)
+				node.position = Vector3(center.x, 0.5, face_z - d.y * 0.03)
 			node.rotation_degrees = Vector3(0,
 					rad_to_deg(atan2(float(-d.x), float(-d.y))), 0)
 			add_child(node)

@@ -5,7 +5,7 @@
 [node name="ArrivalDoor" type="Node3D"]
 
 [node name="Frame" type="Sprite3D" parent="."]
-position = Vector3(0, 2, 0.04)
+position = Vector3(0, 2, 0.02)
 pixel_size = 0.03125
 shaded = true
 alpha_cut = 1
