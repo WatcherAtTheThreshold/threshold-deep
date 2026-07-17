@@ -79,8 +79,9 @@ Web export validated.
 - **Full turnaround sprites for all mobs** — Doom-style directional
   billboards (promoted from the parking lot). Needs code support:
   pick the frame from the viewer's angle to the creature's facing.
-  Settle the direction count (4 vs 8) on the first creature and
-  keep it consistent across the bestiary.
+  **Decided: 4 directions** (front/back/left/right), judged in
+  torchlight on the first creature before the bestiary follows;
+  upgrade to 8 only if the snapping reads badly in play.
 - **Attack sprites for enemies** — wind-up and strike frames so
   melee telegraphs are drawn, not just moved (pillar 3).
 - **Boss plate art** — the consent plate still wears sword-plate
@@ -102,8 +103,13 @@ already in — levels, tails, pitch spreads — as the mix fills up.
   or dies on its endings.
 - A fresh full-run balance pass once the item wave is in (the
   half-heart baseline was tuned pre-items).
-- Web deploy to the portfolio site (validated; deploy when the
-  checklist is done — "does it run in a browser" is part of done).
+- **Periodic web-build smoke tests** — sights are on eventual
+  release, so the browser build is a testing habit, not a one-time
+  check. The early validation predates the mist shader (web runs
+  gl_compatibility, not Forward+ — shaders are the likeliest
+  divergence), the full foley era, and gates. Re-run the web export
+  after each major visual/audio batch; deploy to the portfolio
+  site when the checklist is done.
 
 ## Post-demo (each unfolds the way the demo did)
 
