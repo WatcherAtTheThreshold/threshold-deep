@@ -44,6 +44,7 @@ const STAFF_ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/magic_staff_orb_hit2.wav"),
 	preload("res://assets/audio/sfx/player/magic_staff_orb_hit3.wav"),
 ]
+const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.wav")
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -228,6 +229,7 @@ func _attack() -> void:
 		Sfx.play_at(swings[randi_range(0, swings.size() - 1)],
 				global_position, -4.0)
 	if RunState.has_boomerang:
+		Sfx.play_at(BOOMERANG_THROW_SOUND, global_position, -4.0)
 		var aim := -camera.global_transform.basis.z
 		var boomerang := BOOMERANG_SCENE.instantiate()
 		boomerang.thrower = self

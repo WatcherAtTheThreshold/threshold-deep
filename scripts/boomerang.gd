@@ -10,6 +10,11 @@ const FRAMES: Array[Texture2D] = [
 	preload("res://assets/sprites/boomerang_shot2.png"),
 	preload("res://assets/sprites/boomerang_shot3.png"),
 ]
+const HIT_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/boomerang_hit1.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_hit2.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_hit3.wav"),
+]
 const SPEED_OUT := 8.0
 const SPEED_BACK := 9.5
 const MAX_RANGE := 9.0
@@ -81,8 +86,12 @@ func _on_body_entered(body: Node3D) -> void:
 			hit_this_leg[body.get_instance_id()] = true
 			body.take_damage(damage, direction, thrower)
 			RunState.record_damage_dealt(damage)
+			Sfx.play_at(HIT_SOUNDS[randi_range(0, HIT_SOUNDS.size() - 1)],
+					global_position, -4.0)
 		# Pierces: keep flying.
 	elif body is GridMap:
+		Sfx.play_at(HIT_SOUNDS[randi_range(0, HIT_SOUNDS.size() - 1)],
+				global_position, -4.0)
 		var scene := get_tree().current_scene
 		if scene != null and scene.has_method("damage_wall"):
 			scene.damage_wall(global_position + direction * 0.3, -direction, damage)
