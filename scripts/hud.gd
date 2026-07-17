@@ -69,6 +69,16 @@ func start_descent_fade() -> void:
 	tween.tween_callback(_go_down)
 
 
+func start_gate_fade() -> void:
+	# Through the mist: the world whitens into the next stage's
+	# title card — one continuous veil, no black cut.
+	level_mist.modulate = Color(0.88, 0.92, 1.0, 0.0)
+	level_mist.visible = true
+	var tween := create_tween()
+	tween.tween_property(level_mist, "modulate:a", 0.97, 0.6)
+	tween.tween_callback(_go_down)
+
+
 func _go_down() -> void:
 	RunState.descend(player.health, player.max_health, player.magic_hearts)
 	get_tree().reload_current_scene()

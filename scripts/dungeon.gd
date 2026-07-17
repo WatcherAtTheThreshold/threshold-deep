@@ -16,6 +16,7 @@ const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const BOOMERANG_PICKUP_SCENE := preload("res://scenes/boomerang_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
+const MIST_GATE_SCENE := preload("res://scenes/mist_gate.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
 const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_floor_start.wav")
@@ -652,9 +653,11 @@ func _spawn_curtain(run: Vector2, boundary: float, horizontal: bool, gold: bool)
 
 
 func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
-	# The way down lives in the room farthest from where you start —
-	# but only ever on proven stone; fall back through rooms by
-	# distance if a room is wooden wall-to-wall.
+	# Stages within a world connect by pale mist gates — worlds are
+	# places, and only the boss floor has a true downward hatch. The
+	# gate lives in the room farthest from where you start, on proven
+	# stone; fall back through rooms by distance if a room is wooden
+	# wall-to-wall.
 	var spawn := rooms[0].get_center()
 	var order: Array[int] = []
 	for i in range(1, rooms.size()):
@@ -667,10 +670,11 @@ func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
 	for i in order:
 		var cells := _stone_cells(rooms[i])
 		if cells.size() > 0:
-			var hatch := HATCH_SCENE.instantiate()
-			hatch.position = _cell_to_world(
+			var gate := MIST_GATE_SCENE.instantiate()
+			gate.position = _cell_to_world(
 				cells[randi_range(0, cells.size() - 1)], 0.5)
-			add_child(hatch)
+			gate.rotation_degrees = Vector3(0, 90.0 * (randi() % 2), 0)
+			add_child(gate)
 			return
 
 

@@ -332,6 +332,15 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		died.emit()
 
 
+func start_gate_crossing() -> void:
+	# Walking through pale mist to the next stage — no fall, the
+	# world whitens into the next title card.
+	if not controls_enabled:
+		return
+	controls_enabled = false
+	$HUD.start_gate_fade()
+
+
 func start_descent(hatch_pos: Vector3) -> void:
 	if not controls_enabled:
 		return
