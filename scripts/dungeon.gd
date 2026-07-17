@@ -667,15 +667,39 @@ func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
 		return Vector2(rooms[a].get_center() - spawn).length() \
 				> Vector2(rooms[b].get_center() - spawn).length())
 	order.append(0)
+	# Prefer a stone cell against a wall: the gate presses into the
+	# wall face like a misty doorway, not a free-standing curtain.
+	for i in order:
+		var cells := _stone_cells(rooms[i])
+		cells.shuffle()
+		for c in cells:
+			for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+				if _cell_id(c + d) != wall_id:
+					continue
+				_spawn_gate_against_wall(c, d)
+				return
+	# Fallback: no wall-adjacent stone anywhere — free-standing.
 	for i in order:
 		var cells := _stone_cells(rooms[i])
 		if cells.size() > 0:
 			var gate := MIST_GATE_SCENE.instantiate()
 			gate.position = _cell_to_world(
 				cells[randi_range(0, cells.size() - 1)], 0.5)
-			gate.rotation_degrees = Vector3(0, 90.0 * (randi() % 2), 0)
 			add_child(gate)
 			return
+
+
+func _spawn_gate_against_wall(cell: Vector2i, dir: Vector2i) -> void:
+	var center := _cell_to_world(cell, 0.5)
+	var gate := MIST_GATE_SCENE.instantiate()
+	if dir.x != 0:
+		var face_x := (cell.x + (1 if dir.x > 0 else 0)) * CELL_SIZE
+		gate.position = Vector3(face_x - dir.x * 0.12, 0.5, center.z)
+		gate.rotation_degrees = Vector3(0, 90, 0)
+	else:
+		var face_z := (cell.y + (1 if dir.y > 0 else 0)) * CELL_SIZE
+		gate.position = Vector3(center.x, 0.5, face_z - dir.y * 0.12)
+	add_child(gate)
 
 
 func _stone_cells(room: Rect2i) -> Array[Vector2i]:
