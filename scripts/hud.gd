@@ -74,8 +74,11 @@ func start_gate_fade() -> void:
 	# title card — one continuous veil, no black cut.
 	level_mist.modulate = Color(0.88, 0.92, 1.0, 0.0)
 	level_mist.visible = true
+	# 0.5s against the pull's 0.65: the reload lands just as the
+	# camera reaches the doorway plane, so the veil never shows the
+	# wall's interior.
 	var tween := create_tween()
-	tween.tween_property(level_mist, "modulate:a", 0.97, 0.6)
+	tween.tween_property(level_mist, "modulate:a", 0.97, 0.5)
 	tween.tween_callback(_go_down)
 
 

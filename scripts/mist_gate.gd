@@ -25,13 +25,24 @@ func _ready() -> void:
 	material.set_shader_parameter("tint", PALE)
 	quad.material = material
 	visual.mesh = quad
-	body_entered.connect(_on_body_entered)
 
 
-func _on_body_entered(body: Node3D) -> void:
-	if used or not body is Player:
+func _physics_process(_delta: float) -> void:
+	# Polled, not signalled: a gate near a corner can be grazed from
+	# alongside the wall, and a rejected body_entered would never
+	# re-fire once the player walked around to the front. Only a body
+	# squarely before the doorway crosses.
+	if used:
 		return
-	used = true
-	Sfx.play_ui(CROSS_SOUND, -10.0)
-	# The gate's front (+Z) faces the room, so -Z is through the wall.
-	body.start_gate_crossing(-global_transform.basis.z)
+	for body in get_overlapping_bodies():
+		if body is Player and _in_front(body):
+			used = true
+			Sfx.play_ui(CROSS_SOUND, -10.0)
+			# The gate's front (+Z) faces the room; -Z is through the wall.
+			body.start_gate_crossing(-global_transform.basis.z)
+			return
+
+
+func _in_front(body: Node3D) -> bool:
+	var local := to_local(body.global_position)
+	return absf(local.x) < 0.8 and local.z > 0.1
