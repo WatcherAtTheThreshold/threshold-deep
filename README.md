@@ -6,6 +6,17 @@ A first-person 3D roguelike dungeon crawler built in Godot 4. Inspired by
 The Binding of Isaac and Barony: procedurally generated dungeons, billboarded
 sprite creatures and items in a real 3D space, run-based structure.
 
+## The Bestiary
+
+Every sprite and sound in the game, alive on one page — click a
+creature to see it move and hear it. Wired to the same asset files
+the game loads.
+
+**[watcheratthethreshold.github.io/threshold-deep](https://watcheratthethreshold.github.io/threshold-deep/)**
+
+<img src="docs/bestiary-qr.png" width="180" alt="QR code to the bestiary">
+
+
 ## Status
 
 A completable roguelike: three worlds of explore → item room → boss,
