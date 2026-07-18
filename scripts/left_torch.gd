@@ -1,9 +1,9 @@
 extends TextureRect
 
 const FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/left-hand-torch.png"),
-	preload("res://assets/sprites/left-hand-torch2.png"),
-	preload("res://assets/sprites/left-hand-torch3.png"),
+	preload("res://assets/sprites/torch/left-hand-torch.png"),
+	preload("res://assets/sprites/torch/left-hand-torch2.png"),
+	preload("res://assets/sprites/torch/left-hand-torch3.png"),
 ]
 const FLICKER_TIME := 0.16
 const SWAY_AMOUNT := 6.0

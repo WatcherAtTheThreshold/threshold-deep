@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://clbrlcdt8c2ib"
-path="res://.godot/imported/hand-torch_swing.png-14c211dda08c45ecbb601e4569cb7421.ctex"
+uid="uid://cdyn0s3k2n6ty"
+path="res://.godot/imported/left-hand-torch2.png-8ca29e9c1b16004803c9127652234ae8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/hand-torch_swing.png"
-dest_files=["res://.godot/imported/hand-torch_swing.png-14c211dda08c45ecbb601e4569cb7421.ctex"]
+source_file="res://assets/sprites/torch/left-hand-torch2.png"
+dest_files=["res://.godot/imported/left-hand-torch2.png-8ca29e9c1b16004803c9127652234ae8.ctex"]
 
 [params]
 

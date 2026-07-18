@@ -1,15 +1,15 @@
 extends TextureRect
 
 const TORCH_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/hand-torch.png"),
-	preload("res://assets/sprites/hand-torch2.png"),
-	preload("res://assets/sprites/hand-torch3.png"),
+	preload("res://assets/sprites/torch/hand-torch1.png"),
+	preload("res://assets/sprites/torch/hand-torch2.png"),
+	preload("res://assets/sprites/torch/hand-torch3.png"),
 ]
-const TORCH_SWING := preload("res://assets/sprites/hand-torch_swing.png")
+const TORCH_SWING := preload("res://assets/sprites/torch/hand-torch_swing.png")
 const TORCH_SWING_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/hand-torch_swing1.png"),
-	preload("res://assets/sprites/hand-torch_swing2.png"),
-	preload("res://assets/sprites/hand-torch_swing3.png"),
+	preload("res://assets/sprites/torch/hand-torch_swing1.png"),
+	preload("res://assets/sprites/torch/hand-torch_swing2.png"),
+	preload("res://assets/sprites/torch/hand-torch_swing3.png"),
 ]
 # Windup / extended strike (embers fly here) / follow-through.
 const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]

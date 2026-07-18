@@ -2,12 +2,12 @@
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/viewmodel.gd" id="2_viewmodel"]
-[ext_resource type="Texture2D" path="res://assets/sprites/hand-torch.png" id="3_hand"]
+[ext_resource type="Texture2D" path="res://assets/sprites/torch/hand-torch1.png" id="3_hand"]
 [ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/player/footsteps_player.wav" id="5_steps"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/player/torch_crackle.wav" id="10_crackle"]
 [ext_resource type="Script" path="res://scripts/left_torch.gd" id="6_left_torch"]
-[ext_resource type="Texture2D" path="res://assets/sprites/left-hand-torch.png" id="7_left_tex"]
+[ext_resource type="Texture2D" path="res://assets/sprites/torch/left-hand-torch.png" id="7_left_tex"]
 [ext_resource type="FontFile" path="res://assets/fonts/PressStart2P-Regular.ttf" id="8_font"]
 [ext_resource type="Texture2D" path="res://assets/textures/mist-overlay.png" id="9_mist"]
 
