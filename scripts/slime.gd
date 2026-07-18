@@ -298,7 +298,9 @@ func _apply_state() -> void:
 	# Smalls squish at a higher pitch than the big one.
 	if state == State.BOSS:
 		sprite.texture = TEX_BOSS_1
-		sprite.position = Vector3(0, 0.5, 0)
+		# Boss canvas is 96px (3m): half-height 1.5 minus the 0.5
+		# body radius stands its bottom edge on the floor.
+		sprite.position = Vector3(0, 1.0, 0)
 		step_sound.pitch_scale = 0.7
 		damage = 4
 	elif state == State.LARGE:

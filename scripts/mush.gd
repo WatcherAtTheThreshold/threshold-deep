@@ -361,7 +361,9 @@ func _apply_state() -> void:
 			frame_a = TEX_BOSS_1
 			frame_b = TEX_BOSS_2
 			body_radius = 0.8
-			sprite.position = Vector3(0, 0.2, 0)
+			# Boss canvas is 96px (3m): half-height 1.5 minus the
+			# 0.8 body radius stands its bottom edge on the floor.
+			sprite.position = Vector3(0, 0.7, 0)
 			step_sound.pitch_scale = 0.7
 			speed = 1.1
 			damage = 4
