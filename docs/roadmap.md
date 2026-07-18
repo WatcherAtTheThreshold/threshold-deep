@@ -88,6 +88,12 @@ Web export validated.
   art; it deserves its own.
 - **Polish sprites** — the running list of frames that need a
   second pass once seen in place; grows as we look.
+- **Weapon feedback parity** — the torch is the benchmark
+  (2026-07-18: drawn swing arc + ember burst + knockback shove +
+  three-take foley = the best-feeling weapon in the game). Sword,
+  staff, and boomerang each rise to that bar with wide-canvas
+  swing frames, an impact effect of their own, and their sfx
+  retuned against the torch's.
 
 ### Sound (the wishlist, plus what the game asks for)
 
@@ -138,3 +144,8 @@ already in — levels, tails, pitch spreads — as the mix fills up.
 - Sealed-variant doorframe art (arrival doors currently show bare
   stone through the open frame — works, but a drawn seal could
   read stronger)
+- **Torch viability** — before 2026-07-18 the torch was a grind to
+  escape; now it feels like it belongs. With the right upgrades
+  (ember damage? bigger shove? fire spread?) keeping the torch
+  could become a real build choice instead of a phase — the
+  starting weapon as a keeper is classic roguelike depth.
