@@ -57,14 +57,13 @@
   }
   .tile:active { transform: scale(0.94); }
   .tile .frame {
-    height: 100px;
+    min-height: 100px;
+    max-height: 300px;  /* only oversized soft textures hit this */
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    overflow: hidden;  /* big soft textures stay inside their box */
+    overflow: hidden;
   }
-  .tile.tall .frame { height: 130px; }
-  .tile.wide .frame { height: 130px; }
   .tile img {
     image-rendering: pixelated;
     display: block;
@@ -362,7 +361,7 @@ const SECTIONS = [
 },
 {
   title: 'THE HALLS',
-  scale: 3,
+  scale: 2,
   tiles: [
     { name: 'A New Floor', rest: 'assets/tiles/hatch_open.png',
       sounds: [A + 'environment/normal_floor_start.wav'] },
