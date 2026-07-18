@@ -485,10 +485,13 @@ func _begin_assembly() -> void:
 	# Everything stops. Every corpse in the arena — every body the
 	# player made — drags itself slowly toward the centre.
 	var arena := floor_rooms[arena_room_idx]
-	var min_x := arena.position.x * CELL_SIZE - 3.0
-	var max_x := arena.end.x * CELL_SIZE + 3.0
-	var min_z := arena.position.y * CELL_SIZE - 3.0
-	var max_z := arena.end.y * CELL_SIZE + 3.0
+	# Half-meter slop only: 3m used to reach through the arena wall,
+	# and a corridor skeleton wandering past outside could hold the
+	# fight open forever.
+	var min_x := arena.position.x * CELL_SIZE - 0.5
+	var max_x := arena.end.x * CELL_SIZE + 0.5
+	var min_z := arena.position.y * CELL_SIZE - 0.5
+	var max_z := arena.end.y * CELL_SIZE + 0.5
 	var corpses: Array[Node3D] = []
 	for child in get_children():
 		if not child is CharacterBody3D or child == player:
@@ -545,10 +548,13 @@ func _spawn_amalgam(corpses: Array, center: Vector3, body_count: int) -> void:
 
 func _arena_has_living_enemies() -> bool:
 	var arena := floor_rooms[arena_room_idx]
-	var min_x := arena.position.x * CELL_SIZE - 3.0
-	var max_x := arena.end.x * CELL_SIZE + 3.0
-	var min_z := arena.position.y * CELL_SIZE - 3.0
-	var max_z := arena.end.y * CELL_SIZE + 3.0
+	# Half-meter slop only: 3m used to reach through the arena wall,
+	# and a corridor skeleton wandering past outside could hold the
+	# fight open forever.
+	var min_x := arena.position.x * CELL_SIZE - 0.5
+	var max_x := arena.end.x * CELL_SIZE + 0.5
+	var min_z := arena.position.y * CELL_SIZE - 0.5
+	var max_z := arena.end.y * CELL_SIZE + 0.5
 	for group in ["enemies", "slimes"]:
 		for e: Node3D in get_tree().get_nodes_in_group(group):
 			if not is_instance_valid(e) or e.get("dead"):
