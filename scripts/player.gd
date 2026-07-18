@@ -176,6 +176,7 @@ func _physics_process(delta: float) -> void:
 		health = 0
 		health_changed.emit(health, max_health, magic_hearts)
 		controls_enabled = false
+		$TorchCrackle.stop()
 		died.emit()
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
@@ -347,6 +348,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 				killer_tex = attacker_sprite.texture
 		RunState.set_killer(killer_label, killer_tex)
 		controls_enabled = false
+		$TorchCrackle.stop()
 		died.emit()
 
 

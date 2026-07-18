@@ -71,6 +71,10 @@ func set_weapon(new_weapon: String) -> void:
 
 
 func _process(delta: float) -> void:
+	if player.health <= 0:
+		# Dead hands hold nothing: the death report stands alone.
+		visible = false
+		return
 	# Advance the bob only while walking on the ground, in rhythm with speed.
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
