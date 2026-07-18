@@ -18,6 +18,9 @@ const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
+# The torch shoves twice as hard as anything after it: taking the
+# sword should feel like trading the shove away for damage.
+const TORCH_KNOCKBACK := 2.0
 const INVULN_TIME := 1.0
 const BOOTS_SPEED_MULT := 1.15
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
@@ -255,13 +258,16 @@ func _attack() -> void:
 		get_parent().add_child.call_deferred(orb)
 	else:
 		# Melee arc: hit every enemy close enough and roughly in front.
+		# Enemies scale their shove by the push vector's length, so the
+		# torch's extra knockback rides in on a longer vector.
+		var push_scale := 1.0 if RunState.has_sword else TORCH_KNOCKBACK
 		var forward := -global_transform.basis.z
 		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 			var to := enemy.global_position - global_position
 			to.y = 0.0
 			if to.length() <= ATTACK_RANGE \
 					and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
-				enemy.take_damage(attack_damage, to.normalized(), self)
+				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
 				RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable.
