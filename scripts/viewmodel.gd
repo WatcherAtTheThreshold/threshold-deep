@@ -6,6 +6,13 @@ const TORCH_FRAMES: Array[Texture2D] = [
 	preload("res://assets/sprites/hand-torch3.png"),
 ]
 const TORCH_SWING := preload("res://assets/sprites/hand-torch_swing.png")
+const TORCH_SWING_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/hand-torch_swing1.png"),
+	preload("res://assets/sprites/hand-torch_swing2.png"),
+	preload("res://assets/sprites/hand-torch_swing3.png"),
+]
+# Windup / extended strike (embers fly here) / follow-through.
+const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
 const SWORD_IDLE := preload("res://assets/sprites/hand-sword.png")
 const SWORD_SWING := preload("res://assets/sprites/hand-sword-swing.png")
 const STAFF_IDLE := preload("res://assets/sprites/magic_staff.png")
@@ -25,14 +32,21 @@ var was_out := false
 var flicker_clock := 0.0
 var bob_time := 0.0
 var base_offset: Vector2
+var anchor_off: Vector2
 var swing_offset := Vector2.ZERO
+var swing_tween: Tween = null
+
+@onready var embers: CPUParticles2D = $Embers
 
 
 func _ready() -> void:
 	# Remember how far from the window's bottom-right corner we start;
 	# the corner itself is recomputed live so resizing keeps us in it.
+	# anchor_off pins the ART's bottom-right point, independent of
+	# canvas size: swing frames are double-wide and must grow leftward.
 	base_offset = Vector2(offset_left, offset_top)
 	pivot_offset = size
+	anchor_off = base_offset + pivot_offset * scale
 	player.attacked.connect(_on_attacked)
 
 
@@ -75,11 +89,12 @@ func _process(delta: float) -> void:
 	if not swinging and idle_frames.size() > 1:
 		flicker_clock += delta
 		texture = idle_frames[int(flicker_clock / FLICKER_TIME) % idle_frames.size()]
-	# pivot_offset is the center for scaling too, so compensate for the
-	# up-left shift the 3x scale gets from the corner pivot.
-	var corner_base := get_viewport_rect().size + base_offset \
-			+ pivot_offset * (scale - Vector2.ONE)
-	position = corner_base + swing_offset + Vector2(
+	# Pin the art's bottom-right to the corner whatever the canvas
+	# size: pivot tracks the current texture, position backs off by it.
+	var tsize := texture.get_size() if texture != null else size
+	pivot_offset = tsize
+	position = get_viewport_rect().size + anchor_off - tsize \
+			+ swing_offset + Vector2(
 		sin(bob_time) * SWAY_AMOUNT,
 		absf(cos(bob_time)) * SWAY_AMOUNT * 0.5
 	)
@@ -101,7 +116,26 @@ func _on_attacked() -> void:
 			rotation = 0.0
 			texture = idle_frames[0])
 		return
-	# The jab, same for torch and sword: yank the weapon down toward
+	if weapon == "torch":
+		# The drawn arc: Jessop's frames carry the strike, code only
+		# times them. Embers burst on the extended frame — the hit.
+		if swing_tween != null and swing_tween.is_valid():
+			swing_tween.kill()
+		texture = TORCH_SWING_FRAMES[0]
+		swing_tween = create_tween()
+		swing_tween.tween_interval(TORCH_SWING_TIMES[0])
+		swing_tween.tween_callback(func() -> void:
+			texture = TORCH_SWING_FRAMES[1]
+			embers.restart())
+		swing_tween.tween_interval(TORCH_SWING_TIMES[1])
+		swing_tween.tween_callback(func() -> void:
+			texture = TORCH_SWING_FRAMES[2])
+		swing_tween.tween_interval(TORCH_SWING_TIMES[2])
+		swing_tween.tween_callback(func() -> void:
+			texture = idle_frames[0]
+			swinging = false)
+		return
+	# The jab, same for sword: yank the weapon down toward
 	# off-screen, then piston it back up past rest with only a slight
 	# arc, then settle. Stabby, not sweepy.
 	var tween := create_tween().set_parallel(true)

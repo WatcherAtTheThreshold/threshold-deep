@@ -26,7 +26,7 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 | Asset type | Canvas | Rule |
 |---|---|---|
 | Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge; front view only |
-| Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off the bottom + outer edge of its corner |
+| Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off the bottom + outer edge of its corner. Swing frames may be double-wide (256×128): the bottom-right stays pinned, extra width sweeps inward |
 | UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
 | UI text | Press Start 2P (`assets/fonts/`, OFL) | sizes in multiples of 8 (16/24/48) |
 | Items (world pickups) | 16×16 | base at bottom edge; Area3D scenes, hover bob in code |
