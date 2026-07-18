@@ -130,7 +130,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   they block bodies (characters use `collision_mask = 3`) but not
   sight rays or orbs, which query only layer 1.
 - Enemies: `CharacterBody3D` in group `"enemies"` with
-  `take_damage(amount, push_dir, attacker = null)`. Damage from
+  `take_damage(amount, push_dir, attacker = null)`. Hits stagger:
+  a 0.35 s knock window where the chase logic stands down and the
+  body skids under friction — steering hard-sets velocity every
+  tick and would otherwise erase the knockback impulse. New
+  creatures must include the knock_timer skid branch. Knockback
+  scales with push_dir's length (torch passes a long vector). Damage from
   another enemy switches aggro to the attacker (Doom-style
   infighting) until that grudge target dies; only player kills count.
   Every enemy implements `kill_label()` (state-aware display name)
