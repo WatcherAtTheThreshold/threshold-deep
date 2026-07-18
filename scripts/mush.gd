@@ -57,6 +57,7 @@ var speed_scale := 1.0
 var depth := 1
 var green := false
 var base_tint := Color.WHITE
+var hunger := false  # boss-fight cascades hunt corpses at any depth
 var hunt_target: PhysicsBody3D = null
 var startle_timer := 0.0
 var merge_cooldown := 0.0
@@ -148,7 +149,8 @@ func _physics_process(delta: float) -> void:
 	# Deep-floor hunger: a mini that spots a slime corpse goes for it.
 	if hunt_target != null and not is_instance_valid(hunt_target):
 		hunt_target = null
-	if state == State.MINI and depth >= HUNT_DEPTH and hunt_target == null:
+	if state == State.MINI and (hunger or depth >= HUNT_DEPTH) \
+			and hunt_target == null:
 		_acquire_slime_corpse()
 	if startle_timer > 0.0:
 		# The startle: it just had an idea. Freeze, little hop, then run.
@@ -315,6 +317,7 @@ func _split(child_state: State) -> void:
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/mush.tscn") as PackedScene).instantiate()
 	other.configure(child_state, h2, MERGE_COOLDOWN, green)
+	other.hunger = hunger
 	other.setup(depth)
 	other.position = global_position + side * 0.8
 	other.velocity = side * 3.5

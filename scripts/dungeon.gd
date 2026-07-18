@@ -67,6 +67,7 @@ var boss_index := 0
 var fight_active := false
 var fight_grace := 0.0
 var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
+var mush_stage := 0  # world 2: 0 = slime fake-out, 1 = the real boss
 var boss_hatch: Node3D = null
 var boss_hatch_cell := Vector2i(-1, -1)
 
@@ -157,6 +158,12 @@ func _physics_process(_delta: float) -> void:
 				# Phase two: the bodies got up.
 				amalgam_stage = 1
 				_begin_assembly()
+			elif boss_index == 1 and mush_stage == 0:
+				# The fake-out lands: same opening as last world —
+				# then the real boss arrives, and its minis are
+				# hungry for the corpses phase one just made.
+				mush_stage = 1
+				_spawn_mush_boss()
 			elif amalgam_stage != 1:
 				_finish_boss_fight()
 
@@ -434,12 +441,14 @@ func _start_boss_fight() -> void:
 			slime.health = slime.BOSS_MAX_HEALTH
 			slime.spawn_timer = 1.2
 		1:
-			# Boss 2 — the Mush Boss: two megas, four mushes, eight
-			# minis. Four seconds to kill each half before re-fusion.
-			var mush := MUSH_SCENE.instantiate()
-			mush.configure(mush.State.BOSS, mush.BOSS_MAX_HEALTH)
-			mush.position = _cell_to_world(center)
-			add_child(mush)
+			# Boss 2 opens with a lie: the Slime Boss again, same as
+			# last world. The Mush Boss arrives when it dies.
+			var slime := SLIME_SCENE.instantiate()
+			slime.position = _cell_to_world(center)
+			add_child(slime)
+			slime.emerge_state = slime.State.BOSS
+			slime.health = slime.BOSS_MAX_HEALTH
+			slime.spawn_timer = 1.2
 		_:
 			# Boss 3 placeholder: a wave of skeletons and wizards.
 			# TODO(structure.md): the Skeletal Wizard amalgam —
@@ -457,6 +466,19 @@ func _start_boss_fight() -> void:
 						else spots[n % spots.size()]
 				enemy.position = _cell_to_world(cell)
 				add_child(enemy)
+
+
+func _spawn_mush_boss() -> void:
+	# World 2 phase two: the Mush Boss lands on a battlefield
+	# littered with slime corpses, and its cascade knows how to eat
+	# them — minis dart for the pools and come back green.
+	var arena := floor_rooms[arena_room_idx]
+	var mush := MUSH_SCENE.instantiate()
+	mush.configure(mush.State.BOSS, mush.BOSS_MAX_HEALTH)
+	mush.hunger = true
+	mush.position = _cell_to_world(arena.get_center())
+	add_child(mush)
+	fight_grace = 1.5
 
 
 func _begin_assembly() -> void:
