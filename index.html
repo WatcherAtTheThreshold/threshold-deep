@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Threshold Deep — The Bestiary</title>
+<style>
+  @font-face {
+    font-family: 'Press Start 2P';
+    src: url('assets/fonts/PressStart2P-Regular.ttf');
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0a0a0f;
+    color: #d8d4c8;
+    font-family: 'Press Start 2P', monospace;
+    text-align: center;
+    padding-bottom: 80px;
+  }
+  h1 {
+    font-size: 24px;
+    color: #e8c15a;
+    margin: 40px 0 8px;
+    text-shadow: 0 0 18px rgba(232, 193, 90, 0.35);
+  }
+  .subtitle { font-size: 8px; color: #6a6a7a; margin-bottom: 12px; }
+  h2 {
+    font-size: 13px;
+    color: #9fb8d8;
+    margin: 48px 0 20px;
+    text-shadow: 0 0 14px rgba(140, 170, 220, 0.3);
+  }
+  .grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 18px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+  }
+  .tile {
+    background: linear-gradient(180deg, #14141c, #0e0e14);
+    border: 2px solid #26262f;
+    border-radius: 10px;
+    padding: 14px 10px 10px;
+    min-width: 150px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: border-color 0.15s, transform 0.08s, box-shadow 0.15s;
+  }
+  .tile:hover {
+    border-color: #e8c15a;
+    box-shadow: 0 0 16px rgba(232, 193, 90, 0.25);
+  }
+  .tile:active { transform: scale(0.94); }
+  .tile .frame {
+    height: 100px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .tile.tall .frame { height: 130px; }
+  .tile.wide .frame { height: 130px; }
+  .tile img {
+    image-rendering: pixelated;
+    display: block;
+  }
+  .tile .name {
+    font-size: 8px;
+    color: #b8b4a8;
+    margin-top: 12px;
+    line-height: 1.6;
+  }
+  .tile.playing { border-color: #7ad87a; }
+  footer {
+    margin-top: 70px;
+    font-size: 7px;
+    color: #4a4a58;
+    line-height: 2;
+  }
+</style>
+</head>
+<body>
+
+<h1>THRESHOLD DEEP</h1>
+<div class="subtitle">the bestiary &mdash; wired to the live game files &mdash; click anything</div>
+
+<div id="page"></div>
+
+<footer>
+  every sprite and sound on this page is the same file the game loads<br>
+  change a file, refresh, and this page tells the truth
+</footer>
+
+<script>
+// Each entry: name, scale, frames (the animation played on click,
+// [path, ms] pairs), rest (frame shown at rest), sounds (one picked
+// at random per click), rate (audio pitch — the mushes really do
+// pitch up per tier in-game), cycle (optional list of alternate
+// animations cycled per click, e.g. the skeleton's four views).
+const S = 'assets/sprites/';
+const A = 'assets/audio/sfx/';
+
+const hitTrio = (base) => [1, 2, 3].map(n => A + base + n + '.wav');
+
+const walk = (a, b, ms = 300, reps = 3) => {
+  const seq = [];
+  for (let i = 0; i < reps; i++) seq.push([a, ms], [b, ms]);
+  return seq;
+};
+
+const SECTIONS = [
+{
+  title: 'THE BESTIARY',
+  scale: 3,
+  tiles: [
+    {
+      name: 'Skeleton', rest: S + 'skeleton/skeleton_front1.png',
+      sounds: hitTrio('enemies/skeleton_take_hit'),
+      cycle: [
+        { frames: walk(S + 'skeleton/skeleton_front1.png', S + 'skeleton/skeleton_front2.png') },
+        { frames: walk(S + 'skeleton/skeleton_side1.png', S + 'skeleton/skeleton_side2.png') },
+        { frames: walk(S + 'skeleton/skeleton_side1.png', S + 'skeleton/skeleton_side2.png'), flip: true },
+        { frames: walk(S + 'skeleton/skeleton_back1.png', S + 'skeleton/skeleton_back2.png') },
+      ],
+    },
+    {
+      name: 'Restless Pile', rest: S + 'skeleton/skeleton_dead.png',
+      sounds: [A + 'enemies/skeleton_revive.wav'],
+      frames: [
+        [S + 'skeleton/skeleton_dead.png', 500],
+        [S + 'skeleton/skeleton_mid_rise.png', 1000],
+        [S + 'skeleton/skeleton_front1.png', 900],
+        [S + 'skeleton/skeleton_dead.png', 10],
+      ],
+    },
+    {
+      name: 'Wizard', rest: S + 'wizard1.png',
+      sounds: hitTrio('enemies/wizard_take_hit'),
+      frames: walk(S + 'wizard1.png', S + 'wizard2.png'),
+    },
+    {
+      name: 'Wizard Cast', rest: S + 'wizard_shoot1.png',
+      sounds: [A + 'enemies/projectile-wizard.wav'],
+      frames: [
+        [S + 'wizard_shoot1.png', 450],
+        [S + 'wizard_shoot2.png', 220],
+        [S + 'wizard_shoot3.png', 320],
+        [S + 'wizard1.png', 10],
+      ],
+    },
+    {
+      name: 'Slime', rest: S + 'slime/slime-large/slime-large-down1.png',
+      sounds: hitTrio('enemies/slime_taking_hits'),
+      frames: walk(S + 'slime/slime-large/slime-large-down1.png', S + 'slime/slime-large/slime-large-down2.png', 250),
+    },
+    {
+      name: 'Small Slime', rest: S + 'slime/slime-small/slimes-small-down1.png',
+      sounds: hitTrio('enemies/slime_taking_hits'), rate: 1.2,
+      frames: walk(S + 'slime/slime-small/slimes-small-down1.png', S + 'slime/slime-small/slimes-small-down2.png', 250),
+    },
+    {
+      name: 'Slime Rises', rest: S + 'slime/slime-spawn.png',
+      sounds: [A + 'enemies/footsteps_slimes.wav'],
+      frames: [
+        [S + 'slime/slime-spawn.png', 600],
+        [S + 'slime/slime-mid-spawn.png', 450],
+        [S + 'slime/slime-large/slime-large-down1.png', 350],
+        [S + 'slime/slime-large/slime-large-down2.png', 350],
+        [S + 'slime/slime-spawn.png', 10],
+      ],
+    },
+    {
+      name: 'the Slime Boss', rest: S + 'slime/slime-boss/slime-boss-front1.png',
+      sounds: hitTrio('enemies/slime_taking_hits'), rate: 0.85,
+      frames: walk(S + 'slime/slime-boss/slime-boss-front1.png', S + 'slime/slime-boss/slime-boss-front2.png', 280),
+    },
+    {
+      name: 'the Mush Boss', rest: S + 'mush/boss-mush/boss-mush1.png',
+      sounds: hitTrio('enemies/mush_take_hit'), rate: 1.0,
+      frames: walk(S + 'mush/boss-mush/boss-mush1.png', S + 'mush/boss-mush/boss-mush2.png', 280),
+    },
+    {
+      name: 'Mega Mush', rest: S + 'mush/mega-mush/mega-mush1.png',
+      sounds: hitTrio('enemies/mush_take_hit'), rate: 1.12,
+      frames: walk(S + 'mush/mega-mush/mega-mush1.png', S + 'mush/mega-mush/mega-mush2.png', 280),
+    },
+    {
+      name: 'Mush', rest: S + 'mush/mush/mush1.png',
+      sounds: hitTrio('enemies/mush_take_hit'), rate: 1.25,
+      frames: walk(S + 'mush/mush/mush1.png', S + 'mush/mush/mush2.png', 280),
+    },
+    {
+      name: 'Mini-Mush', rest: S + 'mush/mini-mush/mini-mush1.png',
+      sounds: hitTrio('enemies/mush_take_hit'), rate: 1.45,
+      frames: walk(S + 'mush/mini-mush/mini-mush1.png', S + 'mush/mini-mush/mini-mush2.png', 240),
+    },
+    {
+      name: 'Mini Spots Lunch', rest: S + 'mush/mini-mush/mini-mush-suprise.png',
+      sounds: hitTrio('enemies/mini_mush_discover_slime_puddle'),
+      frames: [
+        [S + 'mush/mini-mush/mini-mush-suprise.png', 600],
+        [S + 'mush/mini-mush/mini-mush1.png', 160],
+        [S + 'mush/mini-mush/mini-mush2.png', 160],
+        [S + 'mush/mini-mush/mini-mush1.png', 160],
+        [S + 'mush/mini-mush/mini-mush2.png', 160],
+        [S + 'mush/mini-mush/mini-mush-suprise.png', 10],
+      ],
+    },
+    {
+      name: 'Frogman', rest: S + 'frogmen/frogmen-phase1/frogmen-front1.png',
+      sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'),
+      frames: walk(S + 'frogmen/frogmen-phase1/frogmen-front1.png', S + 'frogmen/frogmen-phase1/frogmen-front2.png'),
+    },
+    {
+      name: 'The Reveal', rest: S + 'frogmen/frogmen-phase-stransition.png',
+      sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'),
+      frames: [
+        [S + 'frogmen/frogmen-phase-stransition.png', 700],
+        [S + 'frogmen/frogmen-phase2/frog1.png', 250],
+        [S + 'frogmen/frogmen-phase2/frog2.png', 250],
+        [S + 'frogmen/frogmen-phase2/toad1.png', 250],
+        [S + 'frogmen/frogmen-phase2/toad2.png', 250],
+        [S + 'frogmen/frogmen-phase-stransition.png', 10],
+      ],
+    },
+    {
+      name: 'Frog', rest: S + 'frogmen/frogmen-phase2/frog1.png',
+      sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'), rate: 1.15,
+      frames: walk(S + 'frogmen/frogmen-phase2/frog1.png', S + 'frogmen/frogmen-phase2/frog2.png', 200),
+    },
+    {
+      name: 'Toad', rest: S + 'frogmen/frogmen-phase2/toad1.png',
+      sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'), rate: 0.95,
+      frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280),
+    },
+    {
+      name: 'the Skeletal Wizard', rest: S + 'skeletal-wizard/skeletal-wizard1.png', tall: true,
+      sounds: hitTrio('enemies/skeletal_wizard_take_hit'),
+      frames: walk(S + 'skeletal-wizard/skeletal-wizard1.png', S + 'skeletal-wizard/skeletal-wizard2.png', 280),
+    },
+  ],
+},
+{
+  title: 'THE ARSENAL',
+  scale: 2,
+  tiles: [
+    {
+      name: 'Torch', wide: true, rest: S + 'torch/hand-torch1.png',
+      sounds: [A + 'player/torch_crackle.wav'], stopAfter: 1600,
+      frames: walk(S + 'torch/hand-torch1.png', S + 'torch/hand-torch2.png', 160, 5)
+        .concat([[S + 'torch/hand-torch3.png', 160]]),
+    },
+    {
+      name: 'Torch Swing', wide: true, rest: S + 'torch/hand-torch_swing2.png',
+      sounds: hitTrio('player/torch_hit'),
+      frames: [
+        [S + 'torch/hand-torch_swing1.png', 60],
+        [S + 'torch/hand-torch_swing2.png', 110],
+        [S + 'torch/hand-torch_swing3.png', 100],
+        [S + 'torch/hand-torch1.png', 400],
+        [S + 'torch/hand-torch_swing2.png', 10],
+      ],
+    },
+    {
+      name: 'Sword', wide: true, rest: S + 'hand-sword.png',
+      sounds: hitTrio('player/sword_slice'),
+      frames: [
+        [S + 'hand-sword-swing.png', 220],
+        [S + 'hand-sword.png', 10],
+      ],
+    },
+    {
+      name: 'Magic Staff', wide: true, rest: S + 'magic_staff.png',
+      sounds: hitTrio('player/magic_staff_orb_hit'),
+      frames: [
+        [S + 'magic_staff_swing.png', 220],
+        [S + 'magic_staff.png', 10],
+      ],
+    },
+    {
+      name: 'Boomerang Throw', wide: true, rest: S + 'hand-boomerang.png',
+      sounds: [A + 'player/boomerang_throw.wav'],
+      frames: [
+        [S + 'hand-boomerang-swing.png', 200],
+        [S + 'hand-boomerang.png', 10],
+      ],
+    },
+    {
+      name: 'Boomerang Flight', rest: S + 'boomerang_shot1.png',
+      sounds: hitTrio('player/boomerang_hit'),
+      frames: [
+        [S + 'boomerang_shot1.png', 90],
+        [S + 'boomerang_shot2.png', 90],
+        [S + 'boomerang_shot3.png', 90],
+        [S + 'boomerang_shot1.png', 90],
+        [S + 'boomerang_shot2.png', 90],
+        [S + 'boomerang_shot3.png', 90],
+        [S + 'boomerang_shot1.png', 10],
+      ],
+    },
+    {
+      name: 'The Catch', rest: S + 'boomerang_shot2.png',
+      sounds: hitTrio('player/boomerang_catch_slap'),
+      frames: [
+        [S + 'boomerang_shot1.png', 70],
+        [S + 'boomerang_shot2.png', 70],
+        [S + 'boomerang_shot3.png', 70],
+        [S + 'boomerang_shot2.png', 10],
+      ],
+    },
+    {
+      name: 'Wizard Orb', rest: S + 'wizard_orb1.png',
+      sounds: hitTrio('enemies/wizard_orb_hit'),
+      frames: walk(S + 'wizard_orb1.png', S + 'wizard_orb2.png', 120, 4),
+    },
+    {
+      name: 'Staff Orb', rest: S + 'magic_staff_orb1.png',
+      sounds: hitTrio('player/magic_staff_orb_hit'),
+      frames: [[S + 'magic_staff_orb1.png', 300], [S + 'magic_staff_orb1.png', 10]],
+    },
+    {
+      name: 'Amalgam Orb', rest: S + 'skeletal-wizard/skeletal_wizard_orb1.png',
+      sounds: [1, 2, 3].map(n => A + 'enemies/Skeletal_wizard_orb_hit' + n + '.wav'),
+      frames: walk(S + 'skeletal-wizard/skeletal_wizard_orb1.png', S + 'skeletal-wizard/skeletal_wizard_orb2.png', 120, 4),
+    },
+  ],
+},
+{
+  title: 'THE TREASURY',
+  scale: 4,
+  tiles: [
+    { name: 'Potion', rest: 'assets/items/potion_health.png',
+      sounds: hitTrio('items/pickup_potion'), bob: true },
+    { name: 'Half Potion', rest: 'assets/items/potion_half_heart_health.png',
+      sounds: hitTrio('items/pickup_potion'), rate: 1.15, bob: true },
+    { name: 'Magic Heart', rest: 'assets/items/single_magic_heart_drop.png',
+      sounds: hitTrio('items/pickup_magic_heart_single'), bob: true },
+    { name: 'Half Magic Heart', rest: 'assets/items/half_magic_heart_drop.png',
+      sounds: hitTrio('items/pickup_magic_heart_single'), rate: 1.15, bob: true },
+    { name: 'Three Hearts', rest: 'assets/items/three_magic_hearts.png',
+      sounds: [A + 'items/pickup_item_magic_hearts.wav'], bob: true },
+    { name: 'Heart Container', rest: 'assets/items/heart_1up.png',
+      sounds: [A + 'items/pickup_item_1up.wav'], bob: true },
+    { name: 'Speed Boots', rest: 'assets/items/speed_boots.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+    { name: 'Leather Armor', rest: 'assets/items/damage_reduction1.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+    { name: 'Steel Armor', rest: 'assets/items/damage_reduction2.png',
+      sounds: [A + 'items/pickup_item.wav'], rate: 0.9, bob: true },
+    { name: 'The Sword', rest: 'assets/items/weapon_sword.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+    { name: 'The Staff', rest: 'assets/items/magic_staff.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+    { name: 'The Boomerang', rest: 'assets/items/weapon_boomerang.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+  ],
+},
+{
+  title: 'THE HALLS',
+  scale: 3,
+  tiles: [
+    { name: 'A New Floor', rest: 'assets/tiles/hatch_open.png',
+      sounds: [A + 'environment/normal_floor_start.wav'] },
+    { name: 'The Bargain', rest: 'assets/tiles/gate_doorframe.png', tall: true,
+      sounds: [A + 'environment/item_floor_start.wav'] },
+    { name: 'The Fight', rest: 'assets/tiles/gate_doorframe.png', tall: true,
+      sounds: [A + 'environment/boss_floor_start.wav'] },
+    { name: 'The Seal', rest: 'assets/tiles/wall_wooden.png',
+      sounds: [A + 'environment/boss_room_door_lock.wav'] },
+    { name: 'Pale Mist', rest: 'assets/textures/mist-overlay.png',
+      sounds: [A + 'environment/item_room_mist_door.wav'] },
+  ],
+},
+];
+
+const page = document.getElementById('page');
+const timers = new Map();
+
+for (const section of SECTIONS) {
+  const h2 = document.createElement('h2');
+  h2.textContent = section.title;
+  page.appendChild(h2);
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  page.appendChild(grid);
+
+  for (const t of section.tiles) {
+    const tile = document.createElement('div');
+    tile.className = 'tile' + (t.tall ? ' tall' : '') + (t.wide ? ' wide' : '');
+    const frame = document.createElement('div');
+    frame.className = 'frame';
+    const img = document.createElement('img');
+    img.src = t.rest;
+    img.onload = function () {
+      img.style.width = (img.naturalWidth * section.scale) + 'px';
+    };
+    frame.appendChild(img);
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = t.name;
+    tile.appendChild(frame);
+    tile.appendChild(name);
+    grid.appendChild(tile);
+
+    let cycleIndex = 0;
+    tile.addEventListener('click', () => {
+      // Sound: one of the takes, at the tier's pitch, overlapping ok.
+      const src = t.sounds[Math.floor(Math.random() * t.sounds.length)];
+      const audio = new Audio(src);
+      if (t.rate) audio.playbackRate = t.rate;
+      audio.play().catch(() => {});
+      if (t.stopAfter) setTimeout(() => audio.pause(), t.stopAfter);
+
+      // Animation: run the frame list, or the next cycle entry.
+      let anim = t;
+      if (t.cycle) {
+        anim = t.cycle[cycleIndex % t.cycle.length];
+        cycleIndex++;
+      }
+      img.style.transform = anim.flip ? 'scaleX(-1)' : '';
+      if (timers.has(tile)) clearTimeout(timers.get(tile));
+      tile.classList.add('playing');
+
+      if (anim.frames) {
+        let i = 0;
+        const step = () => {
+          if (i >= anim.frames.length) {
+            img.src = t.rest;
+            if (!t.cycle) img.style.transform = '';
+            tile.classList.remove('playing');
+            timers.delete(tile);
+            return;
+          }
+          img.src = anim.frames[i][0];
+          const wait = anim.frames[i][1];
+          i++;
+          timers.set(tile, setTimeout(step, wait));
+        };
+        step();
+      } else if (t.bob) {
+        // Items hop like their in-game hover bob.
+        img.style.transition = 'transform 0.12s';
+        img.style.transform = 'translateY(-14px)';
+        timers.set(tile, setTimeout(() => {
+          img.style.transform = '';
+          tile.classList.remove('playing');
+          timers.delete(tile);
+        }, 140));
+      } else {
+        timers.set(tile, setTimeout(() => {
+          tile.classList.remove('playing');
+          timers.delete(tile);
+        }, 700));
+      }
+    });
+  }
+}
+</script>
+</body>
+</html>

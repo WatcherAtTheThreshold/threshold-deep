@@ -185,6 +185,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 
 ## Testing
 
+**index.html** at the repo root is a sprite-and-sound gallery wired
+to the live asset files — open it in a browser (double-click works,
+no server needed), click any tile to animate it with its real sound
+at real game timings. It's the art-review loop and the
+granddaughter-friendly toybox. Its manifest is hand-written: when
+wiring new sprites or sounds into the game, add them to the gallery
+too.
+
 No test framework — playtest in editor. **F5** runs the real game
 (`dungeon.tscn` is the startup scene); open `main.tscn` and press
 **F6** for the controlled CSG test room. The generator prints its
