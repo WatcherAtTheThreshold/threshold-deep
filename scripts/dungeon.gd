@@ -51,6 +51,7 @@ var wall_id := -1
 var floor_wood_id := -1
 var wall_wood_id := -1
 var hole_id := -1
+var void_id := -1
 var ceiling_id := -1
 
 var wall_damage := {}
@@ -86,6 +87,7 @@ func _ready() -> void:
 	floor_wood_id = grid_map.mesh_library.find_item_by_name("floor_wood")
 	wall_wood_id = grid_map.mesh_library.find_item_by_name("wall_wood")
 	hole_id = grid_map.mesh_library.find_item_by_name("hole")
+	void_id = grid_map.mesh_library.find_item_by_name("void")
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
 	var rng := RandomNumberGenerator.new()
@@ -256,6 +258,12 @@ func _build(map: Array[String]) -> void:
 				",":
 					id = floor_wood_id
 			grid_map.set_cell_item(Vector3i(x, 0, z), id)
+			if id == floor_wood_id:
+				# The under-place was always there; the planks only
+				# hide it. Collisionless black under every plank so
+				# holes never leak the sky-blue backdrop sideways —
+				# collapse swaps this for the blocking hole tile.
+				hole_map.set_cell_item(Vector3i(x, 0, z), void_id)
 			# Every walkable cell gets a ceiling slab in the cell
 			# above, resting on top of the 4m walls.
 			if id != wall_id and id != wall_wood_id:

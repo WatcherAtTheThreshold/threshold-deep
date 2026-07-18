@@ -104,3 +104,7 @@ item/5/name = "ceiling"
 item/5/mesh = SubResource("mesh_ceiling")
 item/5/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
 item/5/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/6/name = "void"
+item/6/mesh = SubResource("mesh_hole")
+item/6/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5.9, 0)
+item/6/shapes = []
