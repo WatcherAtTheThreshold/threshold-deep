@@ -45,6 +45,7 @@ const FROGMAN_MIN_DEPTH := 3
 const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
 const FIGHT_GRACE_TIME := 2.5
+const WOOD_FLOOR_HITS := 2  # planks splinter easier than walls
 
 var floor_id := -1
 var wall_id := -1
@@ -186,7 +187,24 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 	# Called by the player's swing and by orbs landing on the GridMap.
 	# Nudge inward past the surface so we sample the struck cell.
 	var cell := grid_map.local_to_map(grid_map.to_local(hit_pos - hit_normal * 0.05))
-	if grid_map.get_cell_item(cell) != wall_wood_id:
+	var id := grid_map.get_cell_item(cell)
+	if id == floor_wood_id:
+		# Planks splinter under fire — anyone's fire; wizard volleys
+		# erode the battlefield too. But never the plank underfoot,
+		# and never one whose loss would sever the player's path to
+		# stone: the same rule collapse obeys. The plank holds.
+		wall_damage[cell] = wall_damage.get(cell, 0) + amount
+		if wall_damage[cell] < WOOD_FLOOR_HITS:
+			return
+		var standing := _player_cell()
+		if cell == standing \
+				or not _player_keeps_path_to_stone(cell, standing):
+			return
+		grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
+		hole_map.set_cell_item(cell, hole_id)
+		_drop_the_unsupported(cell)
+		return
+	if id != wall_wood_id:
 		return
 	wall_damage[cell] = wall_damage.get(cell, 0) + amount
 	if wall_damage[cell] >= WOOD_WALL_HITS:
