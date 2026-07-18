@@ -61,6 +61,7 @@
     display: flex;
     align-items: flex-end;
     justify-content: center;
+    overflow: hidden;  /* big soft textures stay inside their box */
   }
   .tile.tall .frame { height: 130px; }
   .tile.wide .frame { height: 130px; }
@@ -396,7 +397,10 @@ for (const section of SECTIONS) {
     const img = document.createElement('img');
     img.src = t.rest;
     img.onload = function () {
-      img.style.width = (img.naturalWidth * section.scale) + 'px';
+      // Pixel sprites get exact integer multiples; anything that
+      // would outgrow its tile (the mist sheet) gets capped instead.
+      const cap = t.wide ? 999 : (t.tall ? 300 : 200);
+      img.style.width = Math.min(img.naturalWidth * section.scale, cap) + 'px';
     };
     frame.appendChild(img);
     const name = document.createElement('div');
