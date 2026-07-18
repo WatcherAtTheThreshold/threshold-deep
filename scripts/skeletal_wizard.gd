@@ -34,6 +34,8 @@ const CAST_RECOVER := 0.6
 
 enum Mode { RUSH, CHARGE, RECOVER }
 
+const FALL_Y := -1.5
+
 var health := 40
 var mode := Mode.RUSH
 var mode_timer := RUSH_TIME
@@ -47,8 +49,22 @@ var dead := false
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
 
+func _floor_ahead(dir: Vector3) -> bool:
+	# The amalgam has no stagger to skid on, so this probe alone
+	# keeps it out of the shafts.
+	var probe := global_position + dir * 0.7
+	var query := PhysicsRayQueryParameters3D.create(
+		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
+	query.hit_from_inside = true
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
 func _physics_process(delta: float) -> void:
 	if dead:
+		return
+	if global_position.y < FALL_Y:
+		# Safety net only — the probe should make this unreachable.
+		queue_free()
 		return
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -64,8 +80,13 @@ func _physics_process(delta: float) -> void:
 		# from things that saw you.
 		if dist > MELEE_RANGE:
 			var dir := to_player.normalized()
-			velocity.x = dir.x * RUSH_SPEED
-			velocity.z = dir.z * RUSH_SPEED
+			if _floor_ahead(dir):
+				velocity.x = dir.x * RUSH_SPEED
+				velocity.z = dir.z * RUSH_SPEED
+			else:
+				# It was built from things that fell. Never again.
+				velocity.x = 0.0
+				velocity.z = 0.0
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0

@@ -48,6 +48,7 @@ const ATTACK_COOLDOWN := 1.2
 const MAX_HEALTH := 6
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
+const FALL_Y := -1.5
 
 var speed := BASE_SPEED
 var health := MAX_HEALTH
@@ -63,6 +64,7 @@ var knock_timer := 0.0
 var wander_dir := Vector3.ZERO
 var wander_timer := 0.0
 var facing := Vector3.FORWARD
+var last_attacker: PhysicsBody3D = null
 var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 @onready var sprite: Sprite3D = $Sprite
@@ -91,6 +93,9 @@ func _physics_process(delta: float) -> void:
 					# The rattle: bones stirring, heard before seen.
 					Sfx.play_at(REVIVE_SOUND, global_position, -2.0)
 		return
+	if global_position.y < FALL_Y:
+		_fall_into_dark()
+		return
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -114,8 +119,13 @@ func _physics_process(delta: float) -> void:
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
 			facing = dir
-			velocity.x = dir.x * speed
-			velocity.z = dir.z * speed
+			if _floor_ahead(dir):
+				velocity.x = dir.x * speed
+				velocity.z = dir.z * speed
+			else:
+				# Pulled up at the rim: it wants you, not the dark.
+				velocity.x = 0.0
+				velocity.z = 0.0
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0
@@ -146,7 +156,7 @@ func _wander(delta: float) -> void:
 	# the moment a target appears.
 	if wander_timer > 0.0:
 		wander_timer -= delta
-		if is_on_wall():
+		if is_on_wall() or not _floor_ahead(wander_dir):
 			wander_timer = 0.0
 		facing = wander_dir
 		velocity.x = wander_dir.x * WANDER_SPEED
@@ -177,6 +187,24 @@ func _update_view(frame: int) -> void:
 	else:
 		sprite.flip_h = side > 0.0
 		sprite.texture = SIDE_FRAMES[frame]
+
+
+func _floor_ahead(dir: Vector3) -> bool:
+	# Probe for ground half a step ahead. Steering respects the rim;
+	# only momentum (the knock skid) carries a body over it.
+	var probe := global_position + dir * 0.7
+	var query := PhysicsRayQueryParameters3D.create(
+		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
+	query.hit_from_inside = true
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _fall_into_dark() -> void:
+	# The under-place keeps what it catches: credited if the player's
+	# shove sent it over, but the body and its drops are gone.
+	if last_attacker is Player:
+		RunState.record_kill(kill_label())
+	queue_free()
 
 
 func setup(depth: int) -> void:
@@ -234,6 +262,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
 		target = attacker
+		last_attacker = attacker
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:

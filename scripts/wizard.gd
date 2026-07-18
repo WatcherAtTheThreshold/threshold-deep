@@ -29,6 +29,7 @@ const RECOVERY_TIME := 0.4
 const MAX_HEALTH := 4
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
+const FALL_Y := -1.5
 
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
@@ -41,6 +42,7 @@ var dead := false
 var target: PhysicsBody3D = null
 var glow_tween: Tween
 var knock_timer := 0.0
+var last_attacker: PhysicsBody3D = null
 
 @onready var cast_glow: OmniLight3D = $CastGlow
 @onready var sprite: Sprite3D = $Sprite
@@ -50,6 +52,9 @@ var knock_timer := 0.0
 
 func _physics_process(delta: float) -> void:
 	if dead:
+		return
+	if global_position.y < FALL_Y:
+		_fall_into_dark()
 		return
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -87,8 +92,13 @@ func _physics_process(delta: float) -> void:
 		# Keep respectful distance: back away if the target closes in.
 		if dist < RETREAT_RANGE:
 			var away := -to_target.normalized()
-			velocity.x = away.x * SPEED
-			velocity.z = away.z * SPEED
+			if _floor_ahead(away):
+				velocity.x = away.x * SPEED
+				velocity.z = away.z * SPEED
+			else:
+				# A rim at its back: nowhere left to give, so it holds.
+				velocity.x = 0.0
+				velocity.z = 0.0
 		else:
 			velocity.x = move_toward(velocity.x, 0.0, SPEED)
 			velocity.z = move_toward(velocity.z, 0.0, SPEED)
@@ -129,6 +139,24 @@ func setup(depth: int) -> void:
 
 func kill_label() -> String:
 	return "Wizard"
+
+
+func _floor_ahead(dir: Vector3) -> bool:
+	# Probe for ground half a step ahead. Steering respects the rim;
+	# only momentum (the knock skid) carries a body over it.
+	var probe := global_position + dir * 0.7
+	var query := PhysicsRayQueryParameters3D.create(
+		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
+	query.hit_from_inside = true
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _fall_into_dark() -> void:
+	# The under-place keeps what it catches: credited if the player's
+	# shove sent it over, but the body and its drops are gone.
+	if last_attacker is Player:
+		RunState.record_kill(kill_label())
+	queue_free()
 
 
 func _get_target() -> PhysicsBody3D:
@@ -183,6 +211,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
 		target = attacker
+		last_attacker = attacker
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:

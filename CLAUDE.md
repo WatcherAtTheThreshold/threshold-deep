@@ -127,9 +127,18 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   boss 3 triggers the victory report. Item rooms seal on entry
   until a pedestal (always_consume pickups) is taken. R is inert
   during a boss fight. Trigger-plate item hunts are retired.
-- Holes live in a second GridMap (`HoleMap`, collision layer 2):
-  they block bodies (characters use `collision_mask = 3`) but not
-  sight rays or orbs, which query only layer 1.
+- Holes live in a second GridMap (`HoleMap`) and are **open lethal
+  shafts** — no collision. A collisionless `void` tile (black slab,
+  same look) sits under every wooden floor cell from build time;
+  collapse swaps the plank away and the shaft is simply open.
+  Falling below y = -1.5 kills the player ("the Dark Below", no
+  portrait) and despawns creatures — kill credited if the player's
+  shove sent them over (`last_attacker`), but the body and its
+  drops are gone. **Steering respects rims, momentum doesn't**:
+  every creature gates voluntary movement on a `_floor_ahead` ray
+  probe (include it in new creatures), but the knock-skid window
+  has no steering, so knockback can carry any staggerable creature
+  into a shaft. The amalgam has no skid and cannot fall.
 - Enemies: `CharacterBody3D` in group `"enemies"` with
   `take_damage(amount, push_dir, attacker = null)`. Hits stagger:
   a 0.35 s knock window where the chase logic stands down and the

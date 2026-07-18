@@ -22,6 +22,7 @@ const ATTACK_ARC_DEG := 55.0
 # should feel like trading the shove away for damage. Distance goes
 # with the SQUARE of this: 1.0 ≈ 0.6m skid, 1.8 ≈ 1.9m, 2.8 ≈ 4.7m.
 const TORCH_KNOCKBACK := 1.8
+const FALL_DEATH_Y := -1.5
 const INVULN_TIME := 1.0
 const BOOTS_SPEED_MULT := 1.15
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
@@ -169,6 +170,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	if gate_pull:
 		return
+	if controls_enabled and global_position.y < FALL_DEATH_Y:
+		# Walked, dashed, or was shoved into the under-place.
+		RunState.set_killer("the Dark Below", null)
+		health = 0
+		health_changed.emit(health, max_health, magic_hearts)
+		controls_enabled = false
+		died.emit()
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
 	dash_timer = maxf(dash_timer - delta, 0.0)
