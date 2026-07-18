@@ -146,6 +146,7 @@ func _physics_process(_delta: float) -> void:
 				and _player_keeps_path_to_stone(last_player_cell, cell):
 			grid_map.set_cell_item(last_player_cell, GridMap.INVALID_CELL_ITEM)
 			hole_map.set_cell_item(last_player_cell, hole_id)
+			_drop_the_unsupported(last_player_cell)
 		last_player_cell = cell
 
 	if fight_active:
@@ -200,6 +201,38 @@ func _unhandled_input(event: InputEvent) -> void:
 		if fight_active:
 			return
 		get_tree().reload_current_scene()
+
+
+func _drop_the_unsupported(cell: Vector3i) -> void:
+	# The collapsing plank takes its cargo: corpses, drops, and splats
+	# on that cell sink into the dark and are gone — a kill made on
+	# wood may cost its loot. Living bodies keep their own footing
+	# (gravity + rim probes), and projectiles in flight are exempt.
+	for node: Node in get_children():
+		var n3 := node as Node3D
+		if n3 == null or n3 == player:
+			continue
+		if n3.get("shooter") != null or n3.get("thrower") != null:
+			continue
+		var p := n3.global_position
+		if p.y > 2.0 or Vector2i(floori(p.x / 2.0), floori(p.z / 2.0)) \
+				!= Vector2i(cell.x, cell.z):
+			continue
+		var is_corpse: bool = n3.get("dead") == true
+		if not (is_corpse or n3 is Sprite3D or n3 is Area3D):
+			continue
+		if n3 is CharacterBody3D and not is_corpse:
+			continue
+		# Freeze its own behavior (bobbing, respawn timers, pickup
+		# contact) so the sink owns it all the way down.
+		n3.set_process(false)
+		n3.set_physics_process(false)
+		if n3 is Area3D:
+			n3.set_deferred("monitoring", false)
+		var tween := create_tween()
+		tween.tween_property(n3, "global_position:y", p.y - 5.0, 0.6) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tween.tween_callback(n3.queue_free)
 
 
 func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i) -> bool:
