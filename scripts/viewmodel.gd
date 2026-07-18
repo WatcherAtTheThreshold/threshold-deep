@@ -90,8 +90,11 @@ func _process(delta: float) -> void:
 		flicker_clock += delta
 		texture = idle_frames[int(flicker_clock / FLICKER_TIME) % idle_frames.size()]
 	# Pin the art's bottom-right to the corner whatever the canvas
-	# size: pivot tracks the current texture, position backs off by it.
+	# size. Rect size is forced to the texture's own size — the layout
+	# system lags texture swaps and would draw wide frames squashed
+	# into the old rect — then pivot and position follow from it.
 	var tsize := texture.get_size() if texture != null else size
+	size = tsize
 	pivot_offset = tsize
 	position = get_viewport_rect().size + anchor_off - tsize \
 			+ swing_offset + Vector2(
