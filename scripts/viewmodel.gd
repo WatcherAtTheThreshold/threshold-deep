@@ -42,11 +42,12 @@ var swing_tween: Tween = null
 func _ready() -> void:
 	# Remember how far from the window's bottom-right corner we start;
 	# the corner itself is recomputed live so resizing keeps us in it.
-	# anchor_off pins the ART's bottom-right point, independent of
-	# canvas size: swing frames are double-wide and must grow leftward.
+	# anchor_off pins the ART's bottom-right point. It derives from
+	# the designed 128px slot, NEVER from runtime size — a wide
+	# texture already loaded at _ready would inflate the control and
+	# shove the whole slot off-screen.
 	base_offset = Vector2(offset_left, offset_top)
-	pivot_offset = size
-	anchor_off = base_offset + pivot_offset * scale
+	anchor_off = base_offset + Vector2(128, 128) * scale
 	player.attacked.connect(_on_attacked)
 
 
