@@ -26,7 +26,8 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 | Asset type | Canvas | Rule |
 |---|---|---|
 | Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge; front view only |
-| Viewmodel (hands) | 128×128 | shown 3× nearest; art bleeds off the bottom + outer edge of its corner. Swing frames may be double-wide (256×128): the bottom-right stays pinned, extra width sweeps inward |
+| Viewmodel, right hand | 256×128 (standard; legacy 128×128 still renders correctly) | shown 3× nearest; art anchors to the bottom-right corner and bleeds off the bottom + right edge, extra width sweeps inward. The code sizes to whatever canvas it's given — migrate art gradually under the same filenames |
+| Viewmodel, left hand (torch) | 128×128 | bottom-left corner, own script (left_torch.gd); not part of the wide standard |
 | UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
 | UI text | Press Start 2P (`assets/fonts/`, OFL) | sizes in multiples of 8 (16/24/48) |
 | Items (world pickups) | 16×16 | base at bottom edge; Area3D scenes, hover bob in code |
