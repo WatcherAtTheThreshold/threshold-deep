@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/skeleton.gd" id="1_skeleton"]
-[ext_resource type="Texture2D" path="res://assets/sprites/skeleton.png" id="2_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/skeleton/skeleton_front1.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/footsteps_enemies.wav" id="3_steps"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_skeleton"]

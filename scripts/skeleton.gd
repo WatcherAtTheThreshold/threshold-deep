@@ -12,10 +12,20 @@ const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
 const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn")
 
-const FRAME_A := preload("res://assets/sprites/skeleton.png")
-const FRAME_B := preload("res://assets/sprites/skeleton2.png")
-const DEAD_TEXTURE := preload("res://assets/sprites/skeleton_dead.png")
-const RISE_TEXTURE := preload("res://assets/sprites/skeleton_mid_rise.png")
+const FRONT_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/skeleton/skeleton_front1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_front2.png"),
+]
+const SIDE_FRAMES: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/skeleton/skeleton_side1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_side2.png"),
+]
+const BACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/skeleton/skeleton_back1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_back2.png"),
+]
+const DEAD_TEXTURE := preload("res://assets/sprites/skeleton/skeleton_dead.png")
+const RISE_TEXTURE := preload("res://assets/sprites/skeleton/skeleton_mid_rise.png")
 const WALK_FRAME_TIME := 0.3
 
 const RISE_CHANCE := 0.15
@@ -52,6 +62,7 @@ var target: PhysicsBody3D = null
 var knock_timer := 0.0
 var wander_dir := Vector3.ZERO
 var wander_timer := 0.0
+var facing := Vector3.FORWARD
 var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 @onready var sprite: Sprite3D = $Sprite
@@ -102,11 +113,13 @@ func _physics_process(delta: float) -> void:
 	if dist < sight and _can_see(t):
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
+			facing = dir
 			velocity.x = dir.x * speed
 			velocity.z = dir.z * speed
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0
+			facing = to_target.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
 				t.take_damage(2, to_target.normalized(), self)
@@ -115,13 +128,12 @@ func _physics_process(delta: float) -> void:
 
 	move_and_slide()
 
-	# Two-frame shamble while moving; rest on the base frame when still.
+	# Two-frame shamble while moving; rest on the first frame when
+	# still. Which view shows depends on camera versus heading.
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
-	else:
-		sprite.texture = FRAME_A
+	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
@@ -136,6 +148,7 @@ func _wander(delta: float) -> void:
 		wander_timer -= delta
 		if is_on_wall():
 			wander_timer = 0.0
+		facing = wander_dir
 		velocity.x = wander_dir.x * WANDER_SPEED
 		velocity.z = wander_dir.z * WANDER_SPEED
 		if wander_timer <= 0.0:
@@ -147,6 +160,23 @@ func _wander(delta: float) -> void:
 		if wander_wait <= 0.0:
 			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
+
+
+func _update_view(frame: int) -> void:
+	# Four-way billboard, Doom style: project the heading onto the
+	# camera's axes — the dominant component picks the view. Side art
+	# faces left, so it flips when heading toward screen-right.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (BACK_FRAMES if depth > 0.0 else FRONT_FRAMES)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_FRAMES[frame]
 
 
 func setup(depth: int) -> void:
@@ -185,7 +215,7 @@ func _rise() -> void:
 	target = player
 	add_to_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", false)
-	sprite.texture = FRAME_A
+	sprite.texture = FRONT_FRAMES[0]
 
 
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
@@ -219,6 +249,7 @@ func _die(by_player: bool) -> void:
 		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
+	sprite.flip_h = false
 	sprite.texture = DEAD_TEXTURE
 	velocity = Vector3.ZERO
 	restless = randf() < RISE_CHANCE

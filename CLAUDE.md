@@ -25,7 +25,7 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 
 | Asset type | Canvas | Rule |
 |---|---|---|
-| Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge; front view only |
+| Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge. Turnarounds: 6 drawings — front1/2, side1/2 (drawn facing LEFT; code flips for right), back1/2 — in a per-creature folder (sprites/skeleton/). The view is picked by projecting the creature's `facing` onto the camera's axes (see skeleton.gd `_update_view`); creatures without turnaround art yet stay front-only |
 | Viewmodel, right hand | 256×128 (standard; legacy 128×128 still renders correctly) | shown 3× nearest; art anchors to the bottom-right corner and bleeds off the bottom + right edge, extra width sweeps inward. The code sizes to whatever canvas it's given — migrate art gradually under the same filenames |
 | Viewmodel, left hand (torch) | 128×128 | bottom-left corner, own script (left_torch.gd); not part of the wide standard |
 | UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
