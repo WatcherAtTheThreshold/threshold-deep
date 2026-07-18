@@ -89,7 +89,7 @@ texture = ExtResource("3_hand")
 script = ExtResource("2_viewmodel")
 
 [node name="Embers" type="CPUParticles2D" parent="HUD/HandTorch"]
-position = Vector2(128, 64)
+position = Vector2(76, 48)
 emitting = false
 amount = 14
 lifetime = 0.45
