@@ -39,6 +39,8 @@ const SIGHT_RANGE := 9.0
 const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.3
 const ATTACK_COOLDOWN := 1.2
+const KNOCK_TIME := 0.35
+const KNOCK_FRICTION := 30.0
 
 const HUNT_DEPTH := 10
 const STARTLE_TIME := 0.4
@@ -63,6 +65,7 @@ var dead := false
 var target: PhysicsBody3D = null
 var frame_a: Texture2D = TEX_MUSH_1
 var frame_b: Texture2D = TEX_MUSH_2
+var knock_timer := 0.0
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
@@ -123,6 +126,16 @@ func _physics_process(delta: float) -> void:
 		velocity += get_gravity() * delta
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	merge_cooldown = maxf(merge_cooldown - delta, 0.0)
+
+	if knock_timer > 0.0:
+		# Staggered: the shove owns the body for a beat. Skid under
+		# friction — steering would erase the knockback next tick.
+		# No merging or hunting mid-flight either.
+		knock_timer -= delta
+		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
+		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
+		move_and_slide()
+		return
 
 	if state == State.MUSH and merge_cooldown == 0.0:
 		_try_merge()
@@ -373,6 +386,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
 			global_position, -4.0, _hit_pitch())
 	velocity += push_dir * 6.0
+	knock_timer = KNOCK_TIME
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
 		target = attacker

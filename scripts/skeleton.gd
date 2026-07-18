@@ -31,6 +31,8 @@ const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
 const MAX_HEALTH := 6
+const KNOCK_TIME := 0.35
+const KNOCK_FRICTION := 30.0
 
 var speed := BASE_SPEED
 var health := MAX_HEALTH
@@ -42,6 +44,7 @@ var rising := false
 var rise_timer := 0.0
 var rise_delay := 0.0
 var target: PhysicsBody3D = null
+var knock_timer := 0.0
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
@@ -72,6 +75,15 @@ func _physics_process(delta: float) -> void:
 	attack_timer = maxf(attack_timer - delta, 0.0)
 	if not is_on_floor():
 		velocity += get_gravity() * delta
+
+	if knock_timer > 0.0:
+		# Staggered: the shove owns the body for a beat. Skid under
+		# friction — steering would erase the knockback next tick.
+		knock_timer -= delta
+		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
+		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
+		move_and_slide()
+		return
 
 	var t := _get_target()
 	var to_target := t.global_position - global_position
@@ -160,6 +172,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
 			global_position, -4.0)
 	velocity += push_dir * 6.0
+	knock_timer = KNOCK_TIME
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
 		target = attacker

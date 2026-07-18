@@ -38,6 +38,8 @@ const ATTACK_RANGE := 1.2
 const ATTACK_COOLDOWN := 1.2
 const MERGE_RANGE := 1.0
 const PLAYER_PRIORITY_RANGE := 5.0
+const KNOCK_TIME := 0.35
+const KNOCK_FRICTION := 30.0
 
 var state := State.PUDDLE
 var health := LARGE_MAX_HEALTH
@@ -51,6 +53,7 @@ var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
 var partner: CharacterBody3D = null  # fellow small to re-merge with
+var knock_timer := 0.0
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
@@ -112,6 +115,15 @@ func _physics_process(delta: float) -> void:
 			_show_mid_spawn()
 		if spawn_timer <= 0.0:
 			_emerge()
+		move_and_slide()
+		return
+
+	if knock_timer > 0.0:
+		# Staggered: the shove owns the body for a beat. Skid under
+		# friction — steering would erase the knockback next tick.
+		knock_timer -= delta
+		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
+		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
 		move_and_slide()
 		return
 
@@ -310,6 +322,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
 			global_position, -4.0)
 	velocity += push_dir * 6.0
+	knock_timer = KNOCK_TIME
 	if attacker != null and attacker != self:
 		# Pain redirects attention to whoever caused it.
 		target = attacker

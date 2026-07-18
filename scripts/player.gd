@@ -18,9 +18,10 @@ const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
-# The torch shoves twice as hard as anything after it: taking the
-# sword should feel like trading the shove away for damage.
-const TORCH_KNOCKBACK := 2.0
+# The torch shoves harder than anything after it: taking the sword
+# should feel like trading the shove away for damage. Distance goes
+# with the SQUARE of this: 1.0 ≈ 0.6m skid, 1.8 ≈ 1.9m, 2.8 ≈ 4.7m.
+const TORCH_KNOCKBACK := 1.8
 const INVULN_TIME := 1.0
 const BOOTS_SPEED_MULT := 1.15
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
