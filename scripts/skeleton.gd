@@ -26,6 +26,11 @@ const RISEN_HEALTH := 4
 
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
+const WANDER_SPEED := 0.9
+const WANDER_LEG_MIN := 1.0
+const WANDER_LEG_MAX := 2.5
+const WANDER_PAUSE_MIN := 1.5
+const WANDER_PAUSE_MAX := 5.0
 const SIGHT_RANGE := 10.0
 const INFIGHT_SIGHT_RANGE := 20.0
 const ATTACK_RANGE := 1.4
@@ -45,6 +50,9 @@ var rise_timer := 0.0
 var rise_delay := 0.0
 var target: PhysicsBody3D = null
 var knock_timer := 0.0
+var wander_dir := Vector3.ZERO
+var wander_timer := 0.0
+var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
@@ -103,8 +111,7 @@ func _physics_process(delta: float) -> void:
 				attack_timer = ATTACK_COOLDOWN
 				t.take_damage(2, to_target.normalized(), self)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, speed)
-		velocity.z = move_toward(velocity.z, 0.0, speed)
+		_wander(delta)
 
 	move_and_slide()
 
@@ -119,6 +126,27 @@ func _physics_process(delta: float) -> void:
 		step_sound.play()
 	elif not moving and step_sound.playing:
 		step_sound.stop()
+
+
+func _wander(delta: float) -> void:
+	# Off-duty bones shamble about: short legs, long pauses. Walls
+	# end a leg early; the sight check upstream overrides everything
+	# the moment a target appears.
+	if wander_timer > 0.0:
+		wander_timer -= delta
+		if is_on_wall():
+			wander_timer = 0.0
+		velocity.x = wander_dir.x * WANDER_SPEED
+		velocity.z = wander_dir.z * WANDER_SPEED
+		if wander_timer <= 0.0:
+			wander_wait = randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
+		wander_wait -= delta
+		if wander_wait <= 0.0:
+			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
+			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
 
 
 func setup(depth: int) -> void:
