@@ -11,7 +11,7 @@ radius = 0.7
 script = ExtResource("1_pickup")
 grant = "pickup_hasty"
 toast_title = "HASTY LITTLE STONE"
-toast_desc = "shots fly faster"
+toast_desc = "strikes and shots come faster"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

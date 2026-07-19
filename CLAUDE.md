@@ -108,7 +108,8 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   tier = same hue bigger cut; art in assets/items/crystals/ as
   crystal_<key><tier>.png, always numbered): Fleetfoot Stone
   (speed ×1.15 / ×1.28), Rage Crystal (+1/+2 attack units), Hasty
-  Little Stone (projectile speed ×1.3 / ×1.6, player shots only),
+  Little Stone (player projectile speed ×1.3 / ×1.6 AND melee
+  swing rate by the same factor; ranged fire rate unchanged),
   Lucky Luck Stone (drop rolls ×0.6 — more of everything). Armor
   (Turning Stone) in two tiers — leather (25% chance a blow is
   fully turned) then steel (40%), offered as an upgrade only after

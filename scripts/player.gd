@@ -284,7 +284,11 @@ func _attack() -> void:
 	if RunState.has_boomerang and boomerang_out:
 		# The hand is empty until the boomerang comes home.
 		return
-	attack_timer = ATTACK_COOLDOWN
+	# The Hasty Little Stone quickens melee swings; ranged weapons
+	# keep their rate and get their haste on the projectile instead.
+	var melee := not (RunState.has_boomerang or RunState.has_staff)
+	attack_timer = ATTACK_COOLDOWN \
+			/ (HASTY_MULTS[RunState.hasty_tier] if melee else 1.0)
 	attacked.emit()
 	if not (RunState.has_boomerang or RunState.has_staff):
 		# Melee swings: three takes each, rotated.
