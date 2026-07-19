@@ -97,8 +97,9 @@ Web export validated.
 
 ### Sound (the wishlist, plus what the game asks for)
 
-Wooden wall crack + break, floor collapse, mush merge/split
+Wall crack tick (non-breaking hits; break is in), mush merge/split
 squelch, frogman reveal fwump, descending A-minor fall stinger,
+falling wail + distant thud (bodies and cargo taken by the deep),
 amalgam assembly (or its deliberate silence), a dedicated pale-gate
 crossing voice, ambient drips. Plus retune passes on everything
 already in — levels, tails, pitch spreads — as the mix fills up.

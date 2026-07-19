@@ -24,6 +24,8 @@ const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_f
 const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor_start.wav")
 const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor_start.wav")
 const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.wav")
+const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wall1.wav")
+const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 
 const GRID_WIDTH := 40
@@ -59,6 +61,7 @@ var wall_upper_variants: Array[int] = []
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
+var enemy_cells := {}  # instance id -> last grid cell, for enemy-worn planks
 var floor_rooms: Array[Rect2i] = []
 var kind: int = RunState.FloorKind.REGULAR
 
@@ -148,17 +151,22 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	# Wooden floors give way behind you: when the player leaves a
-	# plank cell, it may collapse into a hole.
+	# Wooden floors give way behind any walker — the player, or any
+	# enemy heavy enough to be in the enemies group.
 	var cell := _player_cell()
 	if cell != last_player_cell:
-		if grid_map.get_cell_item(last_player_cell) == floor_wood_id \
-				and randf() < FLOOR_COLLAPSE_CHANCE \
-				and _player_keeps_path_to_stone(last_player_cell, cell):
-			grid_map.set_cell_item(last_player_cell, GridMap.INVALID_CELL_ITEM)
-			hole_map.set_cell_item(last_player_cell, hole_id)
-			_drop_the_unsupported(last_player_cell)
+		_try_collapse(last_player_cell)
 		last_player_cell = cell
+	for e: Node3D in get_tree().get_nodes_in_group("enemies"):
+		if not is_instance_valid(e):
+			continue
+		var ecell := grid_map.local_to_map(grid_map.to_local(e.global_position))
+		ecell.y = 0
+		var eid := e.get_instance_id()
+		var prev: Variant = enemy_cells.get(eid)
+		if prev != null and prev != ecell:
+			_try_collapse(prev)
+		enemy_cells[eid] = ecell
 
 	if fight_active:
 		fight_grace = maxf(fight_grace - _delta, 0.0)
@@ -218,6 +226,8 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 			return
 		grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 		hole_map.set_cell_item(cell, hole_id)
+		Sfx.play_at(SOUND_FLOOR_BREAK,
+				_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
 		_drop_the_unsupported(cell)
 		return
 	if id != wall_wood_id:
@@ -227,6 +237,8 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		grid_map.set_cell_item(cell, floor_id)
 		# The opened cell needs a lid too, or you'd see the void.
 		grid_map.set_cell_item(cell + Vector3i(0, 1, 0), ceiling_id)
+		Sfx.play_at(SOUND_WALL_BREAK,
+				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -235,6 +247,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		if fight_active:
 			return
 		get_tree().reload_current_scene()
+
+
+func _try_collapse(cell: Vector3i) -> void:
+	# A wooden cell just lost its walker. Whoever stepped, the same
+	# protections hold: never the player's own square, never a plank
+	# whose loss severs the player's path to stone.
+	if grid_map.get_cell_item(cell) != floor_wood_id:
+		return
+	if randf() >= FLOOR_COLLAPSE_CHANCE:
+		return
+	var standing := _player_cell()
+	if cell == standing or not _player_keeps_path_to_stone(cell, standing):
+		return
+	grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
+	hole_map.set_cell_item(cell, hole_id)
+	Sfx.play_at(SOUND_FLOOR_BREAK,
+			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -8.0)
+	_drop_the_unsupported(cell)
 
 
 func _drop_the_unsupported(cell: Vector3i) -> void:
