@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d14lponebntfd"
-path="res://.godot/imported/skeleton_mid_rise.png-975e49f9ca23a30b0d1c8cf912521f85.ctex"
+uid="uid://cu282tsafod05"
+path="res://.godot/imported/skeleton_dead.png-02751c38e0e6f24df5e8547ec0fa4b78.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/skeleton_mid_rise.png"
-dest_files=["res://.godot/imported/skeleton_mid_rise.png-975e49f9ca23a30b0d1c8cf912521f85.ctex"]
+source_file="res://assets/skeleton_dead.png"
+dest_files=["res://.godot/imported/skeleton_dead.png-02751c38e0e6f24df5e8547ec0fa4b78.ctex"]
 
 [params]
 
