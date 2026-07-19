@@ -213,16 +213,13 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 	var cell := grid_map.local_to_map(grid_map.to_local(hit_pos - hit_normal * 0.05))
 	var id := grid_map.get_cell_item(cell)
 	if id == floor_wood_id:
-		# Planks splinter under fire — anyone's fire; wizard volleys
-		# erode the battlefield too. But never the plank underfoot,
-		# and never one whose loss would sever the player's path to
-		# stone: the same rule collapse obeys. The plank holds.
+		# Planks splinter under fire — anyone's fire — and deliberate
+		# damage has the final say: no guards here. You can drop the
+		# plank under an enemy, or under yourself if you mean to. The
+		# plank-that-holds rule protects only against accidents
+		# (passive walk-collapse in _try_collapse).
 		wall_damage[cell] = wall_damage.get(cell, 0) + amount
 		if wall_damage[cell] < WOOD_FLOOR_HITS:
-			return
-		var standing := _player_cell()
-		if cell == standing \
-				or not _player_keeps_path_to_stone(cell, standing):
 			return
 		grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 		hole_map.set_cell_item(cell, hole_id)

@@ -142,7 +142,11 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   every creature gates voluntary movement on a `_floor_ahead` ray
   probe (include it in new creatures), but the knock-skid window
   has no steering, so knockback can carry any staggerable creature
-  into a shaft. The amalgam has no skid and cannot fall.
+  into a shaft. The amalgam has no skid and cannot fall. Wooden
+  floors also break under 2 damage-units of anyone's fire — and
+  deliberate damage has the FINAL SAY: no guards, it can drop a
+  plank under an enemy or under the player's own feet. The
+  plank-that-holds rule protects only passive walk-collapse.
 - Enemies: `CharacterBody3D` in group `"enemies"` with
   `take_damage(amount, push_dir, attacker = null)`. Hits stagger:
   a 0.35 s knock window where the chase logic stands down and the
