@@ -16,6 +16,10 @@ const BACK_FRAMES: Array[Texture2D] = [
 	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back1.png"),
 	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back2.png"),
 ]
+const ATTACK_FRAMES: Array[Texture2D] = [  # windup (charge), release (recover)
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_attack1.png"),
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_attack2.png"),
+]
 const DEAD_TEXTURE := preload("res://assets/sprites/skeletal-wizard/skeletal-wizard-dead.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const ORB_FRAME_1 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb1.png")
@@ -135,7 +139,15 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
+	if mode == Mode.CHARGE:
+		# The drawn telegraph: windup while rooted, glow swelling.
+		sprite.flip_h = false
+		sprite.texture = ATTACK_FRAMES[0]
+	elif mode == Mode.RECOVER:
+		sprite.flip_h = false
+		sprite.texture = ATTACK_FRAMES[1]
+	else:
+		_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
