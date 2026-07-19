@@ -46,7 +46,6 @@ const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
 const FIGHT_GRACE_TIME := 2.5
 const WOOD_FLOOR_HITS := 2  # planks splinter easier than walls
-const UPPER_VARIANT_CHANCE := 0.25
 
 var floor_id := -1
 var wall_id := -1
@@ -120,6 +119,7 @@ func _ready() -> void:
 			RunState.FloorKind.keys()[kind]])
 
 	_build(map)
+	_dress_upper_walls()
 	if kind == RunState.FloorKind.BOSS:
 		arena_room_idx = _largest_room(rooms)
 		_populate(rooms, arena_room_idx, false)
@@ -313,6 +313,31 @@ func _player_inside_room(room: Rect2i) -> bool:
 	return room.has_point(Vector2i(cell.x, cell.z))
 
 
+func _dress_upper_walls() -> void:
+	# Every stone wall wears a variant band, and the bands come in
+	# neighborhoods: each room rolls a variant, its walls agree, and
+	# corridor walls side with the nearest room — halls carry a
+	# room's masonry outward, so the dungeon reads in zones.
+	var room_variant: Array[int] = []
+	for i in floor_rooms.size():
+		room_variant.append(wall_upper_variants[
+				randi_range(0, wall_upper_variants.size() - 1)])
+	if room_variant.is_empty():
+		return
+	for cell: Vector3i in grid_map.get_used_cells():
+		if grid_map.get_cell_item(cell) != wall_id:
+			continue
+		var p := Vector2(cell.x, cell.z)
+		var best := 0
+		var best_d := INF
+		for i in floor_rooms.size():
+			var d := p.distance_squared_to(Vector2(floor_rooms[i].get_center()))
+			if d < best_d:
+				best_d = d
+				best = i
+		upper_map.set_cell_item(cell, room_variant[best])
+
+
 func _build(map: Array[String]) -> void:
 	for z in map.size():
 		for x in map[z].length():
@@ -325,17 +350,6 @@ func _build(map: Array[String]) -> void:
 				",":
 					id = floor_wood_id
 			grid_map.set_cell_item(Vector3i(x, 0, z), id)
-			if id == wall_id:
-				# Stone walls split at 2m: the lower half is always
-				# the same stone, the upper band usually matches it
-				# (world-space triplanar makes the seam invisible)
-				# but sometimes varies. A signaling channel later —
-				# acts, secrets, arena dressing.
-				var upper := wall_upper_id
-				if randf() < UPPER_VARIANT_CHANCE:
-					upper = wall_upper_variants[
-							randi_range(0, wall_upper_variants.size() - 1)]
-				upper_map.set_cell_item(Vector3i(x, 0, z), upper)
 			if id == floor_wood_id:
 				# The under-place was always there; the planks only
 				# hide it. Collisionless black under every plank so
