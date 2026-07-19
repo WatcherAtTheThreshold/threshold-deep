@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://eiwl241ih0n8"
-path="res://.godot/imported/skeletal-wizard2.png-0f3ecd27e5ff1ea7dce4a12cdc6d2ba5.ctex"
+uid="uid://u71mmaqwktx7"
+path="res://.godot/imported/skeletal_wizard_side1.png-aa722fbaddd22221c5b4b64630e3eeb8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/skeletal-wizard/skeletal-wizard2.png"
-dest_files=["res://.godot/imported/skeletal-wizard2.png-0f3ecd27e5ff1ea7dce4a12cdc6d2ba5.ctex"]
+source_file="res://assets/sprites/skeletal-wizard/skeletal_wizard_side1.png"
+dest_files=["res://.godot/imported/skeletal_wizard_side1.png-aa722fbaddd22221c5b4b64630e3eeb8.ctex"]
 
 [params]
 

@@ -243,9 +243,14 @@ const SECTIONS = [
       frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280),
     },
     {
-      name: 'the Skeletal Wizard', rest: S + 'skeletal-wizard/skeletal-wizard1.png', tall: true,
+      name: 'the Skeletal Wizard', rest: S + 'skeletal-wizard/skeletal_wizard_front1.png', tall: true,
       sounds: hitTrio('enemies/skeletal_wizard_take_hit'),
-      frames: walk(S + 'skeletal-wizard/skeletal-wizard1.png', S + 'skeletal-wizard/skeletal-wizard2.png', 280),
+      cycle: [
+        { frames: walk(S + 'skeletal-wizard/skeletal_wizard_front1.png', S + 'skeletal-wizard/skeletal_wizard_front2.png', 280) },
+        { frames: walk(S + 'skeletal-wizard/skeletal_wizard_side1.png', S + 'skeletal-wizard/skeletal_wizard_side2.png', 280) },
+        { frames: walk(S + 'skeletal-wizard/skeletal_wizard_side1.png', S + 'skeletal-wizard/skeletal_wizard_side2.png', 280), flip: true },
+        { frames: walk(S + 'skeletal-wizard/skeletal_wizard_back1.png', S + 'skeletal-wizard/skeletal_wizard_back2.png', 280) },
+      ],
     },
   ],
 },

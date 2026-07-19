@@ -4,8 +4,18 @@ extends CharacterBody3D
 ## player created. Fights with both verbs — skeleton rush and wizard
 ## telegraphed volley — alternating so no single rhythm works.
 
-const FRAME_A := preload("res://assets/sprites/skeletal-wizard/skeletal-wizard1.png")
-const FRAME_B := preload("res://assets/sprites/skeletal-wizard/skeletal-wizard2.png")
+const FRONT_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front1.png"),
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front2.png"),
+]
+const SIDE_FRAMES: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_side1.png"),
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_side2.png"),
+]
+const BACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back1.png"),
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back2.png"),
+]
 const DEAD_TEXTURE := preload("res://assets/sprites/skeletal-wizard/skeletal-wizard-dead.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const ORB_FRAME_1 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb1.png")
@@ -42,6 +52,7 @@ var mode_timer := RUSH_TIME
 var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
+var facing := Vector3.FORWARD
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var cast_glow: OmniLight3D = $CastGlow
@@ -74,6 +85,9 @@ func _physics_process(delta: float) -> void:
 	var to_player := player.global_position - global_position
 	to_player.y = 0.0
 	var dist := to_player.length()
+	# It was built from things that saw you: it always faces you.
+	if dist > 0.01:
+		facing = to_player.normalized()
 
 	if mode == Mode.RUSH:
 		# The skeleton verb. It knows where you are — it was built
@@ -121,13 +135,27 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
-	else:
-		sprite.texture = FRAME_A
+	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
 		step_sound.stop()
+
+
+func _update_view(frame: int) -> void:
+	# Four-way billboard: mostly the front, since it always faces the
+	# player — the sides earn their keep when you strafe its rush.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (BACK_FRAMES if depth > 0.0 else FRONT_FRAMES)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_FRAMES[frame]
 
 
 func _fire_volley() -> void:
@@ -178,4 +206,5 @@ func _die(by_player: bool) -> void:
 	$CollisionShape3D.set_deferred("disabled", true)
 	velocity = Vector3.ZERO
 	sprite.modulate = Color.WHITE
+	sprite.flip_h = false
 	sprite.texture = DEAD_TEXTURE
