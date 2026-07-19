@@ -37,5 +37,9 @@ mesh_library = ExtResource("2_tiles")
 cell_size = Vector3(2, 4, 2)
 collision_layer = 2
 
+[node name="UpperMap" type="GridMap" parent="."]
+mesh_library = ExtResource("2_tiles")
+cell_size = Vector3(2, 4, 2)
+
 [node name="Player" parent="." instance=ExtResource("3_player")]
 position = Vector3(5, 1.5, 5)

@@ -1,10 +1,12 @@
-[gd_resource type="MeshLibrary" load_steps=21 format=3]
+[gd_resource type="MeshLibrary" load_steps=28 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/floor_stone.png" id="1_floor"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_stone.png" id="2_wall"]
 [ext_resource type="Texture2D" path="res://assets/tiles/floor_wooden.png" id="3_floor_wood"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_wooden.png" id="4_wall_wood"]
 [ext_resource type="Texture2D" path="res://assets/tiles/ceiling_stone.png" id="5_ceiling"]
+[ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper1.png" id="6_upper1"]
+[ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper2.png" id="7_upper2"]
 
 [sub_resource type="StandardMaterial3D" id="mat_floor"]
 albedo_texture = ExtResource("1_floor")
@@ -15,6 +17,20 @@ uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 [sub_resource type="StandardMaterial3D" id="mat_wall"]
 albedo_texture = ExtResource("2_wall")
+roughness = 0.85
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall_upper1"]
+albedo_texture = ExtResource("6_upper1")
+roughness = 0.85
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall_upper2"]
+albedo_texture = ExtResource("7_upper2")
 roughness = 0.85
 texture_filter = 0
 uv1_triplanar = true
@@ -52,7 +68,19 @@ size = Vector3(2, 4.5, 2)
 
 [sub_resource type="BoxMesh" id="mesh_wall"]
 material = SubResource("mat_wall")
-size = Vector3(2, 8.2, 2)
+size = Vector3(2, 6.2, 2)
+
+[sub_resource type="BoxMesh" id="mesh_wall_upper0"]
+material = SubResource("mat_wall")
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxMesh" id="mesh_wall_upper1"]
+material = SubResource("mat_wall_upper1")
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxMesh" id="mesh_wall_upper2"]
+material = SubResource("mat_wall_upper2")
+size = Vector3(2, 2, 2)
 
 [sub_resource type="BoxMesh" id="mesh_floor_wood"]
 material = SubResource("mat_floor_wood")
@@ -86,7 +114,7 @@ item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.75, 0)
 item/0/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
 item/1/name = "wall"
 item/1/mesh = SubResource("mesh_wall")
-item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.1, 0)
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.1, 0)
 item/1/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
 item/2/name = "floor_wood"
 item/2/mesh = SubResource("mesh_floor_wood")
@@ -108,3 +136,15 @@ item/6/name = "void"
 item/6/mesh = SubResource("mesh_hole")
 item/6/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5.9, 0)
 item/6/shapes = []
+item/7/name = "wall_upper"
+item/7/mesh = SubResource("mesh_wall_upper0")
+item/7/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/7/shapes = []
+item/8/name = "wall_upper1"
+item/8/mesh = SubResource("mesh_wall_upper1")
+item/8/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/8/shapes = []
+item/9/name = "wall_upper2"
+item/9/mesh = SubResource("mesh_wall_upper2")
+item/9/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/9/shapes = []

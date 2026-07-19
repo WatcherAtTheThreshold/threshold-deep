@@ -46,6 +46,7 @@ const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
 const FIGHT_GRACE_TIME := 2.5
 const WOOD_FLOOR_HITS := 2  # planks splinter easier than walls
+const UPPER_VARIANT_CHANCE := 0.25
 
 var floor_id := -1
 var wall_id := -1
@@ -54,6 +55,8 @@ var wall_wood_id := -1
 var hole_id := -1
 var void_id := -1
 var ceiling_id := -1
+var wall_upper_id := -1
+var wall_upper_variants: Array[int] = []
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
@@ -80,6 +83,7 @@ var item_resolved := false
 
 @onready var grid_map: GridMap = $GridMap
 @onready var hole_map: GridMap = $HoleMap
+@onready var upper_map: GridMap = $UpperMap
 @onready var player: Player = $Player
 
 
@@ -90,6 +94,11 @@ func _ready() -> void:
 	wall_wood_id = grid_map.mesh_library.find_item_by_name("wall_wood")
 	hole_id = grid_map.mesh_library.find_item_by_name("hole")
 	void_id = grid_map.mesh_library.find_item_by_name("void")
+	wall_upper_id = grid_map.mesh_library.find_item_by_name("wall_upper")
+	wall_upper_variants = [
+		grid_map.mesh_library.find_item_by_name("wall_upper1"),
+		grid_map.mesh_library.find_item_by_name("wall_upper2"),
+	]
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
 	var rng := RandomNumberGenerator.new()
@@ -316,6 +325,17 @@ func _build(map: Array[String]) -> void:
 				",":
 					id = floor_wood_id
 			grid_map.set_cell_item(Vector3i(x, 0, z), id)
+			if id == wall_id:
+				# Stone walls split at 2m: the lower half is always
+				# the same stone, the upper band usually matches it
+				# (world-space triplanar makes the seam invisible)
+				# but sometimes varies. A signaling channel later —
+				# acts, secrets, arena dressing.
+				var upper := wall_upper_id
+				if randf() < UPPER_VARIANT_CHANCE:
+					upper = wall_upper_variants[
+							randi_range(0, wall_upper_variants.size() - 1)]
+				upper_map.set_cell_item(Vector3i(x, 0, z), upper)
 			if id == floor_wood_id:
 				# The under-place was always there; the planks only
 				# hide it. Collisionless black under every plank so
