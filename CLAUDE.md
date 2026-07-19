@@ -11,6 +11,10 @@ This is the portfolio's only Godot project — use Godot 4 idioms
   draws pixel art and playtests. Scene files are text — edit them like
   code, keeping `load_steps` = ext_resources + sub_resources + 1.
 - Commit `.uid` and `.import` sidecar files. Never commit `.godot/`.
+- When an asset is renamed, update BOTH reference sites: the
+  script's preloads AND the scene's `ext_resource` (the initial
+  sprite texture in the .tscn). Then grep the repo for the old
+  name — .gd, .tscn, .tres, and index.html can all hold paths.
 - Balance values live as `const` at the top of scripts so playtest
   feedback is a one-number change.
 - Typed GDScript: `:=` cannot infer from untyped sources (e.g.
