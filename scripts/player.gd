@@ -24,7 +24,9 @@ const ATTACK_ARC_DEG := 55.0
 const TORCH_KNOCKBACK := 1.8
 const FALL_DEATH_Y := -1.5
 const INVULN_TIME := 1.0
-const BOOTS_SPEED_MULT := 1.15
+# Crystal tiers index these: none / tier 1 / tier 2.
+const FLEET_MULTS: Array[float] = [1.0, 1.15, 1.28]
+const HASTY_MULTS: Array[float] = [1.0, 1.3, 1.6]
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
@@ -107,11 +109,56 @@ func boomerang_returned() -> void:
 	boomerang_out = false
 
 
-func pickup_boots() -> bool:
-	if RunState.has_boots:
+func pickup_fleetfoot() -> bool:
+	if RunState.fleet_tier >= 1:
 		return false
-	RunState.has_boots = true
+	RunState.fleet_tier = 1
 	_apply_loadout()
+	return true
+
+
+func pickup_fleetfoot2() -> bool:
+	if RunState.fleet_tier != 1:
+		return false
+	RunState.fleet_tier = 2
+	_apply_loadout()
+	return true
+
+
+func pickup_rage() -> bool:
+	if RunState.rage_tier >= 1:
+		return false
+	RunState.rage_tier = 1
+	_apply_loadout()
+	return true
+
+
+func pickup_rage2() -> bool:
+	if RunState.rage_tier != 1:
+		return false
+	RunState.rage_tier = 2
+	_apply_loadout()
+	return true
+
+
+func pickup_hasty() -> bool:
+	if RunState.hasty_tier >= 1:
+		return false
+	RunState.hasty_tier = 1
+	return true
+
+
+func pickup_hasty2() -> bool:
+	if RunState.hasty_tier != 1:
+		return false
+	RunState.hasty_tier = 2
+	return true
+
+
+func pickup_luckyluck() -> bool:
+	if RunState.lucky:
+		return false
+	RunState.lucky = true
 	return true
 
 
@@ -139,8 +186,8 @@ func _apply_loadout() -> void:
 		weapon = "staff"
 	elif RunState.has_sword:
 		weapon = "sword"
-	attack_damage = 2 if weapon == "torch" else 4
-	move_speed = SPEED * (BOOTS_SPEED_MULT if RunState.has_boots else 1.0)
+	attack_damage = (2 if weapon == "torch" else 4) + RunState.rage_tier
+	move_speed = SPEED * FLEET_MULTS[RunState.fleet_tier]
 	$HUD/HandTorch.set_weapon(weapon)
 	$HUD/LeftTorch.visible = weapon != "torch"
 
@@ -250,6 +297,7 @@ func _attack() -> void:
 		var boomerang := BOOMERANG_SCENE.instantiate()
 		boomerang.thrower = self
 		boomerang.damage = attack_damage
+		boomerang.speed_scale = HASTY_MULTS[RunState.hasty_tier]
 		boomerang.direction = aim
 		boomerang.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(boomerang)
@@ -263,6 +311,7 @@ func _attack() -> void:
 		orb.frame_b = STAFF_ORB_TEXTURE
 		orb.impact_sounds = STAFF_ORB_IMPACTS
 		orb.damage = attack_damage
+		orb.speed_scale = HASTY_MULTS[RunState.hasty_tier]
 		orb.direction = aim
 		orb.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(orb)

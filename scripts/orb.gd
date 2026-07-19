@@ -16,6 +16,7 @@ var frame_a: Texture2D = FRAME_A
 var frame_b: Texture2D = FRAME_B
 var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
 var damage := 2  # half-heart units: a full heart per orb
+var speed_scale := 1.0  # the Hasty Little Stone quickens player orbs
 var direction := Vector3.FORWARD
 var shooter: PhysicsBody3D = null
 var time := 0.0
@@ -32,7 +33,7 @@ func _physics_process(delta: float) -> void:
 	if time > LIFETIME:
 		queue_free()
 		return
-	position += direction * SPEED * delta
+	position += direction * SPEED * speed_scale * delta
 	sprite.texture = frame_a if int(time / FRAME_TIME) % 2 == 0 else frame_b
 	# Keep the flight sizzle going for as long as the orb lives.
 	if not $FlightSound.playing:

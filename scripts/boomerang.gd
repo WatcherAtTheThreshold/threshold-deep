@@ -28,6 +28,7 @@ const FRAME_TIME := 0.08
 const CATCH_RANGE := 0.9
 
 var damage := 4
+var speed_scale := 1.0  # the Hasty Little Stone quickens the throw
 var direction := Vector3.FORWARD
 # CharacterBody3D, not Player: a class-level Player type here forms a
 # preload cycle with player.gd (which preloads this scene) and kills
@@ -65,9 +66,9 @@ func _physics_process(delta: float) -> void:
 			_finish(true)
 			return
 		direction = to_target.normalized()
-		position += direction * SPEED_BACK * delta
+		position += direction * SPEED_BACK * speed_scale * delta
 	else:
-		position += direction * SPEED_OUT * delta
+		position += direction * SPEED_OUT * speed_scale * delta
 		if global_position.distance_to(origin) >= MAX_RANGE:
 			_turn_back()
 

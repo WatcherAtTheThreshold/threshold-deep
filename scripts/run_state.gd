@@ -18,8 +18,12 @@ var carried_magic := 0
 var has_sword := false
 var has_staff := false
 var has_boomerang := false
-var has_boots := false
 var armor_tier := 0  # 0 none, 1 leather (25% block), 2 steel (40%)
+# Crystals (docs/item-plan.md). Tiers: 0 none, 1, 2.
+var fleet_tier := 0  # cyan: move speed
+var rage_tier := 0   # red: +attack damage in half-heart units
+var hasty_tier := 0  # violet: projectile speed
+var lucky := false   # gold: the deep is generous
 
 var damage_dealt := 0
 var damage_taken := 0
@@ -90,8 +94,11 @@ func reset() -> void:
 	has_sword = false
 	has_staff = false
 	has_boomerang = false
-	has_boots = false
 	armor_tier = 0
+	fleet_tier = 0
+	rage_tier = 0
+	hasty_tier = 0
+	lucky = false
 	damage_dealt = 0
 	damage_taken = 0
 	kills_by_type = {}

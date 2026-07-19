@@ -10,7 +10,13 @@ const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
 const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
-const BOOTS_PICKUP_SCENE := preload("res://scenes/boots_pickup.tscn")
+const FLEETFOOT_SCENE := preload("res://scenes/fleetfoot_pickup.tscn")
+const FLEETFOOT2_SCENE := preload("res://scenes/fleetfoot2_pickup.tscn")
+const RAGE_SCENE := preload("res://scenes/rage_pickup.tscn")
+const RAGE2_SCENE := preload("res://scenes/rage2_pickup.tscn")
+const HASTY_SCENE := preload("res://scenes/hasty_pickup.tscn")
+const HASTY2_SCENE := preload("res://scenes/hasty2_pickup.tscn")
+const LUCKYLUCK_SCENE := preload("res://scenes/luckyluck_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
@@ -681,8 +687,21 @@ func _setup_item_room() -> void:
 	var pool: Array[PackedScene] = [MAGIC_PICKUP_SCENE]
 	if player.max_health < player.MAX_HEALTH_CAP:
 		pool.append(CONTAINER_PICKUP_SCENE)
-	if not RunState.has_boots:
-		pool.append(BOOTS_PICKUP_SCENE)
+	# Crystals gate their next tier on the previous, armor-style.
+	if RunState.fleet_tier == 0:
+		pool.append(FLEETFOOT_SCENE)
+	elif RunState.fleet_tier == 1:
+		pool.append(FLEETFOOT2_SCENE)
+	if RunState.rage_tier == 0:
+		pool.append(RAGE_SCENE)
+	elif RunState.rage_tier == 1:
+		pool.append(RAGE2_SCENE)
+	if RunState.hasty_tier == 0:
+		pool.append(HASTY_SCENE)
+	elif RunState.hasty_tier == 1:
+		pool.append(HASTY2_SCENE)
+	if not RunState.lucky:
+		pool.append(LUCKYLUCK_SCENE)
 	if RunState.armor_tier == 0:
 		pool.append(ARMOR_PICKUP_SCENE)
 	elif RunState.armor_tier == 1:

@@ -5,7 +5,7 @@ extends Area3D
 
 const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item.wav")
 
-@export var grant := "pickup_boots"
+@export var grant := "pickup_fleetfoot"
 @export var toast_title := ""
 @export var toast_desc := ""
 

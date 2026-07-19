@@ -103,11 +103,18 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   think in units, not hearts. Magic hearts absorb damage before red
   and can't be healed by potions; half potions/half heart drops
   grant 1 unit.
-- Relics (flags/tiers in RunState, pedestal pool in item rooms):
-  speed boots (move speed ×1.15), armor in two tiers — leather
-  (25% chance a blow is fully turned) then steel (40%), offered as
-  an upgrade only after leather; blocks flash steel-blue, no
-  damage/invuln. Rival weapons, gated on the sword and mutually
+- Relics (flags/tiers in RunState, pedestal pool in item rooms).
+  Crystals follow docs/item-plan.md (hue = family, cut = shape,
+  tier = same hue bigger cut; art in assets/items/crystals/ as
+  crystal_<key><tier>.png, always numbered): Fleetfoot Stone
+  (speed ×1.15 / ×1.28), Rage Crystal (+1/+2 attack units), Hasty
+  Little Stone (projectile speed ×1.3 / ×1.6, player shots only),
+  Lucky Luck Stone (drop rolls ×0.6 — more of everything). Armor
+  (Turning Stone) in two tiers — leather (25% chance a blow is
+  fully turned) then steel (40%), offered as an upgrade only after
+  leather; blocks flash steel-blue, no damage/invuln. Every
+  build-defining pickup shows a two-line toast (hud.show_toast:
+  NAME + lowercase descriptor, no numbers); combat drops don't. Rival weapons, gated on the sword and mutually
   exclusive per run: the magic staff (2-damage orb along the camera
   aim, rapid) or the boomerang (2 damage, pierces, hits each enemy
   once per leg, returns from walls or 9 m, one in flight at a time).

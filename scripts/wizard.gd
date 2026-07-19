@@ -235,6 +235,9 @@ func _die(by_player: bool) -> void:
 	# full drops the treat.
 	var roll := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU) * 0.45
 	var r := randf()
+	if RunState.lucky:
+		# The Lucky Luck Stone: the deep is generous.
+		r *= 0.6
 	var drop: Node3D = null
 	if r < 0.12:
 		drop = POTION_SCENE.instantiate()
