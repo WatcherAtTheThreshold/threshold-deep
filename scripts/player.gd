@@ -352,6 +352,10 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		died.emit()
 
 
+func toast(title: String, sub: String) -> void:
+	$HUD.show_toast(title, sub)
+
+
 func start_gate_crossing(through_dir := Vector3.ZERO) -> void:
 	# Walking through pale mist to the next stage — no fall, the
 	# world whitens into the next title card. The mist pulls you

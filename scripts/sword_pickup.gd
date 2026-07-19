@@ -10,5 +10,6 @@ func _ready() -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body is Player:
 		body.pickup_sword()
+		body.toast("THE SWORD", "cuts deeper")
 		Sfx.play_at(PICKUP_SOUND, global_position)
 		queue_free()

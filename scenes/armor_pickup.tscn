@@ -10,6 +10,8 @@ radius = 0.7
 
 script = ExtResource("1_pickup")
 grant = "pickup_armor"
+toast_title = "TURNING STONE"
+toast_desc = "some blows glance off"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

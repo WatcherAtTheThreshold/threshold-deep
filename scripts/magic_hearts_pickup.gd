@@ -14,6 +14,7 @@ func _on_body_entered(body: Node3D) -> void:
 	if not body is Player:
 		return
 	if body.add_magic_hearts(6):
+		body.toast("GOLDEN HEARTS", "gold before blood")
 		_play_pickup_sound()
 		queue_free()
 	elif always_consume:

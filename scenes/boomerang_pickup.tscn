@@ -10,6 +10,8 @@ radius = 0.7
 
 script = ExtResource("1_pickup")
 grant = "pickup_boomerang"
+toast_title = "BOOMERANG"
+toast_desc = "flies, pierces, returns"
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

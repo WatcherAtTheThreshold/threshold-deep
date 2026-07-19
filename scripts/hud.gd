@@ -24,6 +24,10 @@ var last_total := 0
 @onready var killer_face: TextureRect = $KillerFace
 @onready var death_cause: Label = $DeathCause
 @onready var death_stats: Label = $DeathStats
+@onready var toast_name: Label = $ToastName
+@onready var toast_desc: Label = $ToastDesc
+
+var toast_tween: Tween = null
 
 
 func _ready() -> void:
@@ -67,6 +71,24 @@ func start_descent_fade() -> void:
 	var tween := create_tween()
 	tween.tween_property(screen_fade, "color:a", 1.0, DESCENT_FADE_TIME)
 	tween.tween_callback(_go_down)
+
+
+func show_toast(title: String, sub: String) -> void:
+	# The pickup toast (docs/item-plan.md): the name is the mnemonic,
+	# the descriptor is the one-time teach. No numbers, two lines,
+	# gone in two seconds. A new pickup replaces a fading one.
+	toast_name.text = title
+	toast_desc.text = sub
+	if toast_tween != null and toast_tween.is_valid():
+		toast_tween.kill()
+	toast_name.visible = true
+	toast_desc.visible = true
+	toast_name.modulate.a = 1.0
+	toast_desc.modulate.a = 1.0
+	toast_tween = create_tween()
+	toast_tween.tween_interval(1.5)
+	toast_tween.tween_property(toast_name, "modulate:a", 0.0, 0.6)
+	toast_tween.parallel().tween_property(toast_desc, "modulate:a", 0.0, 0.6)
 
 
 func start_gate_fade() -> void:
