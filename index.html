@@ -211,9 +211,14 @@ const SECTIONS = [
       ],
     },
     {
-      name: 'Frogman', rest: S + 'frogmen/frogmen-phase1/frogmen-front1.png',
+      name: 'Frogman', rest: S + 'frogmen/frogmen-phase1/frogmen_front1.png',
       sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'),
-      frames: walk(S + 'frogmen/frogmen-phase1/frogmen-front1.png', S + 'frogmen/frogmen-phase1/frogmen-front2.png'),
+      cycle: [
+        { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_front1.png', S + 'frogmen/frogmen-phase1/frogmen_front2.png') },
+        { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side1.png', S + 'frogmen/frogmen-phase1/frogmen_side2.png') },
+        { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side1.png', S + 'frogmen/frogmen-phase1/frogmen_side2.png'), flip: true },
+        { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_back1.png', S + 'frogmen/frogmen-phase1/frogmen_back2.png') },
+      ],
     },
     {
       name: 'The Reveal', rest: S + 'frogmen/frogmen-phase-stransition.png',

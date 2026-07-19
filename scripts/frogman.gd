@@ -2,8 +2,18 @@ extends CharacterBody3D
 
 enum State { COATED, REVEAL, FROG, TOAD }
 
-const TEX_COATED_1 := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen-front1.png")
-const TEX_COATED_2 := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen-front2.png")
+const COATED_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front2.png"),
+]
+const COATED_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side2.png"),
+]
+const COATED_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back2.png"),
+]
 const TEX_REVEAL := preload("res://assets/sprites/frogmen/frogmen-phase-stransition.png")
 const TEX_FROG_1 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog1.png")
 const TEX_FROG_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog2.png")
@@ -36,6 +46,13 @@ const ATTACK_COOLDOWN := 1.2
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
+# Coated wanderers stride: longer legs than the skeleton's shuffle,
+# so a frogman crossing a long corridor is a sight you can meet.
+const WANDER_SPEED := 1.2
+const WANDER_LEG_MIN := 1.5
+const WANDER_LEG_MAX := 3.5
+const WANDER_PAUSE_MIN := 2.0
+const WANDER_PAUSE_MAX := 6.0
 
 var state := State.COATED
 var health := COATED_HEALTH
@@ -47,10 +64,14 @@ var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
-var frame_a: Texture2D = TEX_COATED_1
-var frame_b: Texture2D = TEX_COATED_2
+var frame_a: Texture2D = COATED_FRONT[0]
+var frame_b: Texture2D = COATED_FRONT[1]
 var knock_timer := 0.0
 var last_attacker: PhysicsBody3D = null
+var facing := Vector3.FORWARD
+var wander_dir := Vector3.ZERO
+var wander_timer := 0.0
+var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
@@ -119,6 +140,7 @@ func _physics_process(delta: float) -> void:
 	if dist < sight and _can_see(t):
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
+			facing = dir
 			if not _floor_ahead(dir):
 				# Pulled up at the rim — even the frog knows better.
 				velocity.x = move_toward(velocity.x, 0.0, 4.0)
@@ -139,9 +161,14 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0
+			facing = to_target.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
 				t.take_damage(damage, to_target.normalized(), self)
+	elif state == State.COATED:
+		# Unbothered coats patrol; frogs and toads exist mid-fight
+		# and just settle.
+		_wander(delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, 2.0)
 		velocity.z = move_toward(velocity.z, 0.0, 2.0)
@@ -151,9 +178,11 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-		sprite.texture = frame_a if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else frame_b
+	var frame := int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0
+	if state == State.COATED:
+		_update_view(frame)
 	else:
-		sprite.texture = frame_a
+		sprite.texture = frame_a if frame == 0 else frame_b
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
@@ -178,9 +207,49 @@ func _fall_into_dark() -> void:
 	queue_free()
 
 
+func _wander(delta: float) -> void:
+	# Off-duty coats stride about: longer legs, unhurried pauses.
+	# Walls and rims end a leg early; the sight check upstream
+	# overrides the moment a target appears.
+	if wander_timer > 0.0:
+		wander_timer -= delta
+		if is_on_wall() or not _floor_ahead(wander_dir):
+			wander_timer = 0.0
+		facing = wander_dir
+		velocity.x = wander_dir.x * WANDER_SPEED
+		velocity.z = wander_dir.z * WANDER_SPEED
+		if wander_timer <= 0.0:
+			wander_wait = randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, 2.0)
+		velocity.z = move_toward(velocity.z, 0.0, 2.0)
+		wander_wait -= delta
+		if wander_wait <= 0.0:
+			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
+			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
+
+
+func _update_view(frame: int) -> void:
+	# Four-way billboard, Doom style: project the heading onto the
+	# camera's axes — the dominant component picks the view. Side art
+	# faces left, so it flips when heading toward screen-right.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (COATED_BACK if depth > 0.0 else COATED_FRONT)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = COATED_SIDE[frame]
+
+
 func _start_reveal() -> void:
 	state = State.REVEAL
 	reveal_timer = REVEAL_TIME
+	sprite.flip_h = false
 	sprite.texture = TEX_REVEAL
 	sprite.modulate = Color.WHITE
 	velocity = Vector3.ZERO
@@ -214,8 +283,8 @@ func _split() -> void:
 func _apply_state() -> void:
 	match state:
 		State.COATED:
-			frame_a = TEX_COATED_1
-			frame_b = TEX_COATED_2
+			frame_a = COATED_FRONT[0]
+			frame_b = COATED_FRONT[1]
 			$CollisionShape3D.shape = CapsuleShape3D.new()
 			$CollisionShape3D.shape.radius = 0.5
 			$CollisionShape3D.shape.height = 1.8
