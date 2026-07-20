@@ -143,8 +143,10 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   from _relic_pool() (the same availability pool item-room
   pedestals draw two from; the sword is in the pool like anything
   else, so a swordless run is a torch run); boss 3 triggers the
-  victory report. Item rooms seal on entry
-  until a pedestal (always_consume pickups) is taken. R is inert
+  victory report. Item rooms announce on entry
+  (stinger) but never seal — leaving empty-handed is respected;
+  taking one pedestal (always_consume) dissolves the mist and
+  removes the other. Pedestal pairs carry AT MOST ONE weapon. R is inert
   during a boss fight. Trigger-plate item hunts are retired.
 - Holes live in a second GridMap (`HoleMap`) and are **open lethal
   shafts** — no collision. A collisionless `void` tile (black slab,

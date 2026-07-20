@@ -196,12 +196,11 @@ func _physics_process(_delta: float) -> void:
 
 	if item_room_idx >= 0 and not item_resolved:
 		if not item_sealed:
+			# The bargain announces itself but never locks the door:
+			# walking out empty-handed is a choice the room respects.
 			if _player_inside_room(floor_rooms[item_room_idx]):
 				item_sealed = true
 				_play_stinger(SOUND_ITEM_MIST)
-				for m in item_mists:
-					if is_instance_valid(m):
-						m.seal()
 		else:
 			var taken := false
 			for p in item_pedestals:
@@ -729,8 +728,27 @@ func _setup_item_room() -> void:
 	var pool := _relic_pool()
 	pool.shuffle()
 	var count := mini(2, mini(pool.size(), cells.size()))
-	for i in count:
-		var pedestal := pool[i].instantiate()
+	# At most one weapon per bargain: a second weapon draw is passed
+	# over, so a pedestal pair never demands the player rearm.
+	var weapons: Array[PackedScene] = \
+			[SWORD_SCENE, STAFF_PICKUP_SCENE, BOOMERANG_PICKUP_SCENE]
+	var picks: Array[PackedScene] = []
+	var weapon_taken := false
+	for scene: PackedScene in pool:
+		if picks.size() >= count:
+			break
+		if weapons.has(scene) and weapon_taken:
+			continue
+		picks.append(scene)
+		weapon_taken = weapon_taken or weapons.has(scene)
+	for scene: PackedScene in pool:
+		# Desperate fallback: a pool of nothing but weapons fills in.
+		if picks.size() >= count:
+			break
+		if not picks.has(scene):
+			picks.append(scene)
+	for i in picks.size():
+		var pedestal := picks[i].instantiate()
 		pedestal.always_consume = true
 		pedestal.position = _cell_to_world(cells[i], 0.5)
 		add_child(pedestal)
