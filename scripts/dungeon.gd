@@ -29,6 +29,7 @@ const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const MIST_GATE_SCENE := preload("res://scenes/mist_gate.tscn")
 const ARRIVAL_DOOR_SCENE := preload("res://scenes/arrival_door.tscn")
 const BOSS_PLATE_SCENE := preload("res://scenes/sword_trigger.tscn")
+const SECRET_PLATE_SCENE := preload("res://scenes/magic_heart_trigger.tscn")
 const SKELETAL_WIZARD_SCENE := preload("res://scenes/skeletal_wizard.tscn")
 const SOUND_FLOOR_NORMAL := preload("res://assets/audio/sfx/environment/normal_floor_start.wav")
 const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor_start.wav")
@@ -69,6 +70,7 @@ var void_id := -1
 var ceiling_id := -1
 var wall_upper_id := -1
 var wall_upper_variants: Array[int] = []
+var buried_stone_id := -1
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
@@ -121,6 +123,7 @@ func _ready() -> void:
 		grid_map.mesh_library.find_item_by_name("wall_upper1"),
 		grid_map.mesh_library.find_item_by_name("wall_upper2"),
 	]
+	buried_stone_id = grid_map.mesh_library.find_item_by_name("buried_stone")
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
 	kind = RunState.floor_kind(RunState.depth)
@@ -152,7 +155,7 @@ func _ready() -> void:
 		# equals meaning — the observant get paid.
 		secret_tell = OmniLight3D.new()
 		secret_tell.light_color = Color(1.0, 0.75, 0.35)
-		secret_tell.light_energy = 0.35
+		secret_tell.light_energy = 0.15
 		secret_tell.omni_range = 1.6
 		secret_tell.position = _cell_to_world(secret_plank, 0.6)
 		add_child(secret_tell)
@@ -309,11 +312,12 @@ func _reveal_secret_trigger(cell: Vector3i) -> void:
 	# here. The trigger plate glows where the glimmer used to.
 	secret_revealed = true
 	grid_map.set_cell_item(cell, floor_id)
+	hole_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 	Sfx.play_at(SOUND_FLOOR_BREAK,
 			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
 	if is_instance_valid(secret_tell):
 		secret_tell.queue_free()
-	var plate := BOSS_PLATE_SCENE.instantiate()
+	var plate := SECRET_PLATE_SCENE.instantiate()
 	plate.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.5)
 	plate.activated.connect(_open_secret_room)
 	add_child(plate)
@@ -457,7 +461,13 @@ func _build(map: Array[String]) -> void:
 				# hide it. Collisionless black under every plank so
 				# holes never leak the sky-blue backdrop sideways —
 				# collapse swaps this for the blocking hole tile.
-				hole_map.set_cell_item(Vector3i(x, 0, z), void_id)
+				# The secret plank is the exception: stone under it
+				# from birth, the second tell, visible from any
+				# neighboring hole.
+				var under := void_id
+				if Vector2i(x, z) == secret_plank:
+					under = buried_stone_id
+				hole_map.set_cell_item(Vector3i(x, 0, z), under)
 			# Every walkable cell gets a ceiling slab in the cell
 			# above, resting on top of the 4m walls.
 			if id != wall_id and id != wall_wood_id:

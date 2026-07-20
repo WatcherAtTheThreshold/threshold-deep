@@ -148,3 +148,7 @@ item/9/name = "wall_upper2"
 item/9/mesh = SubResource("mesh_wall_upper2")
 item/9/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
 item/9/shapes = []
+item/10/name = "buried_stone"
+item/10/mesh = SubResource("mesh_floor")
+item/10/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.25, 0)
+item/10/shapes = []
