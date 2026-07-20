@@ -15,6 +15,9 @@ var kills := 0
 var carried_health := -1  # -1 = fresh run, spawn with full hearts
 var carried_max_health := -1  # -1 = fresh run, base containers
 var carried_magic := 0
+# Weapons are pool items, once each per run; the hand holds the one
+# claimed LAST. Crystals apply to whatever is held.
+var weapon := "torch"
 var has_sword := false
 var has_staff := false
 var has_boomerang := false
@@ -95,6 +98,7 @@ func reset() -> void:
 	carried_health = -1
 	carried_max_health = -1
 	carried_magic = 0
+	weapon = "torch"
 	has_sword = false
 	has_staff = false
 	has_boomerang = false

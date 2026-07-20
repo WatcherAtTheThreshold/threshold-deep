@@ -706,10 +706,9 @@ func _relic_pool() -> Array[PackedScene]:
 		pool.append(ARMOR_PICKUP_SCENE)
 	elif RunState.armor_tier == 1:
 		pool.append(ARMOR2_PICKUP_SCENE)
-	if RunState.has_sword and not RunState.has_staff \
-			and not RunState.has_boomerang:
-		# Rival weapons: taking either removes both from future pools.
+	if not RunState.has_staff:
 		pool.append(STAFF_PICKUP_SCENE)
+	if not RunState.has_boomerang:
 		pool.append(BOOMERANG_PICKUP_SCENE)
 	return pool
 

@@ -2,6 +2,9 @@ extends Area3D
 
 const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item.wav")
 
+# Pedestals set this; the sword always grants, so it always consumes.
+var always_consume := false
+
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)

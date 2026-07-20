@@ -90,6 +90,7 @@ func _ready() -> void:
 
 func pickup_sword() -> void:
 	RunState.has_sword = true
+	RunState.weapon = "sword"
 	_apply_loadout()
 
 
@@ -97,6 +98,7 @@ func pickup_staff() -> bool:
 	if RunState.has_staff:
 		return false
 	RunState.has_staff = true
+	RunState.weapon = "staff"
 	_apply_loadout()
 	return true
 
@@ -105,6 +107,7 @@ func pickup_boomerang() -> bool:
 	if RunState.has_boomerang:
 		return false
 	RunState.has_boomerang = true
+	RunState.weapon = "boomerang"
 	_apply_loadout()
 	return true
 
@@ -211,13 +214,7 @@ func pickup_armor2() -> bool:
 
 
 func _apply_loadout() -> void:
-	var weapon := "torch"
-	if RunState.has_boomerang:
-		weapon = "boomerang"
-	elif RunState.has_staff:
-		weapon = "staff"
-	elif RunState.has_sword:
-		weapon = "sword"
+	var weapon := RunState.weapon
 	attack_damage = (2 if weapon == "torch" else 4) + RunState.rage_tier
 	move_speed = SPEED * FLEET_MULTS[RunState.fleet_tier]
 	$HUD/HandTorch.set_weapon(weapon)
@@ -322,21 +319,22 @@ func _update_step_audio() -> void:
 func _attack() -> void:
 	if attack_timer > 0.0:
 		return
-	if RunState.has_boomerang and boomerang_out:
+	if RunState.weapon == "boomerang" and boomerang_out:
 		# The hand is empty until the boomerang comes home.
 		return
 	# The Hasty Little Stone quickens melee swings; ranged weapons
 	# keep their rate and get their haste on the projectile instead.
-	var melee := not (RunState.has_boomerang or RunState.has_staff)
+	var melee := RunState.weapon == "torch" or RunState.weapon == "sword"
 	attack_timer = ATTACK_COOLDOWN \
 			/ (HASTY_MULTS[RunState.hasty_tier] if melee else 1.0)
 	attacked.emit()
-	if not (RunState.has_boomerang or RunState.has_staff):
+	if melee:
 		# Melee swings: three takes each, rotated.
-		var swings := SWORD_SLICE_SOUNDS if RunState.has_sword else TORCH_HIT_SOUNDS
+		var swings := SWORD_SLICE_SOUNDS if RunState.weapon == "sword" \
+				else TORCH_HIT_SOUNDS
 		Sfx.play_at(swings[randi_range(0, swings.size() - 1)],
 				global_position, -4.0)
-	if RunState.has_boomerang:
+	if RunState.weapon == "boomerang":
 		Sfx.play_at(BOOMERANG_THROW_SOUND, global_position, -4.0)
 		var aim := -camera.global_transform.basis.z
 		var boomerang := BOOMERANG_SCENE.instantiate()
@@ -350,7 +348,7 @@ func _attack() -> void:
 		boomerang.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(boomerang)
 		boomerang_out = true
-	elif RunState.has_staff:
+	elif RunState.weapon == "staff":
 		# The staff's verb: a bolt where you're looking, pitch and all.
 		var aim := -camera.global_transform.basis.z
 		var orb := ORB_SCENE.instantiate()
@@ -368,7 +366,7 @@ func _attack() -> void:
 		# Melee arc: hit every enemy close enough and roughly in front.
 		# Enemies scale their shove by the push vector's length, so the
 		# torch's extra knockback rides in on a longer vector.
-		var push_scale := 1.0 if RunState.has_sword else TORCH_KNOCKBACK
+		var push_scale := TORCH_KNOCKBACK if RunState.weapon == "torch" else 1.0
 		var reach := WIDESWING_RANGE if RunState.wideswing else ATTACK_RANGE
 		var arc := WIDESWING_ARC_DEG if RunState.wideswing else ATTACK_ARC_DEG
 		var forward := -global_transform.basis.z

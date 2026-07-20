@@ -115,10 +115,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   fully turned) then steel (40%), offered as an upgrade only after
   leather; blocks flash steel-blue, no damage/invuln. Every
   build-defining pickup shows a two-line toast (hud.show_toast:
-  NAME + lowercase descriptor, no numbers); combat drops don't. Rival weapons, gated on the sword and mutually
-  exclusive per run: the magic staff (2-damage orb along the camera
-  aim, rapid) or the boomerang (2 damage, pierces, hits each enemy
-  once per leg, returns from walls or 9 m, one in flight at a time).
+  NAME + lowercase descriptor, no numbers); combat drops don't. Weapons are UNTIERED pool items — sword, staff, and boomerang
+  each appear once per run, any time, from pedestals or boss drops;
+  the hand holds whichever was claimed LAST (RunState.weapon is the
+  single source of truth — never branch on has_* flags for combat
+  behavior, those only gate pool availability). All deal base 4;
+  crystals apply to whatever is held. The staff fires a rapid orb
+  along the camera aim; the boomerang pierces, hits each enemy once
+  per leg, returns from walls or 9 m, one in flight at a time.
   relic_pickup.gd + `grant` method name is the pattern for new
   relics; tiered relics gate the next tier on the previous.
   Asset split: `items/` = pickup art only; `sprites/` = viewmodel

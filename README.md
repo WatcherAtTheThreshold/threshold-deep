@@ -27,7 +27,8 @@ slime corpses respawn, mushrooms eat dead slimes and turn green,
 flesh stays down), Doom-style infighting, and boss tiers that
 cascade — the Slime Boss bursts into larges into smalls; the
 Skeletal Wizard assembles itself from the corpses you made in its
-arena. Weapon fork: torch → sword → magic staff or boomerang.
+arena. Weapons are untiered pool items — sword, staff, or boomerang
+can appear any time, and the hand holds whatever was claimed last.
 Relics, a two-currency heart economy, sealed mist doors, breakable
 wooden walls, collapsing plank floors over wall-deep shafts (provably
 never trapping you), an original three-song score that drifts in and
