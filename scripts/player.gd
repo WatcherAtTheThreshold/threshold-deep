@@ -18,6 +18,9 @@ const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
+# Wide Swing: the melee arc opens to catch the flanking tiles too.
+const WIDESWING_RANGE := 2.6
+const WIDESWING_ARC_DEG := 85.0
 # The torch shoves harder than anything after it: taking the sword
 # should feel like trading the shove away for damage. Distance goes
 # with the SQUARE of this: 1.0 ≈ 0.6m skid, 1.8 ≈ 1.9m, 2.8 ≈ 4.7m.
@@ -184,6 +187,13 @@ func pickup_gapleaper() -> bool:
 	return true
 
 
+func pickup_wideswing() -> bool:
+	if RunState.wideswing:
+		return false
+	RunState.wideswing = true
+	return true
+
+
 func pickup_armor() -> bool:
 	if RunState.armor_tier >= 1:
 		return false
@@ -333,6 +343,9 @@ func _attack() -> void:
 		boomerang.thrower = self
 		boomerang.damage = attack_damage
 		boomerang.speed_scale = HASTY_MULTS[RunState.hasty_tier]
+		if RunState.wideswing:
+			# Wide Swing: a bigger blade sweeps a wider path.
+			boomerang.scale = Vector3(1.5, 1.5, 1.5)
 		boomerang.direction = aim
 		boomerang.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(boomerang)
@@ -347,6 +360,7 @@ func _attack() -> void:
 		orb.impact_sounds = STAFF_ORB_IMPACTS
 		orb.damage = attack_damage
 		orb.speed_scale = HASTY_MULTS[RunState.hasty_tier]
+		orb.splash = RunState.wideswing
 		orb.direction = aim
 		orb.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(orb)
@@ -355,12 +369,14 @@ func _attack() -> void:
 		# Enemies scale their shove by the push vector's length, so the
 		# torch's extra knockback rides in on a longer vector.
 		var push_scale := 1.0 if RunState.has_sword else TORCH_KNOCKBACK
+		var reach := WIDESWING_RANGE if RunState.wideswing else ATTACK_RANGE
+		var arc := WIDESWING_ARC_DEG if RunState.wideswing else ATTACK_ARC_DEG
 		var forward := -global_transform.basis.z
 		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 			var to := enemy.global_position - global_position
 			to.y = 0.0
-			if to.length() <= ATTACK_RANGE \
-					and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
+			if to.length() <= reach \
+					and forward.angle_to(to.normalized()) <= deg_to_rad(arc):
 				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
 				RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the

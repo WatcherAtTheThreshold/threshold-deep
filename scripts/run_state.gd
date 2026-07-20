@@ -27,6 +27,7 @@ var lucky := false   # gold: the deep is generous
 var quickstep := false  # cyan: dash goes further
 var twicecut := false   # cyan: two dash charges
 var gapleaper := false  # cyan: dashes fly level over gaps
+var wideswing := false  # orange: strikes spread
 
 var damage_dealt := 0
 var damage_taken := 0
@@ -105,6 +106,7 @@ func reset() -> void:
 	quickstep = false
 	twicecut = false
 	gapleaper = false
+	wideswing = false
 	damage_dealt = 0
 	damage_taken = 0
 	kills_by_type = {}
