@@ -67,7 +67,7 @@ color. Tier 2 should read as "that one again, more so" — no relearning.
 | 8 | **Rage Crystal** | *hits harder* | Red | Shard → Cluster | 2 possible |
 | 9 | **Quickstep Crystal** | *dash goes further* | Cyan | Split | 1 |
 | 10 | **Twice-Cut Crystal** | *dash twice* | Cyan | Split (two gems) | 1 |
-| 11 | **Hasty Little Stone** | *shots fly faster* | Violet | Shard | 2 possible |
+| 11 | **Hasty Little Stone** | *attacks faster* | Violet | Shard | 2 possible |
 | 13 | **Gapleaper** | *cross the gaps* | Cyan | Ring | 1 |
 | 15 | **Lucky Luck Stone** | *the deep is generous* | Gold | Cluster | 1 |
 | 16 | **Wide Swing Crystal** | *strikes spread* | Orange | Cluster | 1 |

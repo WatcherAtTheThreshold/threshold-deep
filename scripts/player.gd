@@ -62,6 +62,7 @@ var attack_timer := 0.0
 var invuln_timer := 0.0
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
+var dash_charges := 1
 var dash_dir := Vector3.ZERO
 var boomerang_out := false
 var controls_enabled := true
@@ -162,6 +163,27 @@ func pickup_luckyluck() -> bool:
 	return true
 
 
+func pickup_quickstep() -> bool:
+	if RunState.quickstep:
+		return false
+	RunState.quickstep = true
+	return true
+
+
+func pickup_twicecut() -> bool:
+	if RunState.twicecut:
+		return false
+	RunState.twicecut = true
+	return true
+
+
+func pickup_gapleaper() -> bool:
+	if RunState.gapleaper:
+		return false
+	RunState.gapleaper = true
+	return true
+
+
 func pickup_armor() -> bool:
 	if RunState.armor_tier >= 1:
 		return false
@@ -246,16 +268,25 @@ func _physics_process(delta: float) -> void:
 
 	# Space: short forward burst on a cooldown. Dashes toward your
 	# movement direction, or straight ahead when standing still.
-	if Input.is_action_just_pressed("dash") and dash_cooldown_timer == 0.0:
+	# Twice-Cut banks two charges; the cooldown refills the bank.
+	if dash_cooldown_timer == 0.0:
+		dash_charges = 2 if RunState.twicecut else 1
+	if Input.is_action_just_pressed("dash") and dash_charges > 0:
 		dash_dir = direction if direction else -global_transform.basis.z
 		dash_dir.y = 0.0
 		dash_dir = dash_dir.normalized()
-		dash_timer = DASH_TIME
+		# Quickstep stretches the burst.
+		dash_timer = DASH_TIME * (1.35 if RunState.quickstep else 1.0)
+		dash_charges -= 1
 		dash_cooldown_timer = DASH_COOLDOWN
 
 	if dash_timer > 0.0:
 		velocity.x = dash_dir.x * DASH_SPEED
 		velocity.z = dash_dir.z * DASH_SPEED
+		if RunState.gapleaper:
+			# The Gapleaper: the dash flies level, so a one-cell gap
+			# is a guarantee instead of a gamble.
+			velocity.y = 0.0
 	elif direction:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed

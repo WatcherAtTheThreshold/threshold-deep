@@ -17,6 +17,9 @@ const RAGE2_SCENE := preload("res://scenes/rage2_pickup.tscn")
 const HASTY_SCENE := preload("res://scenes/hasty_pickup.tscn")
 const HASTY2_SCENE := preload("res://scenes/hasty2_pickup.tscn")
 const LUCKYLUCK_SCENE := preload("res://scenes/luckyluck_pickup.tscn")
+const QUICKSTEP_SCENE := preload("res://scenes/quickstep_pickup.tscn")
+const TWICECUT_SCENE := preload("res://scenes/twicecut_pickup.tscn")
+const GAPLEAPER_SCENE := preload("res://scenes/gapleaper_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
@@ -702,6 +705,12 @@ func _setup_item_room() -> void:
 		pool.append(HASTY2_SCENE)
 	if not RunState.lucky:
 		pool.append(LUCKYLUCK_SCENE)
+	if not RunState.quickstep:
+		pool.append(QUICKSTEP_SCENE)
+	if not RunState.twicecut:
+		pool.append(TWICECUT_SCENE)
+	if not RunState.gapleaper:
+		pool.append(GAPLEAPER_SCENE)
 	if RunState.armor_tier == 0:
 		pool.append(ARMOR_PICKUP_SCENE)
 	elif RunState.armor_tier == 1:
