@@ -23,7 +23,7 @@ const DIRS: Array[Vector2i] = [
 	Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 
 
-static func generate(width: int, height: int, room_attempts: int, rng: RandomNumberGenerator) -> Dictionary:
+static func generate(width: int, height: int, room_attempts: int, rng: RandomNumberGenerator, with_secret := false) -> Dictionary:
 	var rooms: Array[Rect2i] = []
 	for i in room_attempts:
 		# The second room placed is always arena-sized, so boss floors
@@ -126,6 +126,56 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 		wood_floor.erase(bridge)
 		demoted.append(bridge)
 
+	# The commoner secret (docs/roadmap.md): a small sealed chamber
+	# grafted outside walkable space — there from the start, found
+	# by a buried trigger, opened by sliding one wall cell. The
+	# solvability proof ignores sealed space, so this runs after it.
+	var secret_room: Array[Vector2i] = []
+	var secret_door := Vector2i(-1, -1)
+	var secret_plank := Vector2i(-1, -1)
+	if with_secret and wood_floor.size() > 0:
+		var floors: Array[Vector2i] = []
+		for c: Vector2i in floor_cells:
+			floors.append(c)
+		for attempt in 300:
+			var f: Vector2i = floors[rng.randi_range(0, floors.size() - 1)]
+			var d: Vector2i = DIRS[rng.randi_range(0, 3)]
+			var door := f + d
+			var base := door + d
+			var perp := Vector2i(d.y, d.x)
+			var cells: Array[Vector2i] = [
+				base, base + perp, base + d, base + d + perp]
+			if floor_cells.has(door) or wood_wall.has(door):
+				continue
+			var ok := true
+			for c in cells:
+				if c.x < 1 or c.y < 1 or c.x > width - 2 \
+						or c.y > height - 2 \
+						or floor_cells.has(c) or wood_wall.has(c):
+					ok = false
+					break
+			if not ok:
+				continue
+			# Sealed means sealed: no chamber cell may share an edge
+			# with walkable space — the door wall is the only seam.
+			for c in cells:
+				for dd in DIRS:
+					if floor_cells.has(c + dd):
+						ok = false
+			if not ok:
+				continue
+			for c in cells:
+				floor_cells[c] = true
+			secret_room = cells
+			secret_door = door
+			# The trigger hides under one wooden plank somewhere on
+			# the floor; breaking it reveals stone, not void.
+			var woods: Array[Vector2i] = []
+			for c: Vector2i in wood_floor:
+				woods.append(c)
+			secret_plank = woods[rng.randi_range(0, woods.size() - 1)]
+			break
+
 	# Render the sets out to rows of characters.
 	var map: Array[String] = []
 	for cy in height:
@@ -140,7 +190,9 @@ static func generate(width: int, height: int, room_attempts: int, rng: RandomNum
 				row += "#"
 		map.append(row)
 
-	return {"map": map, "rooms": rooms, "demoted": demoted}
+	return {"map": map, "rooms": rooms, "demoted": demoted,
+			"secret_room": secret_room, "secret_door": secret_door,
+			"secret_plank": secret_plank}
 
 
 static func _flood(start: Vector2i, passable: Dictionary) -> Dictionary:

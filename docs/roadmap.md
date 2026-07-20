@@ -124,12 +124,14 @@ already in — levels, tails, pitch spreads — as the mix fills up.
   a MetaState saved to disk banking runs into unlocks that enter
   the item pool. First candidate for the next phase — demos live
   on "one more run."
-- **Secret rooms** — the commoner (always findable, golden hearts,
-  collapsed-tile trigger or lever) and the trial (findable only
-  while no red damage taken this floor; fight + item). The synergy
-  is the design: golden hearts protect red hearts, which keeps the
-  trial findable. Needs per-floor red-damage tracking, sliding-wall
-  door + grind sfx, lever art, sealed-room generation.
+- **Secret rooms** — the commoner is BUILT (x-1 floors: sealed
+  chamber grafted at generation, trigger buried under one plank
+  with a faint amber glimmer tell, revealed on stone by collapse
+  or demolition, sliding wall + grind, three golden hearts). The
+  trial remains (findable only while no red damage taken this
+  floor; fight + item). The synergy is the design: golden hearts
+  protect red hearts, which keeps the trial findable. Trial needs
+  per-floor red-damage tracking and its own reveal rule.
 - **The three acts** — repeat the world pattern to victory at 9-3:
   two new mini-bosses, two new act-final bosses, per-act reskins
   (triplanar makes a reskin = three 64×64 tiles), possibly bigger

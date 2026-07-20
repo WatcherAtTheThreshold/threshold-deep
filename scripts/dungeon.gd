@@ -35,6 +35,7 @@ const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor
 const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor_start.wav")
 const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.wav")
 const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wall1.wav")
+const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretroom_wallslidegrind1.wav")
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 
@@ -86,6 +87,15 @@ var mush_stage := 0  # world 2: 0 = slime fake-out, 1 = the real boss
 var boss_hatch: Node3D = null
 var boss_hatch_cell := Vector2i(-1, -1)
 
+# The commoner secret (regular floors): a sealed chamber, a buried
+# trigger under one plank, and the wall that slides.
+var secret_room_cells: Array[Vector2i] = []
+var secret_door := Vector2i(-1, -1)
+var secret_plank := Vector2i(-1, -1)
+var secret_revealed := false
+var secret_opened := false
+var secret_tell: OmniLight3D = null
+
 # Item floor state
 var item_room_idx := -1
 var item_mists: Array[Node3D] = []
@@ -113,13 +123,17 @@ func _ready() -> void:
 	]
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
+	kind = RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	var dungeon := DungeonGenerator.generate(GRID_WIDTH, GRID_HEIGHT, ROOM_ATTEMPTS, rng)
+	var dungeon := DungeonGenerator.generate(GRID_WIDTH, GRID_HEIGHT,
+			ROOM_ATTEMPTS, rng, kind == RunState.FloorKind.REGULAR)
 	var map: Array[String] = dungeon.map
 	var rooms: Array[Rect2i] = dungeon.rooms
 	floor_rooms = rooms
-	kind = RunState.floor_kind(RunState.depth)
+	secret_room_cells = dungeon.secret_room
+	secret_door = dungeon.secret_door
+	secret_plank = dungeon.secret_plank
 
 	# Print the blueprint to the Output panel — same grid, new every run.
 	for row in map:
@@ -133,6 +147,15 @@ func _ready() -> void:
 
 	_build(map)
 	_dress_upper_walls()
+	if secret_plank != Vector2i(-1, -1):
+		# The tell: a faint warm glimmer between the boards. Light
+		# equals meaning — the observant get paid.
+		secret_tell = OmniLight3D.new()
+		secret_tell.light_color = Color(1.0, 0.75, 0.35)
+		secret_tell.light_energy = 0.35
+		secret_tell.omni_range = 1.6
+		secret_tell.position = _cell_to_world(secret_plank, 0.6)
+		add_child(secret_tell)
 	if kind == RunState.FloorKind.BOSS:
 		arena_room_idx = _largest_room(rooms)
 		_populate(rooms, arena_room_idx, false)
@@ -230,6 +253,10 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		wall_damage[cell] = wall_damage.get(cell, 0) + amount
 		if wall_damage[cell] < WOOD_FLOOR_HITS:
 			return
+		if Vector2i(cell.x, cell.z) == secret_plank and not secret_revealed:
+			# This plank hides something better than a hole.
+			_reveal_secret_trigger(cell)
+			return
 		grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 		hole_map.set_cell_item(cell, hole_id)
 		Sfx.play_at(SOUND_FLOOR_BREAK,
@@ -263,6 +290,10 @@ func _try_collapse(cell: Vector3i) -> void:
 		return
 	if randf() >= FLOOR_COLLAPSE_CHANCE:
 		return
+	if Vector2i(cell.x, cell.z) == secret_plank and not secret_revealed:
+		# This plank hides something better than a hole.
+		_reveal_secret_trigger(cell)
+		return
 	var standing := _player_cell()
 	if cell == standing or not _player_keeps_path_to_stone(cell, standing):
 		return
@@ -271,6 +302,41 @@ func _try_collapse(cell: Vector3i) -> void:
 	Sfx.play_at(SOUND_FLOOR_BREAK,
 			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -8.0)
 	_drop_the_unsupported(cell)
+
+
+func _reveal_secret_trigger(cell: Vector3i) -> void:
+	# The plank splinters onto stone, not void: something was buried
+	# here. The trigger plate glows where the glimmer used to.
+	secret_revealed = true
+	grid_map.set_cell_item(cell, floor_id)
+	Sfx.play_at(SOUND_FLOOR_BREAK,
+			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
+	if is_instance_valid(secret_tell):
+		secret_tell.queue_free()
+	var plate := BOSS_PLATE_SCENE.instantiate()
+	plate.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.5)
+	plate.activated.connect(_open_secret_room)
+	add_child(plate)
+
+
+func _open_secret_room() -> void:
+	# One wall cell slides aside: the chamber was always there.
+	if secret_opened or secret_door == Vector2i(-1, -1):
+		return
+	secret_opened = true
+	var door := Vector3i(secret_door.x, 0, secret_door.y)
+	grid_map.set_cell_item(door, floor_id)
+	grid_map.set_cell_item(door + Vector3i(0, 1, 0), ceiling_id)
+	upper_map.set_cell_item(door, GridMap.INVALID_CELL_ITEM)
+	Sfx.play_at(SOUND_SECRET_GRIND, _cell_to_world(secret_door, 1.0), -3.0)
+	# The commoner pays in gold: three hearts at the chamber's heart.
+	var center := Vector3.ZERO
+	for c in secret_room_cells:
+		center += _cell_to_world(c, 0.5)
+	center /= secret_room_cells.size()
+	var hearts := MAGIC_PICKUP_SCENE.instantiate()
+	hearts.position = center
+	add_child(hearts)
 
 
 func _drop_the_unsupported(cell: Vector3i) -> void:

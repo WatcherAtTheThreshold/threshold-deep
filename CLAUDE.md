@@ -148,6 +148,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   taking one pedestal (always_consume) dissolves the mist and
   removes the other. Pedestal pairs carry AT MOST ONE weapon. R is inert
   during a boss fight. Trigger-plate item hunts are retired.
+- The commoner secret (x-1 floors): the generator grafts a sealed
+  2×2 chamber outside walkable space (after the solvability proof —
+  sealed space is invisible to it) and buries a trigger under one
+  wooden plank, marked by a faint amber glimmer (the tell). That
+  plank breaks to STONE + trigger plate, not void; the plate slides
+  the door wall open (floor + ceiling lid + upper-band clear +
+  grind sfx) onto three golden hearts. Reveal hooks live in both
+  plank-death paths.
 - Holes live in a second GridMap (`HoleMap`) and are **open lethal
   shafts** — no collision. A collisionless `void` tile (black slab,
   same look) sits under every wooden floor cell from build time;
