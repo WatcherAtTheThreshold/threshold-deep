@@ -135,8 +135,11 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   doors (mist_door.tscn: cold = boss, gold = item) fill a special
   room's doorways — passable until sealed. Boss floors have no
   hatch; a consent plate starts the fight, the seal drops, and the
-  hatch + reward (boss 1: sword; boss 2: container) spawn on clear;
-  boss 3 triggers the victory report. Item rooms seal on entry
+  hatch + reward spawn on clear — the reward is ONE RANDOM DRAW
+  from _relic_pool() (the same availability pool item-room
+  pedestals draw two from; the sword is in the pool like anything
+  else, so a swordless run is a torch run); boss 3 triggers the
+  victory report. Item rooms seal on entry
   until a pedestal (always_consume pickups) is taken. R is inert
   during a boss fight. Trigger-plate item hunts are retired.
 - Holes live in a second GridMap (`HoleMap`) and are **open lethal

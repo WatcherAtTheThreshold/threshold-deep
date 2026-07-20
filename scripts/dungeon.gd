@@ -645,14 +645,11 @@ func _finish_boss_fight() -> void:
 	# anyone's feet.
 	if is_instance_valid(boss_hatch):
 		boss_hatch.open()
-	# The reward is earned by the fight.
-	var reward: Node3D = null
-	match boss_index:
-		0:
-			if not RunState.has_sword:
-				reward = SWORD_SCENE.instantiate()
-		1:
-			reward = CONTAINER_PICKUP_SCENE.instantiate()
+	# The reward is earned by the fight — and the deep decides what
+	# it is: one random draw from the same pool the pedestals use.
+	# Never empty (golden hearts are always in the draw).
+	var pool := _relic_pool()
+	var reward: Node3D = pool[randi_range(0, pool.size() - 1)].instantiate()
 	if reward != null:
 		var arena := floor_rooms[arena_room_idx]
 		var cells := _stone_cells(arena)
@@ -673,24 +670,15 @@ func _finish_boss_fight() -> void:
 # ------------------------------------------------------------------
 # Item floors (docs/structure.md)
 
-func _setup_item_room() -> void:
-	var room := floor_rooms[item_room_idx]
-	item_mists = _spawn_mists(room, true)
-	var cells := _stone_cells(room)
-	# Pedestals gather at the room's heart — spawned at the doorway,
-	# an item could be walked into blind through the mist. The bargain
-	# should be seen before it's struck.
-	var center := room.get_center()
-	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
-		return (a - center).length_squared() < (b - center).length_squared())
-	if cells.is_empty():
-		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
-		cells.append(center)
-	# The pedestal pool: what the run hasn't granted yet. Two are
-	# offered; taking one seals away the other.
+func _relic_pool() -> Array[PackedScene]:
+	# Everything the run hasn't granted yet. Item rooms offer two of
+	# these; bosses drop one at random — even the sword is in the
+	# draw, so a swordless run is a torch run, and that's a run.
 	var pool: Array[PackedScene] = [MAGIC_PICKUP_SCENE]
 	if player.max_health < player.MAX_HEALTH_CAP:
 		pool.append(CONTAINER_PICKUP_SCENE)
+	if not RunState.has_sword:
+		pool.append(SWORD_SCENE)
 	# Crystals gate their next tier on the previous, armor-style.
 	if RunState.fleet_tier == 0:
 		pool.append(FLEETFOOT_SCENE)
@@ -723,6 +711,23 @@ func _setup_item_room() -> void:
 		# Rival weapons: taking either removes both from future pools.
 		pool.append(STAFF_PICKUP_SCENE)
 		pool.append(BOOMERANG_PICKUP_SCENE)
+	return pool
+
+
+func _setup_item_room() -> void:
+	var room := floor_rooms[item_room_idx]
+	item_mists = _spawn_mists(room, true)
+	var cells := _stone_cells(room)
+	# Pedestals gather at the room's heart — spawned at the doorway,
+	# an item could be walked into blind through the mist. The bargain
+	# should be seen before it's struck.
+	var center := room.get_center()
+	cells.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return (a - center).length_squared() < (b - center).length_squared())
+	if cells.is_empty():
+		grid_map.set_cell_item(Vector3i(center.x, 0, center.y), floor_id)
+		cells.append(center)
+	var pool := _relic_pool()
 	pool.shuffle()
 	var count := mini(2, mini(pool.size(), cells.size()))
 	for i in count:
