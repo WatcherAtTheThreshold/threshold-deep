@@ -138,18 +138,23 @@ const SECTIONS = [
       ],
     },
     {
-      name: 'Wizard', rest: S + 'wizard1.png',
+      name: 'Wizard', rest: S + 'wizard/wizard_front1.png',
       sounds: hitTrio('enemies/wizard_take_hit'),
-      frames: walk(S + 'wizard1.png', S + 'wizard2.png'),
+      cycle: [
+        { frames: walk(S + 'wizard/wizard_front1.png', S + 'wizard/wizard_front2.png') },
+        { frames: walk(S + 'wizard/wizard_side1.png', S + 'wizard/wizard_side2.png') },
+        { frames: walk(S + 'wizard/wizard_side1.png', S + 'wizard/wizard_side2.png'), flip: true },
+        { frames: walk(S + 'wizard/wizard_back1.png', S + 'wizard/wizard_back2.png') },
+      ],
     },
     {
-      name: 'Wizard Cast', rest: S + 'wizard_shoot1.png',
+      name: 'Wizard Cast', rest: S + 'wizard/wizard_shoot1.png',
       sounds: [A + 'enemies/projectile-wizard.wav'],
       frames: [
-        [S + 'wizard_shoot1.png', 450],
-        [S + 'wizard_shoot2.png', 220],
-        [S + 'wizard_shoot3.png', 320],
-        [S + 'wizard1.png', 10],
+        [S + 'wizard/wizard_shoot1.png', 450],
+        [S + 'wizard/wizard_shoot2.png', 220],
+        [S + 'wizard/wizard_shoot3.png', 320],
+        [S + 'wizard/wizard_front1.png', 10],
       ],
     },
     {
@@ -286,11 +291,15 @@ const SECTIONS = [
       ],
     },
     {
-      name: 'Sword', wide: true, rest: S + 'hand-sword.png',
+      name: 'Sword', wide: true, rest: S + 'sword/sword_walk1.png',
       sounds: hitTrio('player/sword_slice'),
       frames: [
-        [S + 'hand-sword-swing.png', 220],
-        [S + 'hand-sword.png', 10],
+        [S + 'sword/sword_swing1.png', 60],
+        [S + 'sword/sword_swing2.png', 110],
+        [S + 'sword/sword_swing3.png', 100],
+        [S + 'sword/sword_walk1.png', 300],
+        [S + 'sword/sword_walk2.png', 300],
+        [S + 'sword/sword_walk1.png', 10],
       ],
     },
     {

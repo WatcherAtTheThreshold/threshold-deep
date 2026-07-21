@@ -13,8 +13,17 @@ const TORCH_SWING_FRAMES: Array[Texture2D] = [
 ]
 # Windup / extended strike (embers fly here) / follow-through.
 const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
-const SWORD_IDLE := preload("res://assets/sprites/hand-sword.png")
-const SWORD_SWING := preload("res://assets/sprites/hand-sword-swing.png")
+const SWORD_IDLE_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/sword/sword_walk1.png"),
+	preload("res://assets/sprites/sword/sword_walk2.png"),
+]
+const SWORD_SWING_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/sword/sword_swing1.png"),
+	preload("res://assets/sprites/sword/sword_swing2.png"),
+	preload("res://assets/sprites/sword/sword_swing3.png"),
+]
+# Windup / strike / follow-through.
+const SWORD_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
 const STAFF_IDLE := preload("res://assets/sprites/magic_staff.png")
 const STAFF_SWING := preload("res://assets/sprites/magic_staff_swing.png")
 const BOOMERANG_IDLE := preload("res://assets/sprites/hand-boomerang.png")
@@ -74,8 +83,8 @@ func set_weapon(new_weapon: String) -> void:
 			idle_frames = [STAFF_IDLE]
 			swing_texture = STAFF_SWING
 		"sword":
-			idle_frames = [SWORD_IDLE]
-			swing_texture = SWORD_SWING
+			idle_frames = SWORD_IDLE_FRAMES
+			swing_texture = SWORD_SWING_FRAMES[1]
 		"halberd":
 			idle_frames = HALBERD_IDLE_FRAMES
 			swing_texture = HALBERD_ATTACK_FRAMES[1]
@@ -105,10 +114,13 @@ func _process(delta: float) -> void:
 					.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		visible = not out or swinging
 		was_out = out
-	# The torch flame flickers while at rest in the hand.
+	# The torch flame always flickers; blades with idle pairs are
+	# walk frames — they sway only while the feet move.
 	if not swinging and idle_frames.size() > 1:
-		flicker_clock += delta
-		texture = idle_frames[int(flicker_clock / FLICKER_TIME) % idle_frames.size()]
+		var cadence := FLICKER_TIME if weapon == "torch" else 0.3
+		if weapon == "torch" or (ground_speed > 0.1 and player.is_on_floor()):
+			flicker_clock += delta
+		texture = idle_frames[int(flicker_clock / cadence) % idle_frames.size()]
 	# Pin the art's bottom-right to the corner whatever the canvas
 	# size. Rect size is forced to the texture's own size — the layout
 	# system lags texture swaps and would draw wide frames squashed
@@ -158,20 +170,24 @@ func _on_attacked() -> void:
 			texture = idle_frames[0]
 			swinging = false)
 		return
-	if weapon == "halberd":
-		# Same drawn-arc shape as the torch, no embers — this is a
-		# blade, not a flame.
+	if weapon == "halberd" or weapon == "sword":
+		# Same drawn-arc shape as the torch, no embers — these are
+		# blades, not flames.
+		var arc_frames := HALBERD_ATTACK_FRAMES if weapon == "halberd" \
+				else SWORD_SWING_FRAMES
+		var arc_times := HALBERD_SWING_TIMES if weapon == "halberd" \
+				else SWORD_SWING_TIMES
 		if swing_tween != null and swing_tween.is_valid():
 			swing_tween.kill()
-		texture = HALBERD_ATTACK_FRAMES[0]
+		texture = arc_frames[0]
 		swing_tween = create_tween()
-		swing_tween.tween_interval(HALBERD_SWING_TIMES[0])
+		swing_tween.tween_interval(arc_times[0])
 		swing_tween.tween_callback(func() -> void:
-			texture = HALBERD_ATTACK_FRAMES[1])
-		swing_tween.tween_interval(HALBERD_SWING_TIMES[1])
+			texture = arc_frames[1])
+		swing_tween.tween_interval(arc_times[1])
 		swing_tween.tween_callback(func() -> void:
-			texture = HALBERD_ATTACK_FRAMES[2])
-		swing_tween.tween_interval(HALBERD_SWING_TIMES[2])
+			texture = arc_frames[2])
+		swing_tween.tween_interval(arc_times[2])
 		swing_tween.tween_callback(func() -> void:
 			texture = idle_frames[0]
 			swinging = false)

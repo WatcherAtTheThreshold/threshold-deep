@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/orb.gd" id="1_orb"]
-[ext_resource type="Texture2D" path="res://assets/sprites/wizard_orb1.png" id="2_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/wizard/wizard_orb1.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/projectile-wizard.wav" id="3_sound"]
 
 [sub_resource type="SphereShape3D" id="sphere_orb"]

@@ -1,11 +1,21 @@
 extends CharacterBody3D
 
-const FRAME_A := preload("res://assets/sprites/wizard1.png")
-const FRAME_B := preload("res://assets/sprites/wizard2.png")
-const DEAD_TEXTURE := preload("res://assets/sprites/wizard_dead.png")
-const TEX_SHOOT_1 := preload("res://assets/sprites/wizard_shoot1.png")
-const TEX_SHOOT_2 := preload("res://assets/sprites/wizard_shoot2.png")
-const TEX_SHOOT_3 := preload("res://assets/sprites/wizard_shoot3.png")
+const FRONT_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_front1.png"),
+	preload("res://assets/sprites/wizard/wizard_front2.png"),
+]
+const SIDE_FRAMES: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/wizard/wizard_side1.png"),
+	preload("res://assets/sprites/wizard/wizard_side2.png"),
+]
+const BACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_back1.png"),
+	preload("res://assets/sprites/wizard/wizard_back2.png"),
+]
+const DEAD_TEXTURE := preload("res://assets/sprites/wizard/wizard_dead.png")
+const TEX_SHOOT_1 := preload("res://assets/sprites/wizard/wizard_shoot1.png")
+const TEX_SHOOT_2 := preload("res://assets/sprites/wizard/wizard_shoot2.png")
+const TEX_SHOOT_3 := preload("res://assets/sprites/wizard/wizard_shoot3.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_take_hit1.wav"),
@@ -30,6 +40,12 @@ const MAX_HEALTH := 4
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
+# Wizards drift when unwatched: slower, shorter wanders than bones.
+const WANDER_SPEED := 0.8
+const WANDER_LEG_MIN := 0.8
+const WANDER_LEG_MAX := 2.0
+const WANDER_PAUSE_MIN := 2.0
+const WANDER_PAUSE_MAX := 6.0
 
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
@@ -43,6 +59,10 @@ var target: PhysicsBody3D = null
 var glow_tween: Tween
 var knock_timer := 0.0
 var last_attacker: PhysicsBody3D = null
+var facing := Vector3.FORWARD
+var wander_dir := Vector3.ZERO
+var wander_timer := 0.0
+var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 @onready var cast_glow: OmniLight3D = $CastGlow
 @onready var sprite: Sprite3D = $Sprite
@@ -74,6 +94,9 @@ func _physics_process(delta: float) -> void:
 	var dist := to_target.length()
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 	var sees_target := dist < sight and _can_see(t)
+	if sees_target and dist > 0.01:
+		# A caster keeps its eyes on you even while backpedaling.
+		facing = to_target.normalized()
 
 	if charging:
 		# Rooted while the cast winds up — orb at the chest, glow
@@ -108,8 +131,7 @@ func _physics_process(delta: float) -> void:
 			charge_timer = CHARGE_TIME
 			_start_cast_glow()
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
-		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		_wander(delta)
 
 	move_and_slide()
 
@@ -123,9 +145,9 @@ func _physics_process(delta: float) -> void:
 		sprite.texture = TEX_SHOOT_2 if recovery_timer > RECOVERY_TIME * 0.5 else TEX_SHOOT_3
 	elif moving:
 		walk_time += delta
-		sprite.texture = FRAME_A if int(walk_time / WALK_FRAME_TIME) % 2 == 0 else FRAME_B
+		_update_view(int(walk_time / WALK_FRAME_TIME) % 2)
 	else:
-		sprite.texture = FRAME_A
+		_update_view(0)
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
@@ -149,6 +171,44 @@ func _floor_ahead(dir: Vector3) -> bool:
 		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
 	query.hit_from_inside = true
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _wander(delta: float) -> void:
+	# Unwatched wizards drift about: short slow legs, long pauses.
+	# Walls and rims end a leg early; sight overrides everything.
+	if wander_timer > 0.0:
+		wander_timer -= delta
+		if is_on_wall() or not _floor_ahead(wander_dir):
+			wander_timer = 0.0
+		facing = wander_dir
+		velocity.x = wander_dir.x * WANDER_SPEED
+		velocity.z = wander_dir.z * WANDER_SPEED
+		if wander_timer <= 0.0:
+			wander_wait = randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, SPEED)
+		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		wander_wait -= delta
+		if wander_wait <= 0.0:
+			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
+			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
+
+
+func _update_view(frame: int) -> void:
+	# Four-way billboard, Doom style: project the heading onto the
+	# camera's axes — the dominant component picks the view. Side art
+	# faces left, so it flips when heading toward screen-right.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (BACK_FRAMES if depth > 0.0 else FRONT_FRAMES)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_FRAMES[frame]
 
 
 func _fall_into_dark() -> void:
@@ -227,6 +287,7 @@ func _die(by_player: bool) -> void:
 		RunState.record_kill(kill_label())
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
+	sprite.flip_h = false
 	sprite.texture = DEAD_TEXTURE
 	sprite.modulate = Color.WHITE
 	velocity = Vector3.ZERO

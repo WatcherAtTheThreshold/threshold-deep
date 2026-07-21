@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bc8jnf5j5t8u5"
-path="res://.godot/imported/wizard_shoot3.png-1edad3437464e523124b1fa5f20d6aec.ctex"
+uid="uid://dpx0c8j4txgc6"
+path="res://.godot/imported/wizard_shoot1.png-19d373ec9562f21fee2b66172381db3b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/wizard_shoot3.png"
-dest_files=["res://.godot/imported/wizard_shoot3.png-1edad3437464e523124b1fa5f20d6aec.ctex"]
+source_file="res://assets/sprites/wizard/wizard_shoot1.png"
+dest_files=["res://.godot/imported/wizard_shoot1.png-19d373ec9562f21fee2b66172381db3b.ctex"]
 
 [params]
 

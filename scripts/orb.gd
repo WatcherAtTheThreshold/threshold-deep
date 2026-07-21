@@ -1,7 +1,7 @@
 extends Area3D
 
-const FRAME_A := preload("res://assets/sprites/wizard_orb1.png")
-const FRAME_B := preload("res://assets/sprites/wizard_orb2.png")
+const FRAME_A := preload("res://assets/sprites/wizard/wizard_orb1.png")
+const FRAME_B := preload("res://assets/sprites/wizard/wizard_orb2.png")
 const WIZARD_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.wav"),
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.wav"),

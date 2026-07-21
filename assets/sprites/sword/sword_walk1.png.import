@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b78othiynoo13"
-path="res://.godot/imported/hand-sword-swing.png-bfe36c6333e8ff59eb4c56481daa552f.ctex"
+uid="uid://c2oef3ka7d0se"
+path="res://.godot/imported/sword_walk1.png-f91eba4fa2e4ee74b7ea45ecd3ce0073.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/hand-sword-swing.png"
-dest_files=["res://.godot/imported/hand-sword-swing.png-bfe36c6333e8ff59eb4c56481daa552f.ctex"]
+source_file="res://assets/sprites/sword/sword_walk1.png"
+dest_files=["res://.godot/imported/sword_walk1.png-f91eba4fa2e4ee74b7ea45ecd3ce0073.ctex"]
 
 [params]
 

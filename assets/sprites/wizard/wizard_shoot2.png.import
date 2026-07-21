@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drmtwpe8f2wqy"
-path="res://.godot/imported/wizard_dead.png-ecbe2b565945dbd39149994efe0b4abd.ctex"
+uid="uid://bmgobhoig6gg0"
+path="res://.godot/imported/wizard_shoot2.png-e31881454639bb1f009d06b4540e5bd4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/wizard_dead.png"
-dest_files=["res://.godot/imported/wizard_dead.png-ecbe2b565945dbd39149994efe0b4abd.ctex"]
+source_file="res://assets/sprites/wizard/wizard_shoot2.png"
+dest_files=["res://.godot/imported/wizard_shoot2.png-e31881454639bb1f009d06b4540e5bd4.ctex"]
 
 [params]
 

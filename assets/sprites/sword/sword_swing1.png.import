@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b20q2cxwettx8"
-path="res://.godot/imported/wizard_orb1.png-91847bae355cfdb66753b4fbb1111c6d.ctex"
+uid="uid://cub1tuc84o31o"
+path="res://.godot/imported/sword_swing1.png-13d85cbaefe55092ff948eb4d1908145.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/wizard_orb1.png"
-dest_files=["res://.godot/imported/wizard_orb1.png-91847bae355cfdb66753b4fbb1111c6d.ctex"]
+source_file="res://assets/sprites/sword/sword_swing1.png"
+dest_files=["res://.godot/imported/sword_swing1.png-13d85cbaefe55092ff948eb4d1908145.ctex"]
 
 [params]
 
