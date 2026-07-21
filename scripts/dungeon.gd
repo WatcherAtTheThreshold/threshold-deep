@@ -25,6 +25,7 @@ const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
 const BOOMERANG_PICKUP_SCENE := preload("res://scenes/boomerang_pickup.tscn")
+const HALBERD_PICKUP_SCENE := preload("res://scenes/halberd_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
 const MIST_GATE_SCENE := preload("res://scenes/mist_gate.tscn")
 const ARRIVAL_DOOR_SCENE := preload("res://scenes/arrival_door.tscn")
@@ -155,7 +156,7 @@ func _ready() -> void:
 		# equals meaning — the observant get paid.
 		secret_tell = OmniLight3D.new()
 		secret_tell.light_color = Color(1.0, 0.75, 0.35)
-		secret_tell.light_energy = 0.15
+		secret_tell.light_energy = 0.075
 		secret_tell.omni_range = 1.6
 		secret_tell.position = _cell_to_world(secret_plank, 0.6)
 		add_child(secret_tell)
@@ -785,6 +786,8 @@ func _relic_pool() -> Array[PackedScene]:
 		pool.append(STAFF_PICKUP_SCENE)
 	if not RunState.has_boomerang:
 		pool.append(BOOMERANG_PICKUP_SCENE)
+	if not RunState.has_halberd:
+		pool.append(HALBERD_PICKUP_SCENE)
 	return pool
 
 
@@ -807,7 +810,7 @@ func _setup_item_room() -> void:
 	# At most one weapon per bargain: a second weapon draw is passed
 	# over, so a pedestal pair never demands the player rearm.
 	var weapons: Array[PackedScene] = \
-			[SWORD_SCENE, STAFF_PICKUP_SCENE, BOOMERANG_PICKUP_SCENE]
+			[SWORD_SCENE, STAFF_PICKUP_SCENE, BOOMERANG_PICKUP_SCENE, HALBERD_PICKUP_SCENE]
 	var picks: Array[PackedScene] = []
 	var weapon_taken := false
 	for scene: PackedScene in pool:
