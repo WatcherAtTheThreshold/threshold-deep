@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/mush.gd" id="1_mush"]
-[ext_resource type="Texture2D" path="res://assets/sprites/mush/mush/mush1.png" id="2_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/mush/mush/mush_front1.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/footsteps_enemies.wav" id="3_steps"]
 
 [sub_resource type="SphereShape3D" id="sphere_mush"]

@@ -43,6 +43,18 @@ const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretro
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 const HATCH_TEXTURE := preload("res://assets/tiles/hatch_open.png")
+const FLOOR_BREAK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/tiles/floor_wooden_break1.png"),
+	preload("res://assets/tiles/floor_wooden_break2.png"),
+	preload("res://assets/tiles/floor_wooden_break3.png"),
+]
+const WALL_BREAK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/tiles/wall_wooden_break1.png"),
+	preload("res://assets/tiles/wall_wooden_break2.png"),
+	preload("res://assets/tiles/wall_wooden_break3.png"),
+]
+const BREAK_FRAME_TIME := 0.07
+const WALL_BREAK_Y := 1.5  # eye/torch height on the 4m opening
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -273,6 +285,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		hole_map.set_cell_item(cell, hole_id)
 		Sfx.play_at(SOUND_FLOOR_BREAK,
 				_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
+		_spawn_floor_break_effect(cell)
 		_drop_the_unsupported(cell)
 		return
 	if id != wall_wood_id:
@@ -284,6 +297,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		grid_map.set_cell_item(cell + Vector3i(0, 1, 0), ceiling_id)
 		Sfx.play_at(SOUND_WALL_BREAK,
 				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
+		_spawn_wall_break_effect(cell)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -314,7 +328,52 @@ func _try_collapse(cell: Vector3i) -> void:
 	hole_map.set_cell_item(cell, hole_id)
 	Sfx.play_at(SOUND_FLOOR_BREAK,
 			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -8.0)
+	_spawn_floor_break_effect(cell)
 	_drop_the_unsupported(cell)
+
+
+func _spawn_floor_break_effect(cell: Vector3i) -> void:
+	# The plank splinters as it falls away: three top-down frames of
+	# cracking, laid flat over the cell just above the floor, then gone
+	# to the dark. Purely cosmetic — the hole and its physics already
+	# applied, so this shatter plays over the newly-open shaft.
+	var s := Sprite3D.new()
+	s.texture = FLOOR_BREAK_FRAMES[0]
+	s.pixel_size = 0.03125
+	s.shaded = true
+	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	s.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	s.rotation_degrees = Vector3(-90, 0, 0)
+	add_child(s)
+	s.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.53)
+	_play_break_frames(s, FLOOR_BREAK_FRAMES)
+
+
+func _spawn_wall_break_effect(cell: Vector3i) -> void:
+	# The plank wall gives in a burst of splinters: three frames on an
+	# upright billboard standing in the just-opened doorway, then gone.
+	# Purely cosmetic — the cell is already floor + lidded overhead.
+	var s := Sprite3D.new()
+	s.texture = WALL_BREAK_FRAMES[0]
+	s.pixel_size = 0.03125
+	s.shaded = true
+	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	s.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
+	add_child(s)
+	s.position = _cell_to_world(Vector2i(cell.x, cell.z), WALL_BREAK_Y)
+	_play_break_frames(s, WALL_BREAK_FRAMES)
+
+
+func _play_break_frames(s: Sprite3D, frames: Array[Texture2D]) -> void:
+	# Step a splinter sprite through its frames, then free it.
+	var tw := s.create_tween()
+	for i in range(1, frames.size()):
+		tw.tween_interval(BREAK_FRAME_TIME)
+		tw.tween_callback(s.set_texture.bind(frames[i]))
+	tw.tween_interval(BREAK_FRAME_TIME)
+	tw.tween_callback(s.queue_free)
 
 
 func _reveal_secret_trigger(cell: Vector3i) -> void:

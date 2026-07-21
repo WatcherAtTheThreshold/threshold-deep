@@ -2,12 +2,37 @@ extends CharacterBody3D
 
 enum State { PUDDLE, BOSS, LARGE, SMALL }
 
+# Boss is front-only (no turnaround) — its two frames drive the walk
+# shamble directly.
 const TEX_BOSS_1 := preload("res://assets/sprites/slime/slime-boss/slime-boss-front1.png")
 const TEX_BOSS_2 := preload("res://assets/sprites/slime/slime-boss/slime-boss-front2.png")
-const TEX_LARGE_1 := preload("res://assets/sprites/slime/slime-large/slime-large-down1.png")
-const TEX_LARGE_2 := preload("res://assets/sprites/slime/slime-large/slime-large-down2.png")
-const TEX_SMALL_1 := preload("res://assets/sprites/slime/slime-small/slimes-small-down1.png")
-const TEX_SMALL_2 := preload("res://assets/sprites/slime/slime-small/slimes-small-down2.png")
+
+# Turnarounds for large + small: front1/2, side1/2 (drawn facing left;
+# code flips for right), back1/2. _update_view picks the view.
+const LARGE_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_front1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_front2.png"),
+]
+const LARGE_SIDE: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_side1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_side2.png"),
+]
+const LARGE_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_back1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_back2.png"),
+]
+const SMALL_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_front1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_front2.png"),
+]
+const SMALL_SIDE: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_side1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_side2.png"),
+]
+const SMALL_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_back1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_back2.png"),
+]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/slime_taking_hits1.wav"),
 	preload("res://assets/audio/sfx/enemies/slime_taking_hits2.wav"),
@@ -42,6 +67,14 @@ const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
 
+# Idle ooze: with no one to chase and no twin to rejoin, the blob
+# slides a little way, then sits. Slow, aimless, frequent long rests.
+const WANDER_SPEED := 0.7
+const WANDER_LEG_MIN := 1.0
+const WANDER_LEG_MAX := 2.5
+const WANDER_PAUSE_MIN := 1.5
+const WANDER_PAUSE_MAX := 5.5
+
 var state := State.PUDDLE
 var health := LARGE_MAX_HEALTH
 var speed_scale := 1.0
@@ -54,6 +87,13 @@ var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
 var partner: CharacterBody3D = null  # fellow small to re-merge with
+var front_frames: Array[Texture2D] = LARGE_FRONT
+var side_frames: Array[Texture2D] = LARGE_SIDE
+var back_frames: Array[Texture2D] = LARGE_BACK  # empty for the boss (front-only)
+var facing := Vector3.FORWARD
+var wander_dir := Vector3.ZERO
+var wander_timer := 0.0
+var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 var knock_timer := 0.0
 var last_attacker: PhysicsBody3D = null
 
@@ -151,6 +191,7 @@ func _physics_process(delta: float) -> void:
 	elif dist < sight and _can_see(goal):
 		if goal == partner or dist > ATTACK_RANGE:
 			var dir := to_goal.normalized()
+			facing = dir
 			if _floor_ahead(dir):
 				velocity.x = dir.x * speed
 				velocity.z = dir.z * speed
@@ -161,29 +202,47 @@ func _physics_process(delta: float) -> void:
 		else:
 			velocity.x = 0.0
 			velocity.z = 0.0
+			facing = to_goal.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
 				goal.take_damage(damage, to_goal.normalized(), self)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, speed)
-		velocity.z = move_toward(velocity.z, 0.0, speed)
+		_wander(delta, speed)
 
 	move_and_slide()
 
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
-	var first := int(walk_time / WALK_FRAME_TIME) % 2 == 0 if moving else true
+	# Two-frame squish while moving; rest on the first frame when
+	# still. Which view shows depends on camera versus heading.
+	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving:
 		walk_time += delta
-	if state == State.BOSS:
-		sprite.texture = TEX_BOSS_1 if first else TEX_BOSS_2
-	elif state == State.LARGE:
-		sprite.texture = TEX_LARGE_1 if first else TEX_LARGE_2
-	else:
-		sprite.texture = TEX_SMALL_1 if first else TEX_SMALL_2
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
 		step_sound.stop()
+
+
+func _wander(delta: float, decel: float) -> void:
+	# No target, no twin to rejoin: the blob oozes at random. Short
+	# slides, long rests. A wall or a rim ends a slide early; the
+	# sight/merge checks upstream override the moment anything appears.
+	if wander_timer > 0.0:
+		wander_timer -= delta
+		if is_on_wall() or not _floor_ahead(wander_dir):
+			wander_timer = 0.0
+		facing = wander_dir
+		velocity.x = wander_dir.x * WANDER_SPEED
+		velocity.z = wander_dir.z * WANDER_SPEED
+		if wander_timer <= 0.0:
+			wander_wait = randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
+	else:
+		velocity.x = move_toward(velocity.x, 0.0, decel)
+		velocity.z = move_toward(velocity.z, 0.0, decel)
+		wander_wait -= delta
+		if wander_wait <= 0.0:
+			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
+			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -297,27 +356,59 @@ func _apply_state() -> void:
 	# bottom edge lands exactly on the floor surface at these offsets.
 	# Smalls squish at a higher pitch than the big one.
 	if state == State.BOSS:
-		sprite.texture = TEX_BOSS_1
+		# Front-only: empty side/back frames flag the boss in
+		# _update_view, so its two frames drive the shamble directly.
+		front_frames = [TEX_BOSS_1, TEX_BOSS_2]
+		side_frames = []
+		back_frames = []
 		# Boss canvas is 96px (3m): half-height 1.5 minus the 0.5
 		# body radius stands its bottom edge on the floor.
 		sprite.position = Vector3(0, 1.0, 0)
 		step_sound.pitch_scale = 0.7
 		damage = 4
 	elif state == State.LARGE:
-		sprite.texture = TEX_LARGE_1
+		front_frames = LARGE_FRONT
+		side_frames = LARGE_SIDE
+		back_frames = LARGE_BACK
 		sprite.position = Vector3(0, 0.5, 0)
 		step_sound.pitch_scale = 0.85
 		damage = 2
 	else:
-		sprite.texture = TEX_SMALL_1
+		front_frames = SMALL_FRONT
+		side_frames = SMALL_SIDE
+		back_frames = SMALL_BACK
 		sprite.position = Vector3.ZERO
 		step_sound.pitch_scale = 1.2
 		damage = 2
+	sprite.texture = front_frames[0]
+
+
+func _update_view(frame: int) -> void:
+	# Four-way billboard, Doom style: project the heading onto the
+	# camera's axes — the dominant component picks the view. Side art
+	# faces left, so it flips when heading toward screen-right. The boss
+	# has no turnaround (empty side/back) and stays front-facing.
+	if back_frames.is_empty():
+		sprite.flip_h = false
+		sprite.texture = front_frames[frame]
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth_dot := facing.dot(-cam.global_transform.basis.z)
+	var side_dot := facing.dot(cam.global_transform.basis.x)
+	if absf(depth_dot) >= absf(side_dot):
+		sprite.flip_h = false
+		sprite.texture = (back_frames if depth_dot > 0.0 else front_frames)[frame]
+	else:
+		sprite.flip_h = side_dot > 0.0
+		sprite.texture = side_frames[frame]
 
 
 func _show_mid_spawn() -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.rotation = Vector3.ZERO
+	sprite.flip_h = false  # clear any leftover side-view mirroring
 	sprite.position = Vector3(0, 0.5, 0)
 	sprite.texture = TEX_MID_SPAWN
 
@@ -326,6 +417,7 @@ func _show_flat(tex: Texture2D) -> void:
 	# Puddles and corpses lie on the floor like the hatch does.
 	sprite.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	sprite.rotation_degrees = Vector3(-90, 0, 0)
+	sprite.flip_h = false  # clear any leftover side-view mirroring
 	sprite.position = Vector3(0, -0.47, 0)
 	sprite.texture = tex
 
