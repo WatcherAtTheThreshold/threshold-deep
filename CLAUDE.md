@@ -158,7 +158,9 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - The commoner secret (x-1 floors): the generator grafts a sealed
   2×2 chamber outside walkable space (after the solvability proof —
   sealed space is invisible to it) and buries a trigger under one
-  wooden plank, marked by a faint amber glimmer (the tell). That
+  wooden plank. The tell is the tile itself: `floor_wood_pale`,
+  the same boards drained of color — pattern recognition, no
+  spotlight; treat pale wood as wood in every plank-logic check. That
   plank breaks to STONE + trigger plate, not void; the plate slides
   the door wall open (floor + ceiling lid + upper-band clear +
   grind sfx) onto three golden hearts. Reveal hooks live in both

@@ -1,4 +1,4 @@
-[gd_resource type="MeshLibrary" load_steps=28 format=3]
+[gd_resource type="MeshLibrary" load_steps=30 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/floor_stone.png" id="1_floor"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_stone.png" id="2_wall"]
@@ -38,6 +38,14 @@ uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 [sub_resource type="StandardMaterial3D" id="mat_floor_wood"]
 albedo_texture = ExtResource("3_floor_wood")
+roughness = 0.8
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="StandardMaterial3D" id="mat_floor_wood_pale"]
+albedo_texture = ExtResource("3_floor_wood")
+albedo_color = Color(0.82, 0.84, 0.9, 1)
 roughness = 0.8
 texture_filter = 0
 uv1_triplanar = true
@@ -84,6 +92,10 @@ size = Vector3(2, 2, 2)
 
 [sub_resource type="BoxMesh" id="mesh_floor_wood"]
 material = SubResource("mat_floor_wood")
+size = Vector3(2, 0.5, 2)
+
+[sub_resource type="BoxMesh" id="mesh_floor_wood_pale"]
+material = SubResource("mat_floor_wood_pale")
 size = Vector3(2, 0.5, 2)
 
 [sub_resource type="BoxMesh" id="mesh_wall_wood"]
@@ -152,3 +164,7 @@ item/10/name = "buried_stone"
 item/10/mesh = SubResource("mesh_floor")
 item/10/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.25, 0)
 item/10/shapes = []
+item/11/name = "floor_wood_pale"
+item/11/mesh = SubResource("mesh_floor_wood_pale")
+item/11/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
+item/11/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]

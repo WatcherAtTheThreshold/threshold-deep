@@ -74,6 +74,7 @@ var ceiling_id := -1
 var wall_upper_id := -1
 var wall_upper_variants: Array[int] = []
 var buried_stone_id := -1
+var floor_wood_pale_id := -1
 
 var wall_damage := {}
 var last_player_cell := Vector3i(-9999, 0, -9999)
@@ -99,7 +100,6 @@ var secret_door := Vector2i(-1, -1)
 var secret_plank := Vector2i(-1, -1)
 var secret_revealed := false
 var secret_opened := false
-var secret_tell: OmniLight3D = null
 
 # Item floor state
 var item_room_idx := -1
@@ -127,6 +127,7 @@ func _ready() -> void:
 		grid_map.mesh_library.find_item_by_name("wall_upper2"),
 	]
 	buried_stone_id = grid_map.mesh_library.find_item_by_name("buried_stone")
+	floor_wood_pale_id = grid_map.mesh_library.find_item_by_name("floor_wood_pale")
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 
 	kind = RunState.floor_kind(RunState.depth)
@@ -153,15 +154,6 @@ func _ready() -> void:
 
 	_build(map)
 	_dress_upper_walls()
-	if secret_plank != Vector2i(-1, -1):
-		# The tell: a faint warm glimmer between the boards. Light
-		# equals meaning — the observant get paid.
-		secret_tell = OmniLight3D.new()
-		secret_tell.light_color = Color(1.0, 0.75, 0.35)
-		secret_tell.light_energy = 0.075
-		secret_tell.omni_range = 1.6
-		secret_tell.position = _cell_to_world(secret_plank, 0.6)
-		add_child(secret_tell)
 	if kind == RunState.FloorKind.BOSS:
 		arena_room_idx = _largest_room(rooms)
 		_populate(rooms, arena_room_idx, false)
@@ -250,7 +242,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 	# Nudge inward past the surface so we sample the struck cell.
 	var cell := grid_map.local_to_map(grid_map.to_local(hit_pos - hit_normal * 0.05))
 	var id := grid_map.get_cell_item(cell)
-	if id == floor_wood_id:
+	if id == floor_wood_id or id == floor_wood_pale_id:
 		# Planks splinter under fire — anyone's fire — and deliberate
 		# damage has the final say: no guards here. You can drop the
 		# plank under an enemy, or under yourself if you mean to. The
@@ -292,7 +284,8 @@ func _try_collapse(cell: Vector3i) -> void:
 	# A wooden cell just lost its walker. Whoever stepped, the same
 	# protections hold: never the player's own square, never a plank
 	# whose loss severs the player's path to stone.
-	if grid_map.get_cell_item(cell) != floor_wood_id:
+	var walked_id := grid_map.get_cell_item(cell)
+	if walked_id != floor_wood_id and walked_id != floor_wood_pale_id:
 		return
 	if randf() >= FLOOR_COLLAPSE_CHANCE:
 		return
@@ -318,8 +311,6 @@ func _reveal_secret_trigger(cell: Vector3i) -> void:
 	hole_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 	Sfx.play_at(SOUND_FLOOR_BREAK,
 			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
-	if is_instance_valid(secret_tell):
-		secret_tell.queue_free()
 	var plate := SECRET_PLATE_SCENE.instantiate()
 	plate.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.5)
 	plate.activated.connect(_open_secret_room)
@@ -392,14 +383,15 @@ func _player_keeps_path_to_stone(collapse_cell: Vector3i, player_cell: Vector3i)
 		var id := grid_map.get_cell_item(Vector3i(c.x, 0, c.y))
 		if id == floor_id:
 			return true
-		if id != floor_wood_id and c != start:
+		if id != floor_wood_id and id != floor_wood_pale_id and c != start:
 			continue
 		for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
 			var n := c + d
 			if n == banned or visited.has(n):
 				continue
 			var nid := grid_map.get_cell_item(Vector3i(n.x, 0, n.y))
-			if nid == floor_id or nid == floor_wood_id:
+			if nid == floor_id or nid == floor_wood_id \
+					or nid == floor_wood_pale_id:
 				visited[n] = true
 				queue.append(n)
 	return false
@@ -459,7 +451,13 @@ func _build(map: Array[String]) -> void:
 				",":
 					id = floor_wood_id
 			grid_map.set_cell_item(Vector3i(x, 0, z), id)
-			if id == floor_wood_id:
+			if id == floor_wood_id and Vector2i(x, z) == secret_plank:
+				# The tell is the tile itself: same boards, drained
+				# of color. Pattern recognition, not a spotlight —
+				# and the tint can fade toward normal deeper down.
+				id = floor_wood_pale_id
+				grid_map.set_cell_item(Vector3i(x, 0, z), id)
+			if id == floor_wood_id or id == floor_wood_pale_id:
 				# The under-place was always there; the planks only
 				# hide it. Collisionless black under every plank so
 				# holes never leak the sky-blue backdrop sideways —
@@ -468,7 +466,7 @@ func _build(map: Array[String]) -> void:
 				# from birth, the second tell, visible from any
 				# neighboring hole.
 				var under := void_id
-				if Vector2i(x, z) == secret_plank:
+				if id == floor_wood_pale_id:
 					under = buried_stone_id
 				hole_map.set_cell_item(Vector3i(x, 0, z), under)
 			# Every walkable cell gets a ceiling slab in the cell
@@ -929,7 +927,7 @@ func _cell_id(cell: Vector2i) -> int:
 
 func _is_open_cell(cell: Vector2i) -> bool:
 	var id := _cell_id(cell)
-	return id == floor_id or id == floor_wood_id
+	return id == floor_id or id == floor_wood_id or id == floor_wood_pale_id
 
 
 func _spawn_curtain(run: Vector2, boundary: float, horizontal: bool, gold: bool) -> Node3D:

@@ -153,6 +153,18 @@ already in — levels, tails, pitch spreads — as the mix fills up.
 - Sealed-variant doorframe art (arrival doors currently show bare
   stone through the open frame — works, but a drawn seal could
   read stronger)
+- **The 3-3 floor drop** — after the wave, the arena floor gives
+  way and the player falls into a larger chamber below where the
+  corpses reassemble into the Skeletal Wizard. Endorsed: it's the
+  game weaponizing its own floor-betrayal lesson at the climax,
+  and it's buildable as a scene transition reusing the descent
+  plumbing (special one-room arena floor, corpse props, existing
+  assembly) rather than true two-story geometry. Post-demo-polish
+  tier; pairs with per-act signature arenas.
+- Art incoming (Jessop's pipeline): slime + mush turnarounds
+  (partial redraws from existing poses; the mushes have cute
+  butts), wall-break rubble tiles, break animations, orb singe
+  marks.
 - **Torch viability** — before 2026-07-18 the torch was a grind to
   escape; now it feels like it belongs. With the right upgrades
   (ember damage? bigger shove? fire spread?) keeping the torch
