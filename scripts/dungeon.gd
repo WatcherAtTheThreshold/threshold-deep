@@ -42,6 +42,7 @@ const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wal
 const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretroom_wallslidegrind1.wav")
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
+const HATCH_TEXTURE := preload("res://assets/tiles/hatch_open.png")
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -170,6 +171,19 @@ func _ready() -> void:
 		# The sealed doorway you arrived through — bare frame, stone
 		# showing through, no way back.
 		_place_against_wall(ARRIVAL_DOOR_SCENE, rooms[0])
+	else:
+		# You fell onto this floor: the hatch you dropped through is
+		# still overhead, dark and out of reach. Continuity.
+		var above := Sprite3D.new()
+		above.texture = HATCH_TEXTURE
+		above.pixel_size = 0.03125
+		above.shaded = true
+		above.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+		above.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+		above.rotation_degrees = Vector3(90, 0, 0)
+		above.modulate = Color(0.6, 0.6, 0.65)
+		above.position = _cell_to_world(rooms[0].get_center(), 3.96)
+		add_child(above)
 	last_player_cell = _player_cell()
 
 	# Every floor announces itself.
