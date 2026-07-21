@@ -213,6 +213,28 @@ func pickup_wideswing() -> bool:
 	return true
 
 
+func pickup_rotstone() -> bool:
+	if RunState.rotstone:
+		return false
+	RunState.rotstone = true
+	return true
+
+
+func pickup_emberstone() -> bool:
+	if RunState.emberstone:
+		return false
+	RunState.emberstone = true
+	return true
+
+
+func apply_dots(target: Node) -> void:
+	# Every player-dealt hit carries the held afflictions.
+	if RunState.rotstone:
+		Dot.attach(target, self, "Rot")
+	if RunState.emberstone:
+		Dot.attach(target, self, "Ember")
+
+
 func pickup_armor() -> bool:
 	if RunState.armor_tier >= 1:
 		return false
@@ -402,6 +424,7 @@ func _attack() -> void:
 			if to.length() <= reach \
 					and forward.angle_to(to.normalized()) <= deg_to_rad(arc):
 				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
+				apply_dots(enemy)
 				RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable. Matches the melee

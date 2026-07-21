@@ -21,6 +21,8 @@ const QUICKSTEP_SCENE := preload("res://scenes/quickstep_pickup.tscn")
 const TWICECUT_SCENE := preload("res://scenes/twicecut_pickup.tscn")
 const GAPLEAPER_SCENE := preload("res://scenes/gapleaper_pickup.tscn")
 const WIDESWING_SCENE := preload("res://scenes/wideswing_pickup.tscn")
+const ROTSTONE_SCENE := preload("res://scenes/rotstone_pickup.tscn")
+const EMBERSTONE_SCENE := preload("res://scenes/emberstone_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
@@ -778,6 +780,10 @@ func _relic_pool() -> Array[PackedScene]:
 		pool.append(GAPLEAPER_SCENE)
 	if not RunState.wideswing:
 		pool.append(WIDESWING_SCENE)
+	if not RunState.rotstone:
+		pool.append(ROTSTONE_SCENE)
+	if not RunState.emberstone:
+		pool.append(EMBERSTONE_SCENE)
 	if RunState.armor_tier == 0:
 		pool.append(ARMOR_PICKUP_SCENE)
 	elif RunState.armor_tier == 1:

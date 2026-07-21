@@ -63,8 +63,14 @@ Web export validated.
 
 ### Art (Jessop draws, Claude wires, both retune)
 
-- **The item wave** — nine items, unblocked by the half-heart
-  rework, art incoming:
+- **The item wave — COMPLETE.** All twelve shipped: the crystal
+  family (Fleetfoot ×2, Rage ×2, Hasty ×2, Lucky Luck, Quickstep,
+  Twice-Cut, Gapleaper, Wide Swing, Turning ×2, Rotstone,
+  Emberstone), the untiered weapon pool (sword / staff / boomerang
+  / halberd, last claimed wins), randomized boss drops, and the
+  toast system. Rot and Ember are the Pillar 4 pair: ticking
+  wounds, stained corpses as residue, and burning bodies char the
+  planks they stand on. Original plan for reference:
   1. **Strength** — +hit damage (`attack_damage` modifier).
   2. **Dex** — better dash: longer or faster (dash constants).
   3. **Double Dash** — two dash charges before the cooldown.

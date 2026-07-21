@@ -32,6 +32,8 @@ var quickstep := false  # cyan: dash goes further
 var twicecut := false   # cyan: two dash charges
 var gapleaper := false  # cyan: dashes fly level over gaps
 var wideswing := false  # orange: strikes spread
+var rotstone := false   # green: wounds fester (poison ticks)
+var emberstone := false # red rough: wounds burn (fire ticks + chars planks)
 
 var damage_dealt := 0
 var damage_taken := 0
@@ -113,6 +115,8 @@ func reset() -> void:
 	twicecut = false
 	gapleaper = false
 	wideswing = false
+	rotstone = false
+	emberstone = false
 	damage_dealt = 0
 	damage_taken = 0
 	kills_by_type = {}

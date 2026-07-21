@@ -56,6 +56,7 @@ func _on_body_entered(body: Node3D) -> void:
 		body.take_damage(damage, direction, shooter)
 		if shooter is Player:
 			RunState.record_damage_dealt(damage)
+			shooter.apply_dots(body)
 	elif body is GridMap:
 		# Orbs splinter wood — anyone's orbs. Each point of damage
 		# counts as a hit against the wall.
@@ -72,4 +73,5 @@ func _on_body_entered(body: Node3D) -> void:
 				e.take_damage(damage, direction, shooter)
 				if shooter is Player:
 					RunState.record_damage_dealt(damage)
+					shooter.apply_dots(e)
 	queue_free()

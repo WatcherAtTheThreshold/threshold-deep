@@ -110,7 +110,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   (speed ×1.15 / ×1.28), Rage Crystal (+1/+2 attack units), Hasty
   Little Stone (player projectile speed ×1.3 / ×1.6 AND melee
   swing rate by the same factor; ranged fire rate unchanged),
-  Lucky Luck Stone (drop rolls ×0.6 — more of everything). Armor
+  Lucky Luck Stone (drop rolls ×0.6 — more of everything),
+  Rotstone / Emberstone (Pillar-4: every player hit attaches a
+  ticking Dot node — scripts/dot.gd, `Dot.attach(target, self,
+  "Rot"/"Ember")` — 3 ticks of 1 unit, refresh not stack, tints
+  the victim and stains the corpse as residue; burns also char the
+  plank underfoot 1 unit per tick; ticks never stagger). Armor
   (Turning Stone) in two tiers — leather (25% chance a blow is
   fully turned) then steel (40%), offered as an upgrade only after
   leather; blocks flash steel-blue, no damage/invuln. Every

@@ -97,6 +97,8 @@ func _on_body_entered(body: Node3D) -> void:
 			hit_this_leg[body.get_instance_id()] = true
 			body.take_damage(damage, direction, thrower)
 			RunState.record_damage_dealt(damage)
+			if thrower is Player:
+				thrower.apply_dots(body)
 			Sfx.play_at(HIT_SOUNDS[randi_range(0, HIT_SOUNDS.size() - 1)],
 					global_position, -4.0)
 		# Pierces: keep flying.
