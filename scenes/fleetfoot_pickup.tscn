@@ -12,6 +12,7 @@ script = ExtResource("1_pickup")
 grant = "pickup_fleetfoot"
 toast_title = "FLEETFOOT STONE"
 toast_desc = "moves you faster"
+note = 5
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

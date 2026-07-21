@@ -12,6 +12,7 @@ script = ExtResource("1_pickup")
 grant = "pickup_gapleaper"
 toast_title = "GAPLEAPER"
 toast_desc = "dashes cross the gaps"
+note = 7
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

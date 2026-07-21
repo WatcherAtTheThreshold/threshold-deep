@@ -12,6 +12,7 @@ script = ExtResource("1_pickup")
 grant = "pickup_twicecut"
 toast_title = "TWICE-CUT CRYSTAL"
 toast_desc = "dash twice"
+note = 6
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

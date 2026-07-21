@@ -12,6 +12,7 @@ script = ExtResource("1_pickup")
 grant = "pickup_wideswing"
 toast_title = "WIDE SWING CRYSTAL"
 toast_desc = "strikes spread"
+note = 4
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)
