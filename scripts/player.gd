@@ -18,6 +18,8 @@ const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
+# The halberd's whole pitch is reach; a longer haft than sword or torch.
+const HALBERD_RANGE := 3.0
 # Wide Swing: the melee arc opens to catch the flanking tiles too.
 const WIDESWING_RANGE := 2.6
 const WIDESWING_ARC_DEG := 85.0
@@ -43,6 +45,11 @@ const SWORD_SLICE_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/sword_slice1.wav"),
 	preload("res://assets/audio/sfx/player/sword_slice2.wav"),
 	preload("res://assets/audio/sfx/player/sword_slice3.wav"),
+]
+const HALBERD_SLICE_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/player/halberd_slice1.wav"),
+	preload("res://assets/audio/sfx/player/halberd_slice2.wav"),
+	preload("res://assets/audio/sfx/player/halberd_slice3.wav"),
 ]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/player_take_hit1.wav"),
@@ -108,6 +115,15 @@ func pickup_boomerang() -> bool:
 		return false
 	RunState.has_boomerang = true
 	RunState.weapon = "boomerang"
+	_apply_loadout()
+	return true
+
+
+func pickup_halberd() -> bool:
+	if RunState.has_halberd:
+		return false
+	RunState.has_halberd = true
+	RunState.weapon = "halberd"
 	_apply_loadout()
 	return true
 
@@ -324,14 +340,18 @@ func _attack() -> void:
 		return
 	# The Hasty Little Stone quickens melee swings; ranged weapons
 	# keep their rate and get their haste on the projectile instead.
-	var melee := RunState.weapon == "torch" or RunState.weapon == "sword"
+	var melee := RunState.weapon == "torch" or RunState.weapon == "sword" \
+			or RunState.weapon == "halberd"
 	attack_timer = ATTACK_COOLDOWN \
 			/ (HASTY_MULTS[RunState.hasty_tier] if melee else 1.0)
 	attacked.emit()
 	if melee:
 		# Melee swings: three takes each, rotated.
-		var swings := SWORD_SLICE_SOUNDS if RunState.weapon == "sword" \
-				else TORCH_HIT_SOUNDS
+		var swings := TORCH_HIT_SOUNDS
+		if RunState.weapon == "sword":
+			swings = SWORD_SLICE_SOUNDS
+		elif RunState.weapon == "halberd":
+			swings = HALBERD_SLICE_SOUNDS
 		Sfx.play_at(swings[randi_range(0, swings.size() - 1)],
 				global_position, -4.0)
 	if RunState.weapon == "boomerang":
@@ -367,8 +387,14 @@ func _attack() -> void:
 		# Enemies scale their shove by the push vector's length, so the
 		# torch's extra knockback rides in on a longer vector.
 		var push_scale := TORCH_KNOCKBACK if RunState.weapon == "torch" else 1.0
-		var reach := WIDESWING_RANGE if RunState.wideswing else ATTACK_RANGE
-		var arc := WIDESWING_ARC_DEG if RunState.wideswing else ATTACK_ARC_DEG
+		# Wide Swing adds its bonus on top of whatever reach the weapon
+		# already has, rather than overriding it — so it can never
+		# shrink the halberd's longer haft.
+		var reach := HALBERD_RANGE if RunState.weapon == "halberd" else ATTACK_RANGE
+		var arc := ATTACK_ARC_DEG
+		if RunState.wideswing:
+			reach += WIDESWING_RANGE - ATTACK_RANGE
+			arc = WIDESWING_ARC_DEG
 		var forward := -global_transform.basis.z
 		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 			var to := enemy.global_position - global_position
@@ -378,9 +404,11 @@ func _attack() -> void:
 				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
 				RunState.record_damage_dealt(attack_damage)
 	# The swing also lands on whatever wall you're facing — the
-	# dungeon decides if that cell is breakable.
+	# dungeon decides if that cell is breakable. Matches the melee
+	# reach above so a halberd pokes walls as far as it pokes enemies.
+	var wall_reach := HALBERD_RANGE if RunState.weapon == "halberd" else ATTACK_RANGE
 	var from := camera.global_position
-	var ray_to := from - camera.global_transform.basis.z * (ATTACK_RANGE + 0.2)
+	var ray_to := from - camera.global_transform.basis.z * (wall_reach + 0.2)
 	var query := PhysicsRayQueryParameters3D.create(from, ray_to, 1, [get_rid()])
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if not hit.is_empty() and hit.collider is GridMap:

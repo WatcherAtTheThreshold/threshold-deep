@@ -115,8 +115,10 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   fully turned) then steel (40%), offered as an upgrade only after
   leather; blocks flash steel-blue, no damage/invuln. Every
   build-defining pickup shows a two-line toast (hud.show_toast:
-  NAME + lowercase descriptor, no numbers); combat drops don't. Weapons are UNTIERED pool items — sword, staff, and boomerang
-  each appear once per run, any time, from pedestals or boss drops;
+  NAME + lowercase descriptor, no numbers); combat drops don't. Weapons are UNTIERED pool items — sword, staff, boomerang, and
+  halberd each appear once per run, any time, from pedestals or
+  boss drops (the halberd trades nothing for reach: 3.0m melee and
+  wall-poke vs 2.2, Wide Swing adds on top);
   the hand holds whichever was claimed LAST (RunState.weapon is the
   single source of truth — never branch on has_* flags for combat
   behavior, those only gate pool availability). All deal base 4;

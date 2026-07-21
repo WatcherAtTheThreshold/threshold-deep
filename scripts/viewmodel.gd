@@ -19,6 +19,18 @@ const STAFF_IDLE := preload("res://assets/sprites/magic_staff.png")
 const STAFF_SWING := preload("res://assets/sprites/magic_staff_swing.png")
 const BOOMERANG_IDLE := preload("res://assets/sprites/hand-boomerang.png")
 const BOOMERANG_SWING := preload("res://assets/sprites/hand-boomerang-swing.png")
+const HALBERD_IDLE_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/halberd/hand_halberd1.png"),
+	preload("res://assets/sprites/halberd/hand_halberd2.png"),
+]
+const HALBERD_ATTACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/halberd/hand_halberd_attack1.png"),
+	preload("res://assets/sprites/halberd/hand_halberd_attack2.png"),
+	preload("res://assets/sprites/halberd/hand_halberd_attack3.png"),
+]
+# Windup / extended strike / follow-through — same three-beat shape
+# as the torch, tuned a touch slower for a heavier weapon.
+const HALBERD_SWING_TIMES: Array[float] = [0.08, 0.13, 0.11]
 const SWAY_AMOUNT := 6.0
 const FLICKER_TIME := 0.16
 
@@ -64,6 +76,9 @@ func set_weapon(new_weapon: String) -> void:
 		"sword":
 			idle_frames = [SWORD_IDLE]
 			swing_texture = SWORD_SWING
+		"halberd":
+			idle_frames = HALBERD_IDLE_FRAMES
+			swing_texture = HALBERD_ATTACK_FRAMES[1]
 		_:
 			idle_frames = TORCH_FRAMES
 			swing_texture = TORCH_SWING
@@ -139,6 +154,24 @@ func _on_attacked() -> void:
 		swing_tween.tween_callback(func() -> void:
 			texture = TORCH_SWING_FRAMES[2])
 		swing_tween.tween_interval(TORCH_SWING_TIMES[2])
+		swing_tween.tween_callback(func() -> void:
+			texture = idle_frames[0]
+			swinging = false)
+		return
+	if weapon == "halberd":
+		# Same drawn-arc shape as the torch, no embers — this is a
+		# blade, not a flame.
+		if swing_tween != null and swing_tween.is_valid():
+			swing_tween.kill()
+		texture = HALBERD_ATTACK_FRAMES[0]
+		swing_tween = create_tween()
+		swing_tween.tween_interval(HALBERD_SWING_TIMES[0])
+		swing_tween.tween_callback(func() -> void:
+			texture = HALBERD_ATTACK_FRAMES[1])
+		swing_tween.tween_interval(HALBERD_SWING_TIMES[1])
+		swing_tween.tween_callback(func() -> void:
+			texture = HALBERD_ATTACK_FRAMES[2])
+		swing_tween.tween_interval(HALBERD_SWING_TIMES[2])
 		swing_tween.tween_callback(func() -> void:
 			texture = idle_frames[0]
 			swinging = false)

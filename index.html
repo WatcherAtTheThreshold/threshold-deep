@@ -294,6 +294,16 @@ const SECTIONS = [
       ],
     },
     {
+      name: 'Halberd', wide: true, rest: S + 'halberd/hand_halberd1.png',
+      sounds: hitTrio('player/halberd_slice'),
+      frames: [
+        [S + 'halberd/hand_halberd_attack1.png', 80],
+        [S + 'halberd/hand_halberd_attack2.png', 130],
+        [S + 'halberd/hand_halberd_attack3.png', 110],
+        [S + 'halberd/hand_halberd1.png', 10],
+      ],
+    },
+    {
       name: 'Magic Staff', wide: true, rest: S + 'magic_staff.png',
       sounds: hitTrio('player/magic_staff_orb_hit'),
       frames: [
@@ -396,6 +406,8 @@ const SECTIONS = [
     { name: 'The Staff', rest: 'assets/items/magic_staff.png',
       sounds: [A + 'items/pickup_item.wav'], bob: true },
     { name: 'The Boomerang', rest: 'assets/items/weapon_boomerang.png',
+      sounds: [A + 'items/pickup_item.wav'], bob: true },
+    { name: 'The Halberd', rest: 'assets/items/weapon_halberd.png',
       sounds: [A + 'items/pickup_item.wav'], bob: true },
   ],
 },
