@@ -57,8 +57,10 @@ const BOSS_SPLIT_HEALTH := 12
 const BOSS_SPEED := 1.2
 const LARGE_SPEED := 1.4
 const SMALL_SPEED := 2.6
-const SIGHT_RANGE := 9.0
+const SIGHT_RANGE := 13.0  # forward vision reach, cone-gated
 const INFIGHT_SIGHT_RANGE := 20.0
+const HEAR_RANGE := 3.5  # sensed this close regardless of facing
+const SIGHT_CONE_DEG := 110.0  # forward vision arc, full width
 const ATTACK_RANGE := 1.2
 const ATTACK_COOLDOWN := 1.2
 const MERGE_RANGE := 1.0
@@ -188,7 +190,7 @@ func _physics_process(delta: float) -> void:
 		# Initiator rule so only one of the pair performs the merge.
 		if get_instance_id() < partner.get_instance_id():
 			_merge()
-	elif dist < sight and _can_see(goal):
+	elif _perceives(goal, dist, sight):
 		if goal == partner or dist > ATTACK_RANGE:
 			var dir := to_goal.normalized()
 			facing = dir
@@ -428,6 +430,24 @@ func _get_target() -> PhysicsBody3D:
 		return target
 	target = null
 	return player
+
+
+func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	# A twin to rejoin or a grudge is pursued on range + line of sight
+	# alone. The player, unprovoked, must be HEARD (close, any direction) or
+	# SEEN (inside the forward cone, at range, clear line): no more sensing
+	# you through the back of the blob.
+	if who != player or target != null:
+		return dist < reach and _can_see(who)
+	if dist <= HEAR_RANGE:
+		return true
+	if dist > SIGHT_RANGE:
+		return false
+	var to_who := who.global_position - global_position
+	to_who.y = 0.0
+	if facing.dot(to_who.normalized()) < cos(deg_to_rad(SIGHT_CONE_DEG * 0.5)):
+		return false
+	return _can_see(who)
 
 
 func _can_see(t: PhysicsBody3D) -> bool:

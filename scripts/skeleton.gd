@@ -41,8 +41,10 @@ const WANDER_LEG_MIN := 1.0
 const WANDER_LEG_MAX := 2.5
 const WANDER_PAUSE_MIN := 1.5
 const WANDER_PAUSE_MAX := 5.0
-const SIGHT_RANGE := 10.0
+const SIGHT_RANGE := 14.0  # forward vision reach, cone-gated
 const INFIGHT_SIGHT_RANGE := 20.0
+const HEAR_RANGE := 3.5  # sensed this close regardless of facing
+const SIGHT_CONE_DEG := 110.0  # forward vision arc, full width
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
 const MAX_HEALTH := 6
@@ -115,7 +117,7 @@ func _physics_process(delta: float) -> void:
 	var dist := to_target.length()
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
-	if dist < sight and _can_see(t):
+	if _perceives(t, dist, sight):
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
 			facing = dir
@@ -224,6 +226,24 @@ func _get_target() -> PhysicsBody3D:
 		return target
 	target = null
 	return player
+
+
+func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	# A known threat — a grudge, or infighting kin — is hunted on range +
+	# line of sight alone. The player, unprovoked, must be HEARD (close, any
+	# direction) or SEEN (inside the forward cone, at range, clear line):
+	# no more noticing you through the back of the skull.
+	if who != player or target != null:
+		return dist < reach and _can_see(who)
+	if dist <= HEAR_RANGE:
+		return true
+	if dist > SIGHT_RANGE:
+		return false
+	var to_who := who.global_position - global_position
+	to_who.y = 0.0
+	if facing.dot(to_who.normalized()) < cos(deg_to_rad(SIGHT_CONE_DEG * 0.5)):
+		return false
+	return _can_see(who)
 
 
 func _can_see(t: PhysicsBody3D) -> bool:

@@ -9,6 +9,7 @@ const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HATCH_SCENE := preload("res://scenes/hatch.tscn")
 const SWORD_SCENE := preload("res://scenes/sword_pickup.tscn")
 const MAGIC_PICKUP_SCENE := preload("res://scenes/magic_hearts_pickup.tscn")
+const HEART_CACHE_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
 const CONTAINER_PICKUP_SCENE := preload("res://scenes/heart_container_pickup.tscn")
 const FLEETFOOT_SCENE := preload("res://scenes/fleetfoot_pickup.tscn")
 const FLEETFOOT2_SCENE := preload("res://scenes/fleetfoot2_pickup.tscn")
@@ -76,6 +77,10 @@ const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
 const FIGHT_GRACE_TIME := 2.5
 const WOOD_FLOOR_HITS := 2  # planks splinter easier than walls
+# Scattered magic-heart planks: pale-tinted like the commoner secret,
+# but they break onto stone and give up a single magic heart, not a room.
+const HEART_CACHE_MIN := 0  # per floor; 0-2 keeps them a treat, not a supply run
+const HEART_CACHE_MAX := 2
 
 var floor_id := -1
 var wall_id := -1
@@ -113,6 +118,7 @@ var secret_door := Vector2i(-1, -1)
 var secret_plank := Vector2i(-1, -1)
 var secret_revealed := false
 var secret_opened := false
+var heart_caches: Array[Vector2i] = []  # cells holding a magic-heart plank
 
 # Item floor state
 var item_room_idx := -1
@@ -197,6 +203,7 @@ func _ready() -> void:
 		above.position = _cell_to_world(rooms[0].get_center(), 3.96)
 		add_child(above)
 	last_player_cell = _player_cell()
+	_place_heart_caches()
 
 	# Every floor announces itself.
 	if kind == RunState.FloorKind.BOSS:
@@ -281,6 +288,10 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 			# This plank hides something better than a hole.
 			_reveal_secret_trigger(cell)
 			return
+		if heart_caches.has(Vector2i(cell.x, cell.z)):
+			# A cache plank: cracks onto stone and gives up its heart.
+			_reveal_heart_cache(cell)
+			return
 		grid_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
 		hole_map.set_cell_item(cell, hole_id)
 		Sfx.play_at(SOUND_FLOOR_BREAK,
@@ -320,6 +331,10 @@ func _try_collapse(cell: Vector3i) -> void:
 	if Vector2i(cell.x, cell.z) == secret_plank and not secret_revealed:
 		# This plank hides something better than a hole.
 		_reveal_secret_trigger(cell)
+		return
+	if heart_caches.has(Vector2i(cell.x, cell.z)):
+		# A cache plank underfoot: it gives up its heart onto stone.
+		_reveal_heart_cache(cell)
 		return
 	var standing := _player_cell()
 	if cell == standing or not _player_keeps_path_to_stone(cell, standing):
@@ -388,6 +403,61 @@ func _reveal_secret_trigger(cell: Vector3i) -> void:
 	plate.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.5)
 	plate.activated.connect(_open_secret_room)
 	add_child(plate)
+
+
+func _place_heart_caches() -> void:
+	# Scatter a few marked planks through the halls — the same pale tell
+	# and buried-stone pillar as the commoner secret, but they hide a
+	# magic heart, not a room. Placed on PROVEN STONE after the
+	# solvability proof: safe, because a cache always breaks back to
+	# walkable stone, never a hole. Spawn and ceremony rooms stay clean.
+	var count := randi_range(HEART_CACHE_MIN, HEART_CACHE_MAX)
+	if count <= 0:
+		return
+	var skip: Array[Rect2i] = []
+	if floor_rooms.size() > 0:
+		skip.append(floor_rooms[0])
+	if kind == RunState.FloorKind.BOSS and arena_room_idx >= 0:
+		skip.append(floor_rooms[arena_room_idx])
+	elif kind == RunState.FloorKind.ITEM and item_room_idx >= 0:
+		skip.append(floor_rooms[item_room_idx])
+	var candidates: Array[Vector2i] = []
+	for x in GRID_WIDTH:
+		for z in GRID_HEIGHT:
+			if grid_map.get_cell_item(Vector3i(x, 0, z)) != floor_id:
+				continue
+			var c := Vector2i(x, z)
+			var clear := true
+			for r: Rect2i in skip:
+				if r.has_point(c):
+					clear = false
+					break
+			if clear:
+				candidates.append(c)
+	candidates.shuffle()
+	for i in mini(count, candidates.size()):
+		var c: Vector2i = candidates[i]
+		grid_map.set_cell_item(Vector3i(c.x, 0, c.y), floor_wood_pale_id)
+		# The buried stone pillar underneath — the second tell, glimpsed
+		# from any neighboring hole, same as the secret plank's.
+		hole_map.set_cell_item(Vector3i(c.x, 0, c.y), buried_stone_id)
+		heart_caches.append(c)
+
+
+func _reveal_heart_cache(cell: Vector3i) -> void:
+	# The plank splinters onto stone and gives up what it hid: a single
+	# magic heart, resting where the boards were.
+	heart_caches.erase(Vector2i(cell.x, cell.z))
+	grid_map.set_cell_item(cell, floor_id)
+	hole_map.set_cell_item(cell, GridMap.INVALID_CELL_ITEM)
+	Sfx.play_at(SOUND_FLOOR_BREAK,
+			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
+	_spawn_floor_break_effect(cell)
+	var heart: Node3D = HEART_CACHE_DROP_SCENE.instantiate()
+	# Raised a full heart-height (16px = 0.5m) so it rests ON the stone
+	# instead of sunk into it — roughly level with enemy-dropped hearts.
+	heart.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.6)
+	add_child(heart)
 
 
 func _open_secret_room() -> void:

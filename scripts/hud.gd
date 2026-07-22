@@ -7,6 +7,32 @@ const HEART_MAGIC := preload("res://assets/ui/heart_magic.png")
 const HEART_MAGIC_HALF := preload("res://assets/ui/heart_magic_half.png")
 const HEART_SIZE := Vector2(48, 48)
 
+# Item-strip icons (the bottom-left run summary). Tiered relics index by
+# tier (1/2); the [0] slot is unused padding.
+const ICON_LUCKY := preload("res://assets/items/crystals/crystal_luckyluck1.png")
+const ICON_QUICKSTEP := preload("res://assets/items/crystals/crystal_quickstep1.png")
+const ICON_TWICECUT := preload("res://assets/items/crystals/crystal_twicecut1.png")
+const ICON_GAPLEAPER := preload("res://assets/items/crystals/crystal_gapleaper1.png")
+const ICON_WIDESWING := preload("res://assets/items/crystals/crystal_wideswing1.png")
+const ICON_ROTSTONE := preload("res://assets/items/crystals/crystal_rotstone1.png")
+const ICON_EMBERSTONE := preload("res://assets/items/crystals/crystal_emberstone1.png")
+const ICON_RAGE := [null,
+	preload("res://assets/items/crystals/crystal_rage1.png"),
+	preload("res://assets/items/crystals/crystal_rage2.png")]
+const ICON_HASTY := [null,
+	preload("res://assets/items/crystals/crystal_hasty1.png"),
+	preload("res://assets/items/crystals/crystal_hasty2.png")]
+const ICON_FLEET := [null,
+	preload("res://assets/items/crystals/crystal_fleetfoot1.png"),
+	preload("res://assets/items/crystals/crystal_fleetfoot2.png")]
+const ICON_TURNING := [null,
+	preload("res://assets/items/crystals/crystal_turningstone1.png"),
+	preload("res://assets/items/crystals/crystal_turningstone2.png")]
+const ICON_SWORD := preload("res://assets/items/weapon_sword.png")
+const ICON_STAFF := preload("res://assets/items/magic_staff.png")
+const ICON_BOOMERANG := preload("res://assets/items/weapon_boomerang.png")
+const ICON_HALBERD := preload("res://assets/items/weapon_halberd.png")
+
 const FADE_IN_TIME := 0.7
 const DESCENT_FADE_TIME := 0.8
 const DEATH_HOLD_TIME := 5.0
@@ -15,6 +41,7 @@ var last_total := 0
 
 @onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
+@onready var item_strip: VBoxContainer = $ItemStrip
 @onready var hurt_flash: ColorRect = $HurtFlash
 @onready var run_info: Label = $RunInfo
 @onready var screen_fade: ColorRect = $ScreenFade
@@ -38,6 +65,7 @@ func _ready() -> void:
 	player.died.connect(_on_player_died)
 	last_total = player.health + player.magic_hearts
 	_rebuild_hearts(player.health, player.max_health, player.magic_hearts)
+	_rebuild_items()
 	# Every floor and every run opens with a fade in from black.
 	screen_fade.color.a = 1.0
 	create_tween().tween_property(screen_fade, "color:a", 0.0, FADE_IN_TIME)
@@ -86,9 +114,13 @@ func show_toast(title: String, sub: String) -> void:
 	toast_name.modulate.a = 1.0
 	toast_desc.modulate.a = 1.0
 	toast_tween = create_tween()
-	toast_tween.tween_interval(1.5)
+	toast_tween.tween_interval(3.0)
 	toast_tween.tween_property(toast_name, "modulate:a", 0.0, 0.6)
 	toast_tween.parallel().tween_property(toast_desc, "modulate:a", 0.0, 0.6)
+	# Every build-defining pickup toasts, and those are exactly the strip
+	# items — so the toast is the one hook that catches them all. RunState
+	# is already updated by the grant that triggered this.
+	_rebuild_items()
 
 
 func start_gate_fade() -> void:
@@ -238,6 +270,56 @@ func _make_heart(tex: Texture2D) -> TextureRect:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_SCALE
 	return icon
+
+
+func _make_item_icon(tex: Texture2D) -> TextureRect:
+	# Same treatment as a heart: fixed 48px slot, nearest, scaled to fit.
+	var icon := TextureRect.new()
+	icon.texture = tex
+	icon.custom_minimum_size = HEART_SIZE
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_SCALE
+	return icon
+
+
+func _rebuild_items() -> void:
+	# The run's relics and weapons drawn top-to-bottom; weapons come
+	# LAST so they sit at the base of the column, nearest the hand.
+	# Tiered crystals show the current tier's cut, never stack. Driven
+	# straight from RunState, which persists across floors.
+	for child in item_strip.get_children():
+		child.queue_free()
+	if RunState.lucky:
+		item_strip.add_child(_make_item_icon(ICON_LUCKY))
+	if RunState.rage_tier > 0:
+		item_strip.add_child(_make_item_icon(ICON_RAGE[RunState.rage_tier]))
+	if RunState.emberstone:
+		item_strip.add_child(_make_item_icon(ICON_EMBERSTONE))
+	if RunState.rotstone:
+		item_strip.add_child(_make_item_icon(ICON_ROTSTONE))
+	if RunState.hasty_tier > 0:
+		item_strip.add_child(_make_item_icon(ICON_HASTY[RunState.hasty_tier]))
+	if RunState.wideswing:
+		item_strip.add_child(_make_item_icon(ICON_WIDESWING))
+	if RunState.fleet_tier > 0:
+		item_strip.add_child(_make_item_icon(ICON_FLEET[RunState.fleet_tier]))
+	if RunState.quickstep:
+		item_strip.add_child(_make_item_icon(ICON_QUICKSTEP))
+	if RunState.twicecut:
+		item_strip.add_child(_make_item_icon(ICON_TWICECUT))
+	if RunState.gapleaper:
+		item_strip.add_child(_make_item_icon(ICON_GAPLEAPER))
+	if RunState.armor_tier > 0:
+		item_strip.add_child(_make_item_icon(ICON_TURNING[RunState.armor_tier]))
+	if RunState.has_sword:
+		item_strip.add_child(_make_item_icon(ICON_SWORD))
+	if RunState.has_staff:
+		item_strip.add_child(_make_item_icon(ICON_STAFF))
+	if RunState.has_boomerang:
+		item_strip.add_child(_make_item_icon(ICON_BOOMERANG))
+	if RunState.has_halberd:
+		item_strip.add_child(_make_item_icon(ICON_HALBERD))
 
 
 func _update_run_info() -> void:
