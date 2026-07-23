@@ -118,15 +118,14 @@ scale = Vector2(3, 3)
 texture = ExtResource("7_left_tex")
 script = ExtResource("6_left_torch")
 
-[node name="ItemStrip" type="VBoxContainer" parent="HUD"]
-anchor_top = 1.0
-anchor_bottom = 1.0
+[node name="ItemStrip" type="HFlowContainer" parent="HUD"]
+anchor_right = 1.0
 offset_left = 16.0
-offset_top = -340.0
-offset_right = 64.0
-offset_bottom = -340.0
-grow_vertical = 0
-theme_override_constants/separation = 6
+offset_top = 56.0
+offset_right = -16.0
+offset_bottom = 104.0
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="ToastName" type="Label" parent="HUD"]
 visible = false

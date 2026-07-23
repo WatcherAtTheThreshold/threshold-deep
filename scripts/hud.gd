@@ -41,7 +41,7 @@ var last_total := 0
 
 @onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
-@onready var item_strip: VBoxContainer = $ItemStrip
+@onready var item_strip: HFlowContainer = $ItemStrip
 @onready var hurt_flash: ColorRect = $HurtFlash
 @onready var run_info: Label = $RunInfo
 @onready var screen_fade: ColorRect = $ScreenFade
@@ -284,12 +284,21 @@ func _make_item_icon(tex: Texture2D) -> TextureRect:
 
 
 func _rebuild_items() -> void:
-	# The run's relics and weapons drawn top-to-bottom; weapons come
-	# LAST so they sit at the base of the column, nearest the hand.
-	# Tiered crystals show the current tier's cut, never stack. Driven
-	# straight from RunState, which persists across floors.
+	# The run's kit drawn left-to-right in a top band, wrapping into new
+	# rows as it fills (HFlowContainer). Weapons come FIRST (leftmost) as
+	# the anchor, then crystals. Tiered crystals show the current tier's
+	# cut, never stack. Driven straight from RunState, which persists
+	# across floors.
 	for child in item_strip.get_children():
 		child.queue_free()
+	if RunState.has_sword:
+		item_strip.add_child(_make_item_icon(ICON_SWORD))
+	if RunState.has_staff:
+		item_strip.add_child(_make_item_icon(ICON_STAFF))
+	if RunState.has_boomerang:
+		item_strip.add_child(_make_item_icon(ICON_BOOMERANG))
+	if RunState.has_halberd:
+		item_strip.add_child(_make_item_icon(ICON_HALBERD))
 	if RunState.lucky:
 		item_strip.add_child(_make_item_icon(ICON_LUCKY))
 	if RunState.rage_tier > 0:
@@ -312,14 +321,6 @@ func _rebuild_items() -> void:
 		item_strip.add_child(_make_item_icon(ICON_GAPLEAPER))
 	if RunState.armor_tier > 0:
 		item_strip.add_child(_make_item_icon(ICON_TURNING[RunState.armor_tier]))
-	if RunState.has_sword:
-		item_strip.add_child(_make_item_icon(ICON_SWORD))
-	if RunState.has_staff:
-		item_strip.add_child(_make_item_icon(ICON_STAFF))
-	if RunState.has_boomerang:
-		item_strip.add_child(_make_item_icon(ICON_BOOMERANG))
-	if RunState.has_halberd:
-		item_strip.add_child(_make_item_icon(ICON_HALBERD))
 
 
 func _update_run_info() -> void:

@@ -54,6 +54,13 @@ const WALL_BREAK_FRAMES: Array[Texture2D] = [
 	preload("res://assets/tiles/wall_wooden_break2.png"),
 	preload("res://assets/tiles/wall_wooden_break3.png"),
 ]
+# Persistent splinter piles left where a wooden wall gave way — one
+# picked at random, laid flat like the mush/slime splats. Aftermath.
+const WALL_RUBBLE_FRAMES: Array[Texture2D] = [
+	preload("res://assets/tiles/wall_wooden_broken1.png"),
+	preload("res://assets/tiles/wall_wooden_broken2.png"),
+	preload("res://assets/tiles/wall_wooden_broken3.png"),
+]
 const BREAK_FRAME_TIME := 0.07
 const WALL_BREAK_Y := 1.5  # eye/torch height on the 4m opening
 
@@ -309,6 +316,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		Sfx.play_at(SOUND_WALL_BREAK,
 				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
 		_spawn_wall_break_effect(cell)
+		_spawn_wall_rubble(cell)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -379,6 +387,22 @@ func _spawn_wall_break_effect(cell: Vector3i) -> void:
 	add_child(s)
 	s.position = _cell_to_world(Vector2i(cell.x, cell.z), WALL_BREAK_Y)
 	_play_break_frames(s, WALL_BREAK_FRAMES)
+
+
+func _spawn_wall_rubble(cell: Vector3i) -> void:
+	# What the wall leaves behind: a flat pile of splinters on the newly
+	# opened floor, one of three at a random spin. Persistent — no tween,
+	# it stays for the floor like the mush/slime splats. Aftermath.
+	var s := Sprite3D.new()
+	s.texture = WALL_RUBBLE_FRAMES[randi_range(0, WALL_RUBBLE_FRAMES.size() - 1)]
+	s.pixel_size = 0.03125
+	s.shaded = true
+	s.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	s.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	s.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	s.rotation_degrees = Vector3(-90, randf() * 360.0, 0)
+	add_child(s)
+	s.position = _cell_to_world(Vector2i(cell.x, cell.z), 0.53)
 
 
 func _play_break_frames(s: Sprite3D, frames: Array[Texture2D]) -> void:
