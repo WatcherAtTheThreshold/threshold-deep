@@ -45,6 +45,6 @@ func _on_body_entered(body: Node3D) -> void:
 
 func _play_pickup_sound() -> void:
 	if note >= 1 and note <= CRYSTAL_NOTES.size():
-		Sfx.play_at(CRYSTAL_NOTES[note - 1], global_position)
+		Sfx.play_at(CRYSTAL_NOTES[note - 1], global_position, -5.0)
 	else:
 		Sfx.play_at(PICKUP_SOUND, global_position)

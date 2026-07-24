@@ -22,4 +22,4 @@ func _on_body_entered(body: Node3D) -> void:
 
 
 func _play_pickup_sound() -> void:
-	Sfx.play_at(PICKUP_SOUND, global_position)
+	Sfx.play_at(PICKUP_SOUND, global_position, -5.0)

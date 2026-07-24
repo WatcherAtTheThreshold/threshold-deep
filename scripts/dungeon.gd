@@ -430,11 +430,14 @@ func _reveal_secret_trigger(cell: Vector3i) -> void:
 
 
 func _place_heart_caches() -> void:
-	# Scatter a few marked planks through the halls — the same pale tell
-	# and buried-stone pillar as the commoner secret, but they hide a
-	# magic heart, not a room. Placed on PROVEN STONE after the
-	# solvability proof: safe, because a cache always breaks back to
-	# walkable stone, never a hole. Spawn and ceremony rooms stay clean.
+	# A few marked planks tucked INTO the wooden patches — the same pale
+	# tell and buried-stone pillar as the commoner secret, but they hide
+	# a magic heart, not a room. Placed on EXISTING WOOD beside other
+	# wood (not a lone stone tile), so a cache reads as one of a breakable
+	# group rather than an odd tile out. Still safe after the solvability
+	# proof: a cache always breaks back to walkable stone, never a hole —
+	# strictly safer than a plank that could collapse. Spawn and ceremony
+	# rooms stay clean.
 	var count := randi_range(HEART_CACHE_MIN, HEART_CACHE_MAX)
 	if count <= 0:
 		return
@@ -445,27 +448,46 @@ func _place_heart_caches() -> void:
 		skip.append(floor_rooms[arena_room_idx])
 	elif kind == RunState.FloorKind.ITEM and item_room_idx >= 0:
 		skip.append(floor_rooms[item_room_idx])
-	var candidates: Array[Vector2i] = []
+	# Prefer wooden cells that touch other wood (a real group); fall back
+	# to any wooden cell only if no grouped one exists. The secret plank
+	# is already pale, so scanning for plain wood naturally skips it.
+	var grouped: Array[Vector2i] = []
+	var lone: Array[Vector2i] = []
 	for x in GRID_WIDTH:
 		for z in GRID_HEIGHT:
-			if grid_map.get_cell_item(Vector3i(x, 0, z)) != floor_id:
+			if grid_map.get_cell_item(Vector3i(x, 0, z)) != floor_wood_id:
 				continue
 			var c := Vector2i(x, z)
-			var clear := true
+			var blocked := false
 			for r: Rect2i in skip:
 				if r.has_point(c):
-					clear = false
+					blocked = true
 					break
-			if clear:
-				candidates.append(c)
-	candidates.shuffle()
-	for i in mini(count, candidates.size()):
-		var c: Vector2i = candidates[i]
+			if blocked:
+				continue
+			if _has_wood_neighbor(c):
+				grouped.append(c)
+			else:
+				lone.append(c)
+	var pool: Array[Vector2i] = grouped if not grouped.is_empty() else lone
+	pool.shuffle()
+	for i in mini(count, pool.size()):
+		var c: Vector2i = pool[i]
 		grid_map.set_cell_item(Vector3i(c.x, 0, c.y), floor_wood_pale_id)
-		# The buried stone pillar underneath — the second tell, glimpsed
-		# from any neighboring hole, same as the secret plank's.
+		# The buried stone pillar underneath — the second tell glimpsed
+		# from a neighboring hole, and what makes the cache break to stone
+		# rather than open a shaft.
 		hole_map.set_cell_item(Vector3i(c.x, 0, c.y), buried_stone_id)
 		heart_caches.append(c)
+
+
+func _has_wood_neighbor(c: Vector2i) -> bool:
+	# True if an orthogonal neighbour is any wooden floor (plain or pale).
+	for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		var nid := grid_map.get_cell_item(Vector3i(c.x + d.x, 0, c.y + d.y))
+		if nid == floor_wood_id or nid == floor_wood_pale_id:
+			return true
+	return false
 
 
 func _reveal_heart_cache(cell: Vector3i) -> void:

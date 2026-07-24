@@ -62,6 +62,7 @@ const STAFF_ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/magic_staff_orb_hit3.wav"),
 ]
 const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.wav")
+const DASH_SOUND := preload("res://assets/audio/sfx/player/footsteps_player_dash1.wav")
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -324,6 +325,8 @@ func _physics_process(delta: float) -> void:
 		dash_timer = DASH_TIME * (1.35 if RunState.quickstep else 1.0)
 		dash_charges -= 1
 		dash_cooldown_timer = DASH_COOLDOWN
+		# The dash swoosh.
+		Sfx.play_ui(DASH_SOUND, -1.0)
 
 	if dash_timer > 0.0:
 		velocity.x = dash_dir.x * DASH_SPEED

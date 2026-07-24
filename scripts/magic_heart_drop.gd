@@ -25,4 +25,4 @@ func _on_body_entered(body: Node3D) -> void:
 
 func _play_pickup_sound() -> void:
 	Sfx.play_at(PICKUP_SOUNDS[randi_range(0, PICKUP_SOUNDS.size() - 1)],
-			global_position)
+			global_position, -5.0)
