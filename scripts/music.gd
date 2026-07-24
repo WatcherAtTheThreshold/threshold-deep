@@ -19,11 +19,21 @@ const TRACKS: Array[AudioStream] = [
 ]
 
 var player := AudioStreamPlayer.new()
+var started := false
 
 
 func _ready() -> void:
 	player.volume_db = -60.0
 	add_child(player)
+
+
+func begin() -> void:
+	# The dungeon starts the drift; the title screen stays silent so its
+	# own composed track plays without a dungeon song fading in over it.
+	# Guarded so floor reloads don't restart the drift.
+	if started:
+		return
+	started = true
 	_drift()
 
 

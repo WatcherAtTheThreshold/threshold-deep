@@ -141,6 +141,7 @@ var item_resolved := false
 
 
 func _ready() -> void:
+	MusicDrift.begin()  # the dungeon owns the drifting ambient; the title stays quiet
 	floor_id = grid_map.mesh_library.find_item_by_name("floor")
 	wall_id = grid_map.mesh_library.find_item_by_name("wall")
 	floor_wood_id = grid_map.mesh_library.find_item_by_name("floor_wood")
