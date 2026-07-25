@@ -22,12 +22,21 @@ const TEX_TOAD_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/toad2.p
 const TEX_COAT := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen-dead.png")
 const TEX_FROG_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_dead.png")
 const TEX_TOAD_DEAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_dead.png")
+const FROG_ATTACK: Array[Texture2D] = [  # 2-part lunge, plays on each strike
+	preload("res://assets/sprites/frogmen/frogmen-phase2/frog_attack1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase2/frog_attack2.png"),
+]
+const TOAD_ATTACK: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase2/toad_attack1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase2/toad_attack2.png"),
+]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage1.wav"),
 	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage2.wav"),
 	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage3.wav"),
 ]
 const WALK_FRAME_TIME := 0.3
+const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 
 const COATED_HEALTH := 14
 const REVEAL_AT := 6
@@ -63,6 +72,7 @@ var speed_scale := 1.0
 var reveal_timer := 0.0
 var hop_clock := 0.0
 var attack_timer := 0.0
+var attack_anim := 0.0  # counts down while the lunge frames play
 var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
@@ -166,6 +176,8 @@ func _physics_process(delta: float) -> void:
 			facing = to_target.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
+				if state == State.FROG or state == State.TOAD:
+					attack_anim = ATTACK_FRAME_TIME * 2.0
 				t.take_damage(damage, to_target.normalized(), self)
 	elif state == State.COATED:
 		# Unbothered coats patrol; frogs and toads exist mid-fight
@@ -181,7 +193,13 @@ func _physics_process(delta: float) -> void:
 	if moving:
 		walk_time += delta
 	var frame := int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0
-	if state == State.COATED:
+	if attack_anim > 0.0 and state != State.COATED:
+		# The lunge takes over the walk: frame 1 winds up, frame 2 lands,
+		# then it clears back to the idle/walk frames on its own.
+		attack_anim -= delta
+		var lunge := FROG_ATTACK if state == State.FROG else TOAD_ATTACK
+		sprite.texture = lunge[0] if attack_anim > ATTACK_FRAME_TIME else lunge[1]
+	elif state == State.COATED:
 		_update_view(frame)
 	else:
 		sprite.texture = frame_a if frame == 0 else frame_b

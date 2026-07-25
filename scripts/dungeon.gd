@@ -40,6 +40,7 @@ const SOUND_FLOOR_BOSS := preload("res://assets/audio/sfx/environment/boss_floor
 const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor_start.wav")
 const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.wav")
 const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wall1.wav")
+const SOUND_WALL_PARTIAL := preload("res://assets/audio/sfx/environment/broken_partial_wall.ogg")
 const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretroom_wallslidegrind1.wav")
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
@@ -63,6 +64,7 @@ const WALL_RUBBLE_FRAMES: Array[Texture2D] = [
 ]
 const BREAK_FRAME_TIME := 0.07
 const WALL_BREAK_Y := 1.5  # eye/torch height on the 4m opening
+const SECRET_SLIDE_TIME := 3.0  # matches the stone-grind sound length
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -93,6 +95,7 @@ var floor_id := -1
 var wall_id := -1
 var floor_wood_id := -1
 var wall_wood_id := -1
+var wall_wood_partial_id := -1
 var hole_id := -1
 var void_id := -1
 var ceiling_id := -1
@@ -146,6 +149,7 @@ func _ready() -> void:
 	wall_id = grid_map.mesh_library.find_item_by_name("wall")
 	floor_wood_id = grid_map.mesh_library.find_item_by_name("floor_wood")
 	wall_wood_id = grid_map.mesh_library.find_item_by_name("wall_wood")
+	wall_wood_partial_id = grid_map.mesh_library.find_item_by_name("wall_wood_partial")
 	hole_id = grid_map.mesh_library.find_item_by_name("hole")
 	void_id = grid_map.mesh_library.find_item_by_name("void")
 	wall_upper_id = grid_map.mesh_library.find_item_by_name("wall_upper")
@@ -307,7 +311,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 		_spawn_floor_break_effect(cell)
 		_drop_the_unsupported(cell)
 		return
-	if id != wall_wood_id:
+	if id != wall_wood_id and id != wall_wood_partial_id:
 		return
 	wall_damage[cell] = wall_damage.get(cell, 0) + amount
 	if wall_damage[cell] >= WOOD_WALL_HITS:
@@ -318,6 +322,14 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
 		_spawn_wall_break_effect(cell)
 		_spawn_wall_rubble(cell)
+	else:
+		# Not broken yet: swap the whole tile to its splintered variant
+		# (cracks on all four faces) plus a crack of sound — feedback that
+		# the wall is giving. The break above overwrites it with floor.
+		if id == wall_wood_id:
+			grid_map.set_cell_item(cell, wall_wood_partial_id)
+		Sfx.play_at(SOUND_WALL_PARTIAL,
+				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -513,10 +525,16 @@ func _open_secret_room() -> void:
 		return
 	secret_opened = true
 	var door := Vector3i(secret_door.x, 0, secret_door.y)
+	# Grab the upper-band id before we clear the maps — the slide needs a
+	# copy of the exact stone that was standing here.
+	var upper_prev := upper_map.get_cell_item(door)
+	# Open the passage in the STATIC maps at once (floor + ceiling in, wall
+	# + band out); the slide below is a purely visual prop laid on top.
 	grid_map.set_cell_item(door, floor_id)
 	grid_map.set_cell_item(door + Vector3i(0, 1, 0), ceiling_id)
 	upper_map.set_cell_item(door, GridMap.INVALID_CELL_ITEM)
 	Sfx.play_at(SOUND_SECRET_GRIND, _cell_to_world(secret_door, 1.0), -3.0)
+	_slide_secret_wall(door, upper_prev)
 	# The commoner pays in gold: three hearts at the chamber's heart.
 	var center := Vector3.ZERO
 	for c in secret_room_cells:
@@ -525,6 +543,48 @@ func _open_secret_room() -> void:
 	var hearts := MAGIC_PICKUP_SCENE.instantiate()
 	hearts.position = center
 	add_child(hearts)
+
+
+func _slide_secret_wall(door: Vector3i, upper_prev: int) -> void:
+	# A movable copy of the door wall (lower block + decorative band) slides
+	# one cell along the wall run and tucks into the neighbouring stone, so
+	# the opening reads as a slab grinding aside rather than blinking away.
+	# GridMap cells can't move, hence the copy; the static maps are already
+	# open underneath it. Freed when the grind finishes.
+	var through := Vector2i.ZERO  # cell step from door INTO the hidden room
+	for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+		if secret_room_cells.has(secret_door + d):
+			through = d
+			break
+	# Slide perpendicular to the passage; prefer the side backed by stone so
+	# the slab disappears into a wall, not across the open doorway.
+	var slide := Vector2i(through.y, through.x)
+	if slide == Vector2i.ZERO:
+		slide = Vector2i(1, 0)
+	var into := Vector3i(secret_door.x + slide.x, 0, secret_door.y + slide.y)
+	if grid_map.get_cell_item(into) != wall_id:
+		slide = -slide
+
+	var mover := Node3D.new()
+	add_child(mover)
+	var lib := grid_map.mesh_library
+	var lower := MeshInstance3D.new()
+	lower.mesh = lib.get_item_mesh(wall_id)
+	lower.transform = Transform3D(Basis(), grid_map.map_to_local(door)) \
+			* lib.get_item_mesh_transform(wall_id)
+	mover.add_child(lower)
+	if upper_prev != GridMap.INVALID_CELL_ITEM:
+		var band := MeshInstance3D.new()
+		band.mesh = upper_map.mesh_library.get_item_mesh(upper_prev)
+		band.transform = Transform3D(Basis(), upper_map.map_to_local(door)) \
+				* upper_map.mesh_library.get_item_mesh_transform(upper_prev)
+		mover.add_child(band)
+
+	var target := Vector3(slide.x * 2.0, 0.0, slide.y * 2.0)
+	var tw := create_tween()
+	tw.tween_property(mover, "position", target, SECRET_SLIDE_TIME) \
+			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_callback(mover.queue_free)
 
 
 func _drop_the_unsupported(cell: Vector3i) -> void:

@@ -215,8 +215,12 @@ func _build_death_stats() -> String:
 
 
 func _restart_run() -> void:
-	RunState.reset()
-	get_tree().reload_current_scene()
+	# Death returns to the title — the hub where the next run is born.
+	# RunState.reset() now lives on the title's START (so a completed run
+	# can still be read here); MetaState keeps the flythrough from
+	# replaying, and hush() silences the dungeon drift on the way out.
+	MusicDrift.hush()
+	get_tree().change_scene_to_file("res://scenes/title.tscn")
 
 
 func _on_blocked() -> void:

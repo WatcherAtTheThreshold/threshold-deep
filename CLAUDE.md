@@ -235,8 +235,10 @@ granddaughter-friendly toybox. Its manifest is hand-written: when
 wiring new sprites or sounds into the game, add them to the gallery
 too.
 
-No test framework — playtest in editor. **F5** runs the real game
-(`dungeon.tscn` is the startup scene); open `main.tscn` and press
-**F6** for the controlled CSG test room. The generator prints its
+No test framework — playtest in editor. **F5** boots the real front
+door (`title.tscn` is the startup scene → START drops into
+`dungeon.tscn`); open `dungeon.tscn` and press **F6** to skip the title
+and land straight in a run, or `main.tscn` + **F6** for the controlled
+CSG test room. The generator prints its
 ASCII blueprint to Output each run; R rerolls the current floor
 without resetting the run (debug key).

@@ -77,6 +77,22 @@ full `.wav` grep afterward.*
 - [ ] Zip the entire build folder (loader `index.html` must be at the
   zip root).
 
+### Smoke-test the export locally (must be over HTTP, not file://)
+
+**Double-clicking `index.html` fails** with "NetworkError when attempting
+to fetch resource" — browsers block the `fetch()` Godot uses to load its
+`.wasm`/`.pck` over `file://`. Serve the folder over HTTP instead. The
+preset is **single-threaded** (`variant/thread_support=false`), so no
+special COOP/COEP headers are needed — any static server works:
+
+- Open a terminal *in the export folder* (File Explorer address bar →
+  type `powershell` → Enter), then run **`npx serve`** (Node) or
+  **`python -m http.server 8000`** (Python).
+- Open the printed `http://localhost:...` URL.
+
+(The editor's "Run in Browser" already does this over localhost — which
+is why the preview works and the double-click doesn't.)
+
 ## itch.io upload
 
 - [ ] New project → Kind: **HTML**.

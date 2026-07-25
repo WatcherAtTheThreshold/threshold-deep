@@ -1,12 +1,11 @@
 extends Node3D
 
-## The start-screen flythrough (Phase 1: "the shot"). A camera walks a
-## hand-built corridor by torchlight, rounds a corner, and settles
-## facing the end wall — the same stone, scale, and light as the game.
-## No menu, no music, no sword yet; those come in later phases.
-##
-## Preview with the scene open and F6 (the global startup scene stays
-## dungeon.tscn until the hub-wiring phase, so F5 still runs the game).
+## The start screen — the game's front door (the startup scene). A camera
+## walks a hand-built corridor by torchlight, rounds a corner into a dark
+## chamber, reveals the sword planted in stone, and settles as the START
+## / QUIT plates rise. A run is born here (START -> RunState.reset() ->
+## dungeon); death returns here. On a return, MetaState.intro_seen skips
+## the flythrough straight to the settled menu.
 
 const EYE_HEIGHT := 2.05  # camera world y — matches player (1.5 origin + 0.55)
 const WALK_TIME := 16.0    # tune to the title track in the music phase
@@ -45,12 +44,22 @@ const BOX_MAX := Vector2i(11, 7)
 @onready var menu: VBoxContainer = $UI/Menu
 @onready var start_button: TextureButton = $UI/Menu/Start
 @onready var quit_button: TextureButton = $UI/Menu/Quit
+@onready var camera: Camera3D = $CameraPath/Follow/Camera3D
 
 var flicker_time := 0.0
 var intro_started := false
+var settled := false
+var walk_tween: Tween
+var fade_tween: Tween
 
 
 func _ready() -> void:
+	# Free the cursor for the menu. Crucial on a death RETURN: the dungeon
+	# left the mouse captured, and without this the plates are unclickable
+	# and the settled title swallows Esc — a soft-lock that needs a force
+	# quit. A cold boot is already visible, so this is just belt-and-braces
+	# there.
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	_build_corridor()
 	_lay_camera_path()
 	crackle.finished.connect(crackle.play)  # hand-loop the torch ambient
@@ -58,9 +67,12 @@ func _ready() -> void:
 	quit_button.pressed.connect(_on_quit)
 	if OS.has_feature("web"):
 		quit_button.hide()  # nothing to quit to in a browser tab
-	# The scene sits black behind "click to descend" until the player
-	# spends the one gesture the browser needs anyway; that click starts
-	# the walk, the music, and the ambient together (see _begin_intro).
+	if MetaState.intro_seen:
+		# Returning from a run: skip the flythrough, land on the menu.
+		_reveal_settled()
+	# Otherwise the scene sits black behind "click to descend" until the
+	# player spends the one gesture the browser needs anyway; that click
+	# starts the walk, the music, and the ambient together (_begin_intro).
 
 
 func _process(delta: float) -> void:
@@ -79,40 +91,77 @@ func _process(delta: float) -> void:
 	if not intro_started:
 		# Slow breath on the prompt while we wait for the gesture.
 		prompt.modulate.a = 0.65 + 0.35 * sin(flicker_time * 2.2)
+	elif settled:
+		# A whisper of idle drift keeps the settled shot from freezing.
+		camera.rotation.y = deg_to_rad(0.6) * sin(flicker_time * 0.35)
+		camera.rotation.x = deg_to_rad(0.4) * sin(flicker_time * 0.27)
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# The one gesture that starts everything — click, key, or touch.
-	if intro_started:
+	# First gesture starts everything; a second, mid-flythrough, skips to
+	# the settled menu. Once settled, the buttons take over.
+	if settled:
 		return
 	var pressed: bool = (event is InputEventMouseButton and event.pressed) \
 			or (event is InputEventKey and event.pressed) \
 			or (event is InputEventScreenTouch and event.pressed)
-	if pressed:
+	if not pressed:
+		return
+	if not intro_started:
 		_begin_intro()
+	else:
+		_skip_to_settled()
 
 
 func _begin_intro() -> void:
 	if intro_started:
 		return
 	intro_started = true
+	MetaState.intro_seen = true  # future title visits skip to the menu
 	music.play()      # the composed title track, one-shot
 	crackle.play()    # torch ambient, hand-looped; carries the quiet after
 	# Reveal the walk: the black gate fades, the prompt fades with it.
-	var fade := create_tween()
-	fade.tween_property(black, "color:a", 0.0, 0.5)
-	fade.parallel().tween_property(prompt, "modulate:a", 0.0, 0.3)
+	fade_tween = create_tween()
+	fade_tween.tween_property(black, "color:a", 0.0, 0.5)
+	fade_tween.parallel().tween_property(prompt, "modulate:a", 0.0, 0.3)
 	# The flythrough, timed to the track — the swell lands as the walls
 	# open. When it settles, the menu plates fade up on that same beat.
-	var walk := create_tween()
-	walk.tween_property(follow, "progress_ratio", 1.0, WALK_TIME) \
+	walk_tween = create_tween()
+	walk_tween.tween_property(follow, "progress_ratio", 1.0, WALK_TIME) \
 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	walk.finished.connect(_show_menu)
+	walk_tween.finished.connect(_reach_settle)
 
 
-func _show_menu() -> void:
-	# The plates rise from the dark as carved, lit stone — fade in on the
-	# settle, self-lit against the chamber's black.
+func _skip_to_settled() -> void:
+	# Impatient tap during the walk — snap to the end of the flythrough.
+	if walk_tween and walk_tween.is_valid():
+		walk_tween.kill()
+	if fade_tween and fade_tween.is_valid():
+		fade_tween.kill()
+	black.color.a = 0.0
+	prompt.modulate.a = 0.0
+	_reach_settle()
+
+
+func _reveal_settled() -> void:
+	# Returning from a run: no click, no flythrough — straight to the
+	# settled camera and menu, with the title's music and ambient.
+	intro_started = true
+	black.color.a = 0.0
+	prompt.hide()
+	music.play()
+	crackle.play()
+	_reach_settle()
+
+
+func _reach_settle() -> void:
+	# The camera rests and the plates rise from the dark as carved, lit
+	# stone. Reached by the walk finishing, a skip, or a return from
+	# death — guarded, and snaps the camera to the settle either way.
+	if settled:
+		return
+	settled = true
+	follow.progress_ratio = 1.0
 	menu.visible = true
 	menu.modulate.a = 0.0
 	create_tween().tween_property(menu, "modulate:a", 1.0, 0.8)

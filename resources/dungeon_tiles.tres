@@ -1,9 +1,10 @@
-[gd_resource type="MeshLibrary" load_steps=30 format=3]
+[gd_resource type="MeshLibrary" load_steps=33 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/floor_stone.png" id="1_floor"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_stone.png" id="2_wall"]
 [ext_resource type="Texture2D" path="res://assets/tiles/floor_wooden.png" id="3_floor_wood"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_wooden.png" id="4_wall_wood"]
+[ext_resource type="Texture2D" path="res://assets/tiles/wall_wooden_partially_broken.png" id="8_wall_partial"]
 [ext_resource type="Texture2D" path="res://assets/tiles/ceiling_stone.png" id="5_ceiling"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper1.png" id="6_upper1"]
 [ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper2.png" id="7_upper2"]
@@ -102,6 +103,17 @@ size = Vector3(2, 0.5, 2)
 material = SubResource("mat_wall_wood")
 size = Vector3(2, 8.2, 2)
 
+[sub_resource type="StandardMaterial3D" id="mat_wall_wood_partial"]
+albedo_texture = ExtResource("8_wall_partial")
+roughness = 0.8
+texture_filter = 0
+uv1_triplanar = true
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxMesh" id="mesh_wall_wood_partial"]
+material = SubResource("mat_wall_wood_partial")
+size = Vector3(2, 8.2, 2)
+
 [sub_resource type="BoxMesh" id="mesh_hole"]
 material = SubResource("mat_hole")
 size = Vector3(2, 0.2, 2)
@@ -168,3 +180,7 @@ item/11/name = "floor_wood_pale"
 item/11/mesh = SubResource("mesh_floor_wood_pale")
 item/11/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
 item/11/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/12/name = "wall_wood_partial"
+item/12/mesh = SubResource("mesh_wall_wood_partial")
+item/12/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.1, 0)
+item/12/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]

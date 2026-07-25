@@ -175,3 +175,42 @@ to quit to in a browser tab.
   title scene.
 - Runs clean in the browser build with audio and pointer lock alive
   after the first click.
+
+## Future polish — warmup + creature-silhouette intro
+
+*Idea (Jessop, 2026-07-24): the title track runs a touch long, and the
+web build still chugs a couple seconds on the FIRST dungeon entry. Fill
+the music intro AND mask more of that load with a 3–4 s pre-walk beat —
+game creatures in silhouette marching past a lit wall — before the
+corridor walk begins. Deferred as post-demo polish; the concept is
+clean, the implementation has enough nuance to want its own session.*
+
+The one technical truth that makes-or-breaks it:
+
+- **Shaders compile only when the REAL material renders.** A silhouette
+  parade pre-warms the creature shaders ONLY if the marchers are the
+  actual creature `Sprite3D`s (shaded, Y-billboard, same setup as
+  in-game), shown in *low light* so they READ as silhouettes. Fake the
+  silhouette with a black/unshaded shader and you compile a *different*
+  variant that warms nothing the dungeon needs.
+- **Partial, not total.** Done right it warms the *creatures*, but the
+  HUD hearts, the torch viewmodel, and the ember particles still compile
+  on dungeon entry — a smaller residual hitch. For a complete mask, also
+  render those once (hidden/offscreen) at load, or add a brief post-START
+  loading beat that warms everything right before the dungeon reveals.
+- **One-time per session.** Only the first dungeon entry chugs; retries
+  after death are already smoother (shaders stay cached all session), so
+  warming at the *title* holds for the whole session.
+
+Placement, two ways:
+
+- **Pre-walk silhouettes** (before the corridor walk): fills the music,
+  warms creatures, stays seamless and on-theme. Preferred.
+- **Post-START loading screen**: the more *complete* mask (warm
+  everything right before gameplay, and it'd cover the dungeon's procgen
+  build too) — but it interrupts the seamless title→dungeon flow.
+
+Separate lever, same goal: the **OGG audio conversion**
+(web-demo-checklist.md §2) shrinks the ~58 MB WAV `.pck` — fixes
+download/load time, NOT the compile chug. Pair the two in one polish
+pass someday.

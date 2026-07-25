@@ -20,6 +20,7 @@ const TRACKS: Array[AudioStream] = [
 
 var player := AudioStreamPlayer.new()
 var started := false
+var gen := 0  # bumped to invalidate a running drift loop
 
 
 func _ready() -> void:
@@ -34,13 +35,27 @@ func begin() -> void:
 	if started:
 		return
 	started = true
-	_drift()
+	gen += 1
+	_drift(gen)
 
 
-func _drift() -> void:
+func hush() -> void:
+	# Silence the dungeon drift (e.g. returning to the title, which owns
+	# its own track) and stop it surfacing again. Bumping gen makes the
+	# running loop bail at its next check; begin() can restart it later.
+	if not started:
+		return
+	started = false
+	gen += 1
+	var t := create_tween()
+	t.tween_property(player, "volume_db", -60.0, 1.2)
+	t.tween_callback(player.stop)
+
+
+func _drift(my_gen: int) -> void:
 	# First entrance comes fairly soon; after that, its own rhythm.
 	await get_tree().create_timer(randf_range(5.0, 15.0)).timeout
-	while true:
+	while my_gen == gen:
 		# Each surfacing picks a song, then a place within it.
 		var track := TRACKS[randi_range(0, TRACKS.size() - 1)]
 		player.stream = track

@@ -267,12 +267,18 @@ const SECTIONS = [
     {
       name: 'Frog', rest: S + 'frogmen/frogmen-phase2/frog1.png',
       sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'), rate: 1.15,
-      frames: walk(S + 'frogmen/frogmen-phase2/frog1.png', S + 'frogmen/frogmen-phase2/frog2.png', 200),
+      cycle: [
+        { frames: walk(S + 'frogmen/frogmen-phase2/frog1.png', S + 'frogmen/frogmen-phase2/frog2.png', 200) },
+        { frames: walk(S + 'frogmen/frogmen-phase2/frog_attack1.png', S + 'frogmen/frogmen-phase2/frog_attack2.png', 150) },
+      ],
     },
     {
       name: 'Toad', rest: S + 'frogmen/frogmen-phase2/toad1.png',
       sounds: hitTrio('enemies/frogmen_frog_toad_take_damage'), rate: 0.95,
-      frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280),
+      cycle: [
+        { frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280) },
+        { frames: walk(S + 'frogmen/frogmen-phase2/toad_attack1.png', S + 'frogmen/frogmen-phase2/toad_attack2.png', 150) },
+      ],
     },
     {
       name: 'the Skeletal Wizard', rest: S + 'skeletal-wizard/skeletal_wizard_front1.png', tall: true,
@@ -317,6 +323,7 @@ const SECTIONS = [
         [S + 'torch/hand-torch_swing2.png', 10],
       ],
     },
+    { br: true },
     {
       name: 'Sword', wide: true, rest: S + 'sword/sword_walk1.png',
       sounds: hitTrio('player/sword_slice'),
@@ -329,6 +336,7 @@ const SECTIONS = [
         [S + 'sword/sword_walk1.png', 10],
       ],
     },
+    { br: true },
     {
       name: 'Halberd', wide: true, rest: S + 'halberd/hand_halberd1.png',
       sounds: hitTrio('player/halberd_slice'),
@@ -339,14 +347,7 @@ const SECTIONS = [
         [S + 'halberd/hand_halberd1.png', 10],
       ],
     },
-    {
-      name: 'Magic Staff', wide: true, rest: S + 'magic_staff.png',
-      sounds: hitTrio('player/magic_staff_orb_hit'),
-      frames: [
-        [S + 'magic_staff_swing.png', 220],
-        [S + 'magic_staff.png', 10],
-      ],
-    },
+    { br: true },
     {
       name: 'Boomerang Throw', wide: true, rest: S + 'hand-boomerang.png',
       sounds: [A + 'player/boomerang_throw.wav'],
@@ -355,6 +356,15 @@ const SECTIONS = [
         [S + 'hand-boomerang.png', 10],
       ],
     },
+    {
+      name: 'Magic Staff', wide: true, rest: S + 'magic_staff.png',
+      sounds: hitTrio('player/magic_staff_orb_hit'),
+      frames: [
+        [S + 'magic_staff_swing.png', 220],
+        [S + 'magic_staff.png', 10],
+      ],
+    },
+    { br: true },
     {
       name: 'Boomerang Flight', rest: S + 'boomerang_shot1.png',
       sounds: hitTrio('player/boomerang_hit'),
@@ -379,9 +389,9 @@ const SECTIONS = [
       ],
     },
     {
-      name: 'Wizard Orb', rest: S + 'wizard_orb1.png',
+      name: 'Wizard Orb', rest: S + 'wizard/wizard_orb1.png',
       sounds: hitTrio('enemies/wizard_orb_hit'),
-      frames: walk(S + 'wizard_orb1.png', S + 'wizard_orb2.png', 120, 4),
+      frames: walk(S + 'wizard/wizard_orb1.png', S + 'wizard/wizard_orb2.png', 120, 4),
     },
     {
       name: 'Staff Orb', rest: S + 'magic_staff_orb1.png',
@@ -476,6 +486,7 @@ const SECTIONS = [
       sounds: [A + 'environment/broken_wall1.wav'],
       frames: [
         ['assets/tiles/wall_wooden.png', 120],
+        ['assets/tiles/wall_wooden_partially_broken.png', 500],
         ['assets/tiles/wall_wooden_break1.png', 70],
         ['assets/tiles/wall_wooden_break2.png', 70],
         ['assets/tiles/wall_wooden_break3.png', 70],
@@ -509,6 +520,13 @@ for (const section of SECTIONS) {
   page.appendChild(grid);
 
   for (const t of section.tiles) {
+    if (t.br) {  // a forced flex line break — starts a new row
+      const b = document.createElement('div');
+      b.style.flexBasis = '100%';
+      b.style.height = '0';
+      grid.appendChild(b);
+      continue;
+    }
     const tile = document.createElement('div');
     tile.className = 'tile' + (t.tall ? ' tall' : '') + (t.wide ? ' wide' : '');
     const frame = document.createElement('div');
