@@ -111,7 +111,8 @@ undoing of the self that walked in:
    as the world's rule. Bosses here are about *becoming*: matter that
    changes state, terrain that changes what it is. The player learns
    the grammar of transformation as a survivor, before meeting it as a
-   god.
+   god. Lean into cutesiness of slimes, mush and frogmen. Music shifts 
+   to adventure themes, out of lament.
 
 4. **The threshold thins.** The boundary between states starts to fail.
    Mist stops being a door and starts being *weather.* Geometry stops
@@ -121,7 +122,8 @@ undoing of the self that walked in:
 5. **The Threshold / The Deep (Act III).** Mist and distance and wrong
    dimensions. The known creatures return transformed into cosmic
    beings — twisted, vast, recognizable. This is where the descent was
-   always going. The bardo's far shore.
+   always going. The bardo's far shore. Cutesy transforms to horror and
+   music goes twisted adventure time, think techno-lament?
 
 6. **The end (open).** What's at the bottom is deliberately unwritten
    here — an ending that is *arrival,* not just a dead boss. The bardo
