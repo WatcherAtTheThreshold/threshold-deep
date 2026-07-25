@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/slime_creep.gd" id="1_creep"]
+[ext_resource type="Texture2D" path="res://assets/sprites/slime/slime_creep.png" id="2_tex"]
+
+[node name="SlimeCreep" type="Sprite3D" groups=["creep"]]
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 0
+texture_filter = 0
+texture = ExtResource("2_tex")
+script = ExtResource("1_creep")

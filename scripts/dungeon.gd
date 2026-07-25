@@ -729,6 +729,7 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 		hatch_exclude := -1) -> void:
 	# Player starts in the first room; every other room gets enemies.
 	player.position = _cell_to_world(rooms[0].get_center())
+	_face_spawn_doorway(rooms[0])
 	var extra_chance := minf(
 		EXTRA_SKELETON_CHANCE_PER_DEPTH * (RunState.depth - 1), 0.6)
 	var wizard_chance := minf(
@@ -769,6 +770,31 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 				add_child(potion)
 	if with_hatch:
 		_place_hatch(rooms, hatch_exclude)
+
+
+func _face_spawn_doorway(room: Rect2i) -> void:
+	# Spawn looking down a corridor mouth instead of at a blank wall: find
+	# the nearest walkable cell just OUTSIDE the room (a doorway a corridor
+	# punched through) and yaw the player toward it. Sealed arrival doors
+	# aren't floor, so they're never chosen; an x-1 hatch room with no
+	# ground exit would simply keep the default facing.
+	var center := room.get_center()
+	var best := Vector2i.ZERO
+	var best_dist := INF
+	for x in range(room.position.x - 1, room.end.x + 1):
+		for z in range(room.position.y - 1, room.end.y + 1):
+			var c := Vector2i(x, z)
+			if room.has_point(c) or not _is_open_cell(c):
+				continue
+			var d := Vector2(c - center).length_squared()
+			if d < best_dist:
+				best_dist = d
+				best = c - center
+	if best == Vector2i.ZERO:
+		return
+	# Player forward is -Z; yaw so it points along the doorway offset
+	# (Vector2i.y holds the cell's world-z).
+	player.rotation.y = atan2(-float(best.x), -float(best.y))
 
 
 # ------------------------------------------------------------------

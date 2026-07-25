@@ -5,6 +5,7 @@ signal health_changed(current: int, maximum: int, magic: int)
 signal attacked
 signal blocked
 signal died
+signal poisoned(current: int, maximum: int, magic: int)
 
 const SPEED := 5.0
 const DASH_SPEED := 14.0
@@ -29,6 +30,11 @@ const WIDESWING_ARC_DEG := 85.0
 const TORCH_KNOCKBACK := 1.8
 const FALL_DEATH_Y := -1.5
 const INVULN_TIME := 1.0
+const POISON_TICKS := 2           # delayed ticks after a slime touch / creep
+const POISON_TICK_DAMAGE := 1     # half-heart per tick
+const POISON_INTERVAL := 1.2      # seconds between ticks (matches the Rot Dot)
+const CREEP_POISON_RANGE := 0.6   # horizontal metres to count as standing in it
+const CREEP_SCAN_INTERVAL := 0.25 # throttle the creep proximity check
 # Crystal tiers index these: none / tier 1 / tier 2.
 const FLEET_MULTS: Array[float] = [1.0, 1.15, 1.28]
 const HASTY_MULTS: Array[float] = [1.0, 1.3, 1.6]
@@ -71,6 +77,11 @@ var attack_damage := 1
 var move_speed := SPEED
 var attack_timer := 0.0
 var invuln_timer := 0.0
+var poison_ticks := 0
+var poison_clock := 0.0
+var poison_killer := ""
+var poison_killer_tex: Texture2D = null
+var creep_scan := 0.0
 var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_charges := 1
@@ -309,6 +320,22 @@ func _physics_process(delta: float) -> void:
 		_update_step_audio()
 		return
 
+	# Poison runs OUTSIDE the hit path: no i-frames, no knock-pop, no melee
+	# sound — a quiet green drain from a slime's touch or a stretch spent in
+	# fresh creep (which keeps it topped up while you linger).
+	creep_scan -= delta
+	if creep_scan <= 0.0:
+		creep_scan = CREEP_SCAN_INTERVAL
+		_check_creep()
+	if poison_ticks > 0:
+		poison_clock += delta
+		if poison_clock >= POISON_INTERVAL:
+			poison_clock -= POISON_INTERVAL
+			poison_ticks -= 1
+			_apply_poison_tick()
+		if poison_ticks == 0:
+			poison_clock = 0.0
+
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
 
@@ -502,6 +529,49 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		controls_enabled = false
 		$TorchCrackle.stop()
 		died.emit()
+
+
+func take_poison(source_label := "the Rot", source_tex: Texture2D = null) -> void:
+	# A festering wound: delayed ticks that refresh (never stack). Runs
+	# outside take_damage on purpose. The clock is NOT reset on refresh, so
+	# continuous creep contact keeps ticking rather than postponing forever.
+	if not controls_enabled or health <= 0:
+		return
+	poison_ticks = POISON_TICKS
+	poison_killer = source_label
+	poison_killer_tex = source_tex
+
+
+func _apply_poison_tick() -> void:
+	# Magic hearts soak poison first, same as any damage; the spill hits
+	# red. No i-frames granted or checked — the wound just works.
+	var remaining := POISON_TICK_DAMAGE
+	var absorbed := mini(magic_hearts, remaining)
+	magic_hearts -= absorbed
+	remaining -= absorbed
+	health = maxi(health - remaining, 0)
+	RunState.record_damage_taken(POISON_TICK_DAMAGE)
+	poisoned.emit(health, max_health, magic_hearts)
+	if health == 0:
+		RunState.set_killer(poison_killer, poison_killer_tex)
+		controls_enabled = false
+		$TorchCrackle.stop()
+		died.emit()
+
+
+func _check_creep() -> void:
+	# Standing in a still-wet creep patch re-poisons. Dried creep (faded
+	# past the threshold) is inert, so old trails go safe and only the
+	# fresh path a slime just laid is a hazard — readable and dodgeable.
+	for node: Node3D in get_tree().get_nodes_in_group("creep"):
+		var patch := node as Sprite3D
+		if patch == null or patch.modulate.a <= 0.3:
+			continue
+		var flat := Vector2(global_position.x - node.global_position.x,
+				global_position.z - node.global_position.z).length()
+		if flat <= CREEP_POISON_RANGE:
+			take_poison("Creep")
+			return
 
 
 func toast(title: String, sub: String) -> void:

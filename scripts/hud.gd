@@ -63,6 +63,7 @@ func _ready() -> void:
 	player.health_changed.connect(_on_health_changed)
 	player.blocked.connect(_on_blocked)
 	player.died.connect(_on_player_died)
+	player.poisoned.connect(_on_poisoned)
 	last_total = player.health + player.magic_hearts
 	_rebuild_hearts(player.health, player.max_health, player.magic_hearts)
 	_rebuild_items()
@@ -238,6 +239,19 @@ func _on_health_changed(current: int, maximum: int, magic: int) -> void:
 		hurt_flash.color.a = 0.4
 		create_tween().tween_property(hurt_flash, "color:a", 0.0, 0.4)
 	last_total = total
+	_rebuild_hearts(current, maximum, magic)
+
+
+func _on_poisoned(current: int, maximum: int, magic: int) -> void:
+	# Poison pulses green — distinct from the red hit-flash — then resets
+	# to the red base for the next real blow. Keeps last_total in sync so
+	# the next genuine hit still reads its own drop.
+	hurt_flash.color = Color(0.35, 0.75, 0.3, 0.4)
+	var tween := create_tween()
+	tween.tween_property(hurt_flash, "color:a", 0.0, 0.5)
+	tween.tween_callback(func() -> void:
+		hurt_flash.color = Color(0.7, 0.08, 0.08, 0.0))
+	last_total = current + magic
 	_rebuild_hearts(current, maximum, magic)
 
 

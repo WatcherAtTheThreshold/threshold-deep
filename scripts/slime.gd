@@ -41,6 +41,7 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 const TEX_SPAWN := preload("res://assets/sprites/slime/slime-spawn.png")
 const TEX_MID_SPAWN := preload("res://assets/sprites/slime/slime-mid-spawn.png")
 const TEX_DEAD := preload("res://assets/sprites/slime/slime_dead.png")
+const CREEP_SCENE := preload("res://scenes/slime_creep.tscn")
 const MID_SPAWN_TIME := 0.45
 const WALK_FRAME_TIME := 0.25
 
@@ -63,6 +64,9 @@ const HEAR_RANGE := 3.5  # sensed this close regardless of facing
 const SIGHT_CONE_DEG := 110.0  # forward vision arc, full width
 const ATTACK_RANGE := 1.2
 const ATTACK_COOLDOWN := 1.2
+const POISON_TOUCH_RANGE := 1.1  # caustic aura: mobs this close start to rot
+const POISON_SCAN_INTERVAL := 0.25  # throttle the contact sweep
+const CREEP_SPACING := 0.55  # metres of travel between creep patches (1m art)
 const MERGE_RANGE := 1.0
 const PLAYER_PRIORITY_RANGE := 5.0
 const KNOCK_TIME := 0.35
@@ -85,6 +89,9 @@ var respawn_timer := -1.0
 var emerge_state := State.LARGE
 var damage := 1
 var attack_timer := 0.0
+var poison_scan := randf() * POISON_SCAN_INTERVAL  # desynced from birth
+var creep_init := false
+var last_creep_pos := Vector3.ZERO
 var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
@@ -208,10 +215,24 @@ func _physics_process(delta: float) -> void:
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
 				goal.take_damage(damage, to_goal.normalized(), self)
+				# A slime's bite festers: the player takes a few delayed
+				# poison ticks on top of the blow. (Only the player has
+				# take_poison; mobs get their Rot from the contact sweep.)
+				if goal.has_method("take_poison"):
+					goal.take_poison(kill_label(), sprite.texture)
 	else:
 		_wander(delta, speed)
 
 	move_and_slide()
+
+	# Caustic contact: seed poison into any creature pressed up against
+	# the slime. Throttled so it's a sweep, not a per-frame scan.
+	poison_scan -= delta
+	if poison_scan <= 0.0:
+		poison_scan = POISON_SCAN_INTERVAL
+		_spread_poison()
+
+	_lay_creep()
 
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	# Two-frame squish while moving; rest on the first frame when
@@ -264,6 +285,39 @@ func _fall_into_dark() -> void:
 	if last_attacker is Player:
 		RunState.record_kill(kill_label())
 	queue_free()
+
+
+func _spread_poison() -> void:
+	# A slime's hide is caustic: any creature pressed against it festers.
+	# The poison's ticks credit the slime (Dot passes it as the attacker),
+	# so the infighting rules turn the victim ON the slime — blobs seed the
+	# brawls. Kin are immune (slimes never rot each other); puddles and
+	# corpses are skipped. The player isn't in "enemies", so this never
+	# touches them — player poison is a later, gentler path.
+	for node: Node3D in get_tree().get_nodes_in_group("enemies"):
+		if node == self or node.is_in_group("slimes") or node.get("dead") == true:
+			continue
+		if global_position.distance_to(node.global_position) <= POISON_TOUCH_RANGE:
+			Dot.attach(node, self, "Rot")
+
+
+func _lay_creep() -> void:
+	# Distance-based, not grid-based: the slime moves freely, so a patch
+	# dropped every CREEP_SPACING metres of ACTUAL travel curves around
+	# corners on its own — no tile math, no seams. The first call just
+	# anchors the starting position. Patches lie flat and fade themselves.
+	var here := global_position
+	if not creep_init:
+		creep_init = true
+		last_creep_pos = here
+		return
+	if Vector2(here.x - last_creep_pos.x, here.z - last_creep_pos.z).length() < CREEP_SPACING:
+		return
+	last_creep_pos = here
+	var creep := CREEP_SCENE.instantiate()
+	# Sit just above the floor surface, same as the death splat.
+	creep.position = Vector3(here.x, here.y - 0.5 + 0.03, here.z)
+	get_parent().add_child.call_deferred(creep)
 
 
 func _pick_goal() -> PhysicsBody3D:
@@ -320,6 +374,9 @@ func _split(child_state: State) -> void:
 	var h2 := maxi(health / 2, 1)
 	var h1 := maxi(health - h2, 1)
 	_drop_splat()
+	# The rupture spills fresh goo, scaled to the tier that burst (state is
+	# still the parent here, before it becomes the child below).
+	_spill_death_creep()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/slime.tscn") as PackedScene).instantiate()
 	other.make_child(child_state, h2, self)
@@ -349,6 +406,26 @@ func _drop_splat() -> void:
 		global_position.y - 0.5 + 0.03 + randf() * 0.02,
 		global_position.z)
 	get_parent().add_child.call_deferred(splat)
+
+
+func _spill_death_creep() -> void:
+	# A slime bursts into a pool of fresh, caustic goo — bigger for a bigger
+	# slime — that poisons while wet, then dries (fades) to the harmless
+	# stain the splat leaves underneath. Reuses the trail creep, so it
+	# self-disarms on the same alpha gate; only the player is at risk.
+	var count := 1
+	if state == State.BOSS:
+		count = 3
+	elif state == State.LARGE:
+		count = 2
+	for i in count:
+		var creep := CREEP_SCENE.instantiate()
+		var off := Vector2.ZERO
+		if count > 1:
+			off = Vector2(randf_range(-0.55, 0.55), randf_range(-0.55, 0.55))
+		creep.position = Vector3(global_position.x + off.x,
+				global_position.y - 0.5 + 0.03, global_position.z + off.y)
+		get_parent().add_child.call_deferred(creep)
 
 
 func _apply_state() -> void:
@@ -493,5 +570,6 @@ func _die(by_player: bool) -> void:
 	velocity = Vector3.ZERO
 	sprite.modulate = Color.WHITE
 	_show_flat(TEX_DEAD)
+	_spill_death_creep()
 	if randf() < RESPAWN_CHANCE:
 		respawn_timer = randf_range(RESPAWN_DELAY_MIN, RESPAWN_DELAY_MAX)

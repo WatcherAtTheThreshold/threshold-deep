@@ -196,6 +196,11 @@ const SECTIONS = [
       frames: walk(S + 'slime/slime-boss/slime-boss-front1.png', S + 'slime/slime-boss/slime-boss-front2.png', 280),
     },
     {
+      name: 'Slime Creep', rest: S + 'slime/slime_creep.png',
+      sounds: [A + 'enemies/footsteps_slimes.wav'],
+      frames: [[S + 'slime/slime_creep.png', 1000]],
+    },
+    {
       name: 'the Mush Boss', tall: true, rest: S + 'mush/boss-mush/boss-mush1.png',
       sounds: hitTrio('enemies/mush_take_hit'), rate: 1.0,
       frames: walk(S + 'mush/boss-mush/boss-mush1.png', S + 'mush/boss-mush/boss-mush2.png', 280),

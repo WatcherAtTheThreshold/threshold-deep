@@ -205,7 +205,25 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle with random
   1–10 s incubation → large 6 HP → splits at ≤3 HP into two smalls
   that re-merge on contact unless the player is within 5 m; in group
-  `"slimes"`, dissolves potions; 15% of corpses respawn as a 2 HP
+  `"slimes"`, dissolves potions; **caustic touch** — a throttled
+  proximity sweep (`_spread_poison`, `POISON_TOUCH_RANGE`) attaches a Rot
+  `Dot` to any non-slime creature it presses against, and because Dot
+  ticks credit the slime as attacker, the victim turns on it via the
+  normal infighting rule — slimes seed creature brawls; kin are immune.
+  The **player** is poisoned too, but through its own path — a slime's
+  melee touch and standing in fresh creep both call `player.take_poison`,
+  which ticks OUTSIDE `take_damage` (no i-frames, no knock-pop, no melee
+  sound; magic hearts soak it first) and pulses the HUD **green** via the
+  `poisoned` signal. Leaves a fading **creep trail** (`slime_creep.tscn` +
+  `slime_creep.gd`, distance-based drops via `_lay_creep`, group `"creep"`)
+  that is an **active hazard while wet** — the player's throttled
+  `_check_creep` sweep re-poisons on any patch with `modulate.a > 0.3`, so
+  dried trails go inert and only the just-laid path bites. A dying slime —
+  and a splitting one, scaled by the tier that burst via `_spill_death_creep`
+  (small 1 / large 2 / boss 3 patches) — spills that same creep as a fresh
+  **death pool**, so corpses are hazards only while wet, then dry to the
+  safe stain the splat leaves under them; 15% of corpses
+  respawn as a 2 HP
   small after 8–20 s — the splat swaps to spawn-puddle art 3 s
   before rising), **mush family** (mush 8 HP →
   two minis at ≤4; mushes actively seek visible kin to fuse with —
