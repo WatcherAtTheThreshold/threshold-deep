@@ -14,6 +14,14 @@ const COATED_BACK: Array[Texture2D] = [
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back1.png"),
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back2.png"),
 ]
+const COATED_ATTACK_FRONT: Array[Texture2D] = [  # faces what it hits, so no back
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front-attack1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front-attack2.png"),
+]
+const COATED_ATTACK_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side_attack1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side_attack2.png"),
+]
 const TEX_REVEAL := preload("res://assets/sprites/frogmen/frogmen-phase-stransition.png")
 const TEX_FROG_1 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog1.png")
 const TEX_FROG_2 := preload("res://assets/sprites/frogmen/frogmen-phase2/frog2.png")
@@ -176,7 +184,7 @@ func _physics_process(delta: float) -> void:
 			facing = to_target.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
-				if state == State.FROG or state == State.TOAD:
+				if state != State.REVEAL:  # all attacking states now have a lunge
 					attack_anim = ATTACK_FRAME_TIME * 2.0
 				t.take_damage(damage, to_target.normalized(), self)
 	elif state == State.COATED:
@@ -193,12 +201,18 @@ func _physics_process(delta: float) -> void:
 	if moving:
 		walk_time += delta
 	var frame := int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0
-	if attack_anim > 0.0 and state != State.COATED:
+	if attack_anim > 0.0:
 		# The lunge takes over the walk: frame 1 winds up, frame 2 lands,
 		# then it clears back to the idle/walk frames on its own.
 		attack_anim -= delta
-		var lunge := FROG_ATTACK if state == State.FROG else TOAD_ATTACK
-		sprite.texture = lunge[0] if attack_anim > ATTACK_FRAME_TIME else lunge[1]
+		var lunge_frame := 0 if attack_anim > ATTACK_FRAME_TIME else 1
+		if state == State.COATED:
+			# Directional strike: front or side (never back — a frogman
+			# faces what it hits), same projection as the walk view.
+			_coated_attack_view(lunge_frame)
+		else:
+			var lunge := FROG_ATTACK if state == State.FROG else TOAD_ATTACK
+			sprite.texture = lunge[lunge_frame]
 	elif state == State.COATED:
 		_update_view(frame)
 	else:
@@ -266,9 +280,26 @@ func _update_view(frame: int) -> void:
 		sprite.texture = COATED_SIDE[frame]
 
 
+func _coated_attack_view(frame: int) -> void:
+	# The coated strike, same projection as _update_view but front/side only
+	# — no back attack, since a frogman turns to face whatever it hits.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = COATED_ATTACK_FRONT[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = COATED_ATTACK_SIDE[frame]
+
+
 func _start_reveal() -> void:
 	state = State.REVEAL
 	reveal_timer = REVEAL_TIME
+	attack_anim = 0.0  # drop any mid-lunge so it doesn't carry into the frog
 	sprite.flip_h = false
 	sprite.texture = TEX_REVEAL
 	sprite.modulate = Color.WHITE

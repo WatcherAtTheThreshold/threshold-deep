@@ -168,7 +168,13 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - Holes live in a second GridMap (`HoleMap`) and are **open lethal
   shafts** — no collision. A collisionless `void` tile (black slab,
   same look) sits under every wooden floor cell from build time;
-  collapse swaps the plank away and the shaft is simply open.
+  collapse swaps the plank away and the shaft is simply open. Open
+  shafts get a torn lip: `_rebuild_hole_rims` rebuilds upright
+  `floor_hole_edge` sprites wholesale from the HoleMap on every hole
+  event — one on each shaft edge that still borders solid floor, facing
+  in — so connected/growing holes rim only their true outer edge and
+  never leave a seam floating over open space. Rims live under a
+  `HoleRims` container so the collapse-sink pass ignores them.
   Falling below y = -1.5 kills the player ("the Dark Below", no
   portrait) and despawns creatures — kill credited if the player's
   shove sent them over (`last_attacker`), but the body and its

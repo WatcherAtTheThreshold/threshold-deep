@@ -45,6 +45,11 @@ const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretro
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 const HATCH_TEXTURE := preload("res://assets/tiles/hatch_open.png")
+const HOLE_EDGE_TEXTURE := preload("res://assets/tiles/floor_hole_edge.png")
+const HOLE_RIM_INSET := 0.03  # nudge the lip off the stone face (no z-fight)
+const HOLE_RIM_HEIGHT := 1.0  # metres of wood band below the floor top; the
+							  # deep stone tile face shows below it (0.5 ≈ the
+							  # true plank thickness, higher = a chunkier lip)
 const FLOOR_BREAK_FRAMES: Array[Texture2D] = [
 	preload("res://assets/tiles/floor_wooden_break1.png"),
 	preload("res://assets/tiles/floor_wooden_break2.png"),
@@ -105,6 +110,7 @@ var buried_stone_id := -1
 var floor_wood_pale_id := -1
 
 var wall_damage := {}
+var hole_rims_root: Node3D  # container for the torn-lip sprites around holes
 var last_player_cell := Vector3i(-9999, 0, -9999)
 var enemy_cells := {}  # instance id -> last grid cell, for enemy-worn planks
 var floor_rooms: Array[Rect2i] = []
@@ -310,6 +316,7 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 				_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -6.0)
 		_spawn_floor_break_effect(cell)
 		_drop_the_unsupported(cell)
+		_rebuild_hole_rims()
 		return
 	if id != wall_wood_id and id != wall_wood_partial_id:
 		return
@@ -366,6 +373,7 @@ func _try_collapse(cell: Vector3i) -> void:
 			_cell_to_world(Vector2i(cell.x, cell.z), 0.5), -8.0)
 	_spawn_floor_break_effect(cell)
 	_drop_the_unsupported(cell)
+	_rebuild_hole_rims()
 
 
 func _spawn_floor_break_effect(cell: Vector3i) -> void:
@@ -426,6 +434,55 @@ func _play_break_frames(s: Sprite3D, frames: Array[Texture2D]) -> void:
 		tw.tween_callback(s.set_texture.bind(frames[i]))
 	tw.tween_interval(BREAK_FRAME_TIME)
 	tw.tween_callback(s.queue_free)
+
+
+func _rebuild_hole_rims() -> void:
+	# Line every open shaft edge that still borders solid floor with an
+	# upright torn lip — the cross-section of what the plank was keyed into.
+	# Rebuilt wholesale from the HoleMap on each hole event, so growing and
+	# connected holes always show rims on their true OUTER edge only, and
+	# never a seam left floating over open space. Kept in a container so the
+	# collapse-sink pass (which scans the dungeon's direct children) can't
+	# mistake a rim for loose cargo.
+	if hole_rims_root == null:
+		hole_rims_root = Node3D.new()
+		hole_rims_root.name = "HoleRims"
+		add_child(hole_rims_root)
+	for old in hole_rims_root.get_children():
+		old.queue_free()
+	for cell in hole_map.get_used_cells_by_item(hole_id):
+		var c := Vector2i(cell.x, cell.z)
+		for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			if _is_open_cell(c + d):
+				_place_hole_rim(c, d)
+
+
+func _place_hole_rim(c: Vector2i, d: Vector2i) -> void:
+	# One upright lip on the boundary between hole cell c and its solid
+	# neighbour c+d, facing into the hole (normal = -d). The 2m art hangs
+	# from the floor top (0.5) down the shaft, so its centre sits at -0.5;
+	# nudged a hair off the stone face it clings to.
+	var rim := Sprite3D.new()
+	rim.texture = HOLE_EDGE_TEXTURE
+	rim.pixel_size = 0.03125
+	rim.shaded = true
+	rim.alpha_cut = SpriteBase3D.ALPHA_CUT_DISCARD
+	rim.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	rim.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	rim.rotation.y = atan2(-float(d.x), -float(d.y))
+	# A wood band capping the shaft: top flush with the floor surface (0.5),
+	# hanging down HOLE_RIM_HEIGHT so the deep stone tile face shows below —
+	# the plank was only ever a thin layer over stone. The art is a 64x32
+	# strip (2m wide x 1m tall here), so height maps straight to the knob —
+	# native and undistorted at 1.0.
+	rim.scale.y = HOLE_RIM_HEIGHT
+	var mid_y := 0.5 - HOLE_RIM_HEIGHT * 0.5
+	var base := _cell_to_world(c, mid_y)
+	rim.position = Vector3(
+		base.x + float(d.x) * (1.0 - HOLE_RIM_INSET),
+		base.y,
+		base.z + float(d.y) * (1.0 - HOLE_RIM_INSET))
+	hole_rims_root.add_child(rim)
 
 
 func _reveal_secret_trigger(cell: Vector3i) -> void:
