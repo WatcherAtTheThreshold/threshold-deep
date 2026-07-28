@@ -129,7 +129,9 @@ already in — levels, tails, pitch spreads — as the mix fills up.
 - **Meta-progression** — still the highest-leverage missing system:
   a MetaState saved to disk banking runs into unlocks that enter
   the item pool. First candidate for the next phase — demos live
-  on "one more run."
+  on "one more run." figure out tiers for levels,what items are 
+  added on what level and what is the condition met that 
+  unlocks them. Boss Trophys?
 - **Secret rooms** — the commoner is BUILT (x-1 floors: sealed
   chamber grafted at generation, trigger buried under one plank
   with a faint amber glimmer tell, revealed on stone by collapse
