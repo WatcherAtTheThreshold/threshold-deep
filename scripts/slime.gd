@@ -43,7 +43,61 @@ const TEX_MID_SPAWN := preload("res://assets/sprites/slime/slime-mid-spawn.png")
 const TEX_DEAD := preload("res://assets/sprites/slime/slime_dead.png")
 const CREEP_SCENE := preload("res://scenes/slime_creep.tscn")
 const MID_SPAWN_TIME := 0.45
+const BOSS_ATTACK: Array[Texture2D] = [  # front-only, like the boss walk
+	preload("res://assets/sprites/slime/slime-boss/slime-boss-front_attack1.png"),
+	preload("res://assets/sprites/slime/slime-boss/slime-boss-front_attack2.png"),
+]
+const LARGE_ATTACK_FRONT: Array[Texture2D] = [  # faces what it hits, so no back
+	preload("res://assets/sprites/slime/slime-large/slime_large_front_attack1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_front_attack2.png"),
+]
+const LARGE_ATTACK_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/slime/slime-large/slime_large_side_attack1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_side_attack2.png"),
+]
+const SMALL_ATTACK_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_front_attack1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_front_attack2.png"),
+]
+const SMALL_ATTACK_SIDE: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_side_attack1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_side_attack2.png"),
+]
 const WALK_FRAME_TIME := 0.25
+const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
+const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_LARGE := preload("res://assets/sprites/slime/slime-large/slime_large_front_aggro1.png")
+const AGGRO_SMALL := preload("res://assets/sprites/slime/slime-small/slime_small_front_aggro1.png")
+const AGGRO_BOSS := preload("res://assets/sprites/slime/slime-boss/slime-boss-front_aggro1.png")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/slime_death.wav")
+const LARGE_TAKEHIT_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit2.png"),
+]
+const LARGE_TAKEHIT_SIDE: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_side_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_side_takehit2.png"),
+]
+const LARGE_TAKEHIT_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-large/slime_large_back_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-large/slime_large_back_takehit2.png"),
+]
+const SMALL_TAKEHIT_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_front_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_front_takehit2.png"),
+]
+const SMALL_TAKEHIT_SIDE: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_side_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_side_takehit2.png"),
+]
+const SMALL_TAKEHIT_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/slime/slime-small/slime_small_back_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-small/slime_small_back_takehit2.png"),
+]
+const BOSS_TAKEHIT: Array[Texture2D] = [  # front-only, like the boss walk
+	preload("res://assets/sprites/slime/slime-boss/slime-boss-front_takehit1.png"),
+	preload("res://assets/sprites/slime/slime-boss/slime-boss-front_takehit2.png"),
+]
 
 const SPAWN_TIME_MIN := 1.0
 const SPAWN_TIME_MAX := 10.0
@@ -99,6 +153,15 @@ var partner: CharacterBody3D = null  # fellow small to re-merge with
 var front_frames: Array[Texture2D] = LARGE_FRONT
 var side_frames: Array[Texture2D] = LARGE_SIDE
 var back_frames: Array[Texture2D] = LARGE_BACK  # empty for the boss (front-only)
+var takehit_front: Array[Texture2D] = LARGE_TAKEHIT_FRONT
+var takehit_side: Array[Texture2D] = LARGE_TAKEHIT_SIDE
+var takehit_back: Array[Texture2D] = LARGE_TAKEHIT_BACK  # empty for the boss
+var attack_front: Array[Texture2D] = LARGE_ATTACK_FRONT
+var attack_side: Array[Texture2D] = LARGE_ATTACK_SIDE  # empty for the boss
+var attack_anim := 0.0  # counts down while the lunge frames play
+var noticed := false    # true while it currently perceives the player
+var aggro_timer := 0.0  # counts down through the startle freeze
+var aggro_tex: Texture2D = AGGRO_LARGE  # the alert pose, set per tier
 var facing := Vector3.FORWARD
 var wander_dir := Vector3.ZERO
 var wander_timer := 0.0
@@ -125,6 +188,7 @@ func _ready() -> void:
 
 func make_child(child_state: State, hp: int, buddy: CharacterBody3D) -> void:
 	# Called before add_child by the splitting parent.
+	noticed = true  # born mid-fight, already aware — no startle on spawn
 	state = child_state
 	health = hp
 	partner = buddy
@@ -161,6 +225,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	attack_timer = maxf(attack_timer - delta, 0.0)
+	aggro_timer = maxf(aggro_timer - delta, 0.0)
 
 	if state == State.PUDDLE:
 		spawn_timer -= delta
@@ -179,6 +244,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
 		move_and_slide()
+		# The stagger IS the hit reaction: the 2-stage take-hit plays across
+		# the skid (the red flash from take_damage tints it).
+		_hit_view(0 if knock_timer > KNOCK_TIME * 0.5 else 1)
 		return
 
 	var tier_speed := SMALL_SPEED
@@ -193,11 +261,28 @@ func _physics_process(delta: float) -> void:
 	var dist := to_goal.length()
 	var sight := SIGHT_RANGE if _get_target() == player else INFIGHT_SIGHT_RANGE
 
+	var seen := _perceives(goal, dist, sight)
+	if seen and goal == player and not noticed:
+		noticed = true
+		aggro_timer = AGGRO_TIME
+	elif not seen:
+		noticed = false
+	if aggro_timer > 0.0:
+		# The notice beat: the blob rears up facing you, then rolls in.
+		facing = to_goal.normalized()
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		sprite.flip_h = false
+		sprite.texture = aggro_tex
+		if step_sound.playing:
+			step_sound.stop()
+		return
 	if goal == partner and dist < MERGE_RANGE:
 		# Initiator rule so only one of the pair performs the merge.
 		if get_instance_id() < partner.get_instance_id():
 			_merge()
-	elif _perceives(goal, dist, sight):
+	elif seen:
 		if goal == partner or dist > ATTACK_RANGE:
 			var dir := to_goal.normalized()
 			facing = dir
@@ -214,6 +299,7 @@ func _physics_process(delta: float) -> void:
 			facing = to_goal.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
+				attack_anim = ATTACK_FRAME_TIME * 2.0
 				goal.take_damage(damage, to_goal.normalized(), self)
 				# A slime's bite festers: the player takes a few delayed
 				# poison ticks on top of the blow. (Only the player has
@@ -237,7 +323,12 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	# Two-frame squish while moving; rest on the first frame when
 	# still. Which view shows depends on camera versus heading.
-	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
+	if attack_anim > 0.0:
+		# The lunge takes over the walk view while it plays.
+		attack_anim -= delta
+		_attack_view(0 if attack_anim > ATTACK_FRAME_TIME else 1)
+	else:
+		_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving:
 		walk_time += delta
 	if moving and not step_sound.playing:
@@ -440,6 +531,12 @@ func _apply_state() -> void:
 		front_frames = [TEX_BOSS_1, TEX_BOSS_2]
 		side_frames = []
 		back_frames = []
+		attack_front = BOSS_ATTACK
+		attack_side = []
+		aggro_tex = AGGRO_BOSS
+		takehit_front = BOSS_TAKEHIT
+		takehit_side = []
+		takehit_back = []
 		# Boss canvas is 96px (3m): half-height 1.5 minus the 0.5
 		# body radius stands its bottom edge on the floor.
 		sprite.position = Vector3(0, 1.0, 0)
@@ -449,6 +546,12 @@ func _apply_state() -> void:
 		front_frames = LARGE_FRONT
 		side_frames = LARGE_SIDE
 		back_frames = LARGE_BACK
+		attack_front = LARGE_ATTACK_FRONT
+		attack_side = LARGE_ATTACK_SIDE
+		aggro_tex = AGGRO_LARGE
+		takehit_front = LARGE_TAKEHIT_FRONT
+		takehit_side = LARGE_TAKEHIT_SIDE
+		takehit_back = LARGE_TAKEHIT_BACK
 		sprite.position = Vector3(0, 0.5, 0)
 		step_sound.pitch_scale = 0.85
 		damage = 2
@@ -456,9 +559,16 @@ func _apply_state() -> void:
 		front_frames = SMALL_FRONT
 		side_frames = SMALL_SIDE
 		back_frames = SMALL_BACK
+		attack_front = SMALL_ATTACK_FRONT
+		attack_side = SMALL_ATTACK_SIDE
+		aggro_tex = AGGRO_SMALL
+		takehit_front = SMALL_TAKEHIT_FRONT
+		takehit_side = SMALL_TAKEHIT_SIDE
+		takehit_back = SMALL_TAKEHIT_BACK
 		sprite.position = Vector3.ZERO
 		step_sound.pitch_scale = 1.2
 		damage = 2
+	attack_anim = 0.0  # clear any mid-lunge when the tier changes
 	sprite.texture = front_frames[0]
 
 
@@ -484,6 +594,27 @@ func _update_view(frame: int) -> void:
 		sprite.texture = side_frames[frame]
 
 
+func _attack_view(frame: int) -> void:
+	# Attack lunge, front/side only (no back — a slime faces what it hits).
+	# The boss is front-only (empty side) and stays front-facing.
+	if attack_side.is_empty():
+		sprite.flip_h = false
+		sprite.texture = attack_front[frame]
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth_dot := facing.dot(-cam.global_transform.basis.z)
+	var side_dot := facing.dot(cam.global_transform.basis.x)
+	if absf(depth_dot) >= absf(side_dot):
+		sprite.flip_h = false
+		# No back-ATTACK art: facing away, the walk's back view stands in.
+		sprite.texture = back_frames[frame] if depth_dot > 0.0 else attack_front[frame]
+	else:
+		sprite.flip_h = side_dot > 0.0
+		sprite.texture = attack_side[frame]
+
+
 func _show_mid_spawn() -> void:
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y
 	sprite.rotation = Vector3.ZERO
@@ -499,6 +630,26 @@ func _show_flat(tex: Texture2D) -> void:
 	sprite.flip_h = false  # clear any leftover side-view mirroring
 	sprite.position = Vector3(0, -0.47, 0)
 	sprite.texture = tex
+
+
+func _hit_view(frame: int) -> void:
+	# Take-hit turnaround, same projection as _update_view. The boss is
+	# front-only (empty side/back take-hit) and stays front-facing.
+	if takehit_back.is_empty():
+		sprite.flip_h = false
+		sprite.texture = takehit_front[frame]
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth_dot := facing.dot(-cam.global_transform.basis.z)
+	var side_dot := facing.dot(cam.global_transform.basis.x)
+	if absf(depth_dot) >= absf(side_dot):
+		sprite.flip_h = false
+		sprite.texture = (takehit_back if depth_dot > 0.0 else takehit_front)[frame]
+	else:
+		sprite.flip_h = side_dot > 0.0
+		sprite.texture = takehit_side[frame]
 
 
 func _get_target() -> PhysicsBody3D:
@@ -562,6 +713,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The splat stays where the slime burst.
 	dead = true
+	Sfx.play_at(DEATH_SOUND, global_position, -3.0)
 	step_sound.stop()
 	if by_player:
 		RunState.record_kill(kill_label())

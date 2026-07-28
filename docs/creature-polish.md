@@ -6,19 +6,31 @@ from instead of a worry you carry. Update the ✓/— as you go.*
 
 Legend: **✓** present · **—** missing · **~** partial / generic
 
+> **Status (updated 2026-07-25): the feedback pass is essentially DONE.**
+> Every creature now: winds up an **attack lunge**, **startles** in an
+> alert pose the first beat it notices you (visual — sounds still TODO,
+> except the amalgam's roar), **recoils** with a directional **take-hit**
+> animation when struck, and **dies with a sound**. The only remaining
+> cross-cutting audio work is the aggro-SOUND sweep (§A) and the
+> signature-mechanic sounds (split/merge/fuse/cast). Take-hit is
+> knock-branch driven for mobs, `hit_anim`-timer driven for the amalgam.
+
 | Creature | Attack anim | Hit flash | Aggro "sees you" SFX | Hit SFX | Death SFX | Death art |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|
-| Skeleton | — | ✓ | — | ✓ | ✓ | ✓ |
-| Wizard | ✓ (cast) | ✓ | — | ✓ | **—** | ✓ |
-| Slime (+ boss) | — | ✓ | — | ✓ | **—** | ✓ |
-| Mush (+ boss) | — | ✓ | — | ✓ | **—** | ✓ |
-| Frogman (coated) | — | ✓ | — | ✓ | **—** | ✓ |
-| Frog | ✓ *(new)* | ✓ | — | ✓ | **—** | ✓ |
-| Toad | ✓ *(new)* | ✓ | — | ✓ | **—** | ✓ |
-| Skeletal Wizard (boss) | ✓ | ✓ | n/a¹ | ✓ | **—** | ✓ |
+| Skeleton | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Wizard | ✓ (cast) | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Slime (+ boss) | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Mush (+ boss) | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Frogman (coated) | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Frog | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Toad | ✓ | ✓ | —¹ | ✓ | ✓ | ✓ |
+| Skeletal Wizard (boss) | ✓ | ✓ | ✓ (roar) | ✓ | ✓ | ✓ |
 
-¹ The amalgam is started by a consent plate, so a "notices you" cue is
-less needed — but a fight-start roar would still land.
+¹ **Aggro column = the SOUND.** The *visual* aggro is done everywhere: a
+front-facing alert sprite + ~0.35 s startle freeze on the rising edge of
+noticing you. What's missing is the audio — a one-liner at that same
+rising edge (see A). The Skeletal Wizard's roar (sprite + SFX on its rise)
+is the one that's fully done, visual and sound.
 
 ---
 
@@ -27,43 +39,35 @@ less needed — but a fight-start roar would still land.
 These are the biggest bang-for-buck because each is **one pattern applied
 across every creature**, not bespoke work per enemy.
 
-### A. The "sees you" cue — the whole roster is silent when it notices you
-Every creature runs `_perceives()` every frame, but nothing fires the
-instant it *first* locks on. That first-notice moment is the single best
-place for character: a skeleton's rattle, a wizard's incantation, a
-slime's wet alert, a frog's croak.
+### A. The "sees you" cue — VISUAL done, SOUND is now a one-liner
+**Update:** every creature (except the Skeletal Wizard) now has a
+**visual aggro beat** — a single front-facing alert sprite shown during a
+~0.35 s **startle freeze** the first frame it notices the player, via the
+`noticed` rising-edge flag + `aggro_timer`. That means the hook the
+sound needs **already exists and is wired in every combat script.**
 
-**The hook doesn't exist yet — it's a rising edge you add.** `_perceives`
-returns true continuously; you want the transition from false→true for
-the *player* specifically. Add one flag and fire once:
+To add the audio, drop one line at the rising edge that already sets the
+freeze (`noticed = true; aggro_timer = AGGRO_TIME`):
+```gdscript
+Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+        global_position, -3.0)
+```
+It'll land exactly on the startle pose — sprite and sound together. Per
+tier, the sprite is chosen by `aggro_tex` (set in `_apply_state`); a
+sound array can mirror that if tiers should sound different.
 
-```gdscript
-var noticed := false   # near the other state vars
-```
-…then in `_physics_process`, right where perception is already computed:
-```gdscript
-var seen := _perceives(t, dist, sight)
-if seen and not noticed and t == player:
-    noticed = true
-    Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
-            global_position, -3.0)
-elif not seen:
-    noticed = false   # re-arm once it loses you, so it can gasp again
-```
-Wizard already computes `sees_target` on [wizard.gd:98](../scripts/wizard.gd#L98)
-— it's the cleanest first target. Skeleton/slime/mush/frogman each have
-the same `_perceives` call to hang it on.
+Split-spawned bodies (frog/toad, split slimes/minis) set `noticed = true`
+on spawn so they DON'T startle-freeze mid-fight — a sound sweep should
+respect that same gate (only the rising edge, never on spawn).
 
-### B. Death sounds — only the skeleton has one
-[skeleton.gd:296](../scripts/skeleton.gd#L296) plays `DEATH_SOUND` in
-`_die`. **Wizard, slime, mush, frog, toad, and both bosses die silent.**
-Each is a one-liner in that creature's `_die()`:
-```gdscript
-Sfx.play_at(DEATH_SOUND, global_position, -3.0)
-```
-The splat/corpse art is already there — this is purely the audio half.
-A burst for the slime, a squelch for the mush, a bony clatter for the
-frog, a heavier stinger for the two bosses.
+Still pending: the **Skeletal Wizard** aggro (the author is giving it a
+roar), and the actual sound files for everyone else.
+
+### B. Death sounds — DONE
+Every creature now plays a death SFX in its `_die()` — wizard, slime,
+frog/toad, the Skeletal Wizard (−2 dB, a heavier boss stinger), and the
+mush **per tier** (mini/mush/mega/boss, switched on `state`). The whole
+roster gained weight in one sweep.
 
 ---
 
@@ -72,11 +76,11 @@ frog, a heavier stinger for the two bosses.
 ### Skeleton — [skeleton.gd](../scripts/skeleton.gd)
 - **Has:** hit flash, hit SFX (×3), **death SFX**, revive/"stir" SFX for
   restless bones ([skeleton.gd:96](../scripts/skeleton.gd#L96)), dead +
-  mid-rise art.
-- **Needs:** *attack lunge* — the melee just stops and deals damage at
-  [skeleton.gd:135](../scripts/skeleton.gd#L135) with no windup frame;
-  a claw/bite would sell the hit. Aggro cue (see A).
-- Note: it's the most complete creature; use it as the reference.
+  mid-rise art, and now a **directional attack lunge** (front/side via
+  `_attack_view`, plays on each strike).
+- **Needs:** aggro cue (see A).
+- Note: the most complete creature; use it as the reference (the
+  attack-lunge pattern here + frog/toad is the template for slime/mush).
 
 ### Wizard — [wizard.gd](../scripts/wizard.gd)
 - **Has:** a real cast telegraph (charge/release/recover frames +
@@ -93,20 +97,22 @@ frog, a heavier stinger for the two bosses.
 ### Slime (+ Slime Boss) — [slime.gd](../scripts/slime.gd)
 - **Has:** hit flash, hit SFX (×3), rich state art (spawn puddle,
   mid-spawn, respawn tell, splat), split/merge logic.
-- **Needs:** **death/burst SFX** (silent `_die` at
-  [slime.gd:485](../scripts/slime.gd#L485)), aggro cue, and *split & merge*
-  sounds — `_split` / `_merge` are visually juicy but silent. An attack
-  "squish-lunge" anim is optional (the squish walk half-sells it).
+- **Also has:** a **directional attack lunge** (front/side via
+  `_attack_view`; boss front-only), the **caustic touch** + **creep
+  trail** poison system, and fading **death pools**.
+- **Needs:** **death/burst SFX** (silent `_die`), aggro cue, and *split &
+  merge* sounds — `_split` / `_merge` are visually juicy but silent.
 - Boss: a distinct heavier death stinger when the whole cascade ends.
 
 ### Mush family (+ Mush Boss) — [mush.gd](../scripts/mush.gd)
 - **Has:** hit flash, hit SFX (×3), a lovely **discover cue** when a mini
   finds kin/puddle to fuse ([mush.gd:325](../scripts/mush.gd#L325)) +
   surprise art, per-tier dead art.
-- **Needs:** **death SFX** (silent `_die` at
-  [mush.gd:561](../scripts/mush.gd#L561)), aggro cue, *fuse & split*
-  sounds (the fusion is a signature mechanic and currently silent). Attack
-  lunge optional.
+- **Also has:** a **directional attack lunge** across all four tiers
+  (front/side/back via `_attack_view`; boss front-only), and a **gold
+  spore poof** (`_puff_spores`, CPUParticles) on any player hit.
+- **Needs:** **death SFX** (silent `_die`), aggro cue, *fuse & split*
+  sounds (the fusion is a signature mechanic and currently silent).
 
 ### Frogman → Frog / Toad — [frogman.gd](../scripts/frogman.gd)
 - **Has:** coated walk turnaround, the comedic coat-off **reveal beat**,
@@ -135,14 +141,18 @@ white tween. It reads fine, but if you ever want per-creature identity
 each `take_damage`. Filed as ~, not a gap.
 
 ## Suggested slicing order
-1. **Death-sound sweep** — six one-liners, whole roster gains weight in
-   one sitting. (Win B.)
-2. **Aggro-cue sweep** — the rising-edge flag + a sound per creature.
-   Start with the wizard incantation. (Win A.)
+1. ~~**Death-sound sweep.**~~ **DONE** — every creature plays a death SFX
+   (mush per tier, boss stingers louder). (Win B.)
+2. **Aggro-SOUND sweep** — the ONE remaining cross-cutting win, and it's
+   half-done: the rising-edge hook (`noticed` + `aggro_timer` + the startle
+   freeze) is wired in every combat script. All that's left is one
+   `Sfx.play_at` per creature at that spot. Start with the wizard
+   incantation. (Win A.) The Skeletal Wizard's roar is the template.
 3. **Signature-mechanic sounds** — slime split/merge, mush fuse/split,
    frogman reveal stinger, wizard/boss cast launch.
-4. **Melee attack lunges** — skeleton, slime, mush (mirror the frog/toad
-   `attack_anim` pattern in [frogman.gd](../scripts/frogman.gd)).
+4. ~~**Melee attack lunges.**~~ **DONE** — every creature has a directional
+   attack lunge; the Attack-anim column is fully ✓.
 
-Each numbered step is independently testable and shippable — pick the one
-that sounds fun today.
+Each numbered step is independently testable and shippable. **The single
+biggest remaining lever is the aggro-SOUND sweep (2)** — the hook is in,
+so it's now the cheapest high-impact pass left.

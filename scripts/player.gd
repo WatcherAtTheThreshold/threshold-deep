@@ -8,9 +8,10 @@ signal died
 signal poisoned(current: int, maximum: int, magic: int)
 
 const SPEED := 5.0
-const DASH_SPEED := 14.0
+const DASH_SPEED := 16.0    # a punchier burst (was 14)
 const DASH_TIME := 0.18
 const DASH_COOLDOWN := 1.1
+const DASH_FOV_KICK := 12.0  # degrees the view punches out on a dash (power-feel)
 const MOUSE_SENSITIVITY := 0.002
 # Health is measured in half-hearts: 2 units = one heart on the HUD.
 const BASE_MAX_HEALTH := 6
@@ -35,9 +36,15 @@ const POISON_TICK_DAMAGE := 1     # half-heart per tick
 const POISON_INTERVAL := 1.2      # seconds between ticks (matches the Rot Dot)
 const CREEP_POISON_RANGE := 0.6   # horizontal metres to count as standing in it
 const CREEP_SCAN_INTERVAL := 0.25 # throttle the creep proximity check
+const LAND_DIP := 0.4       # camera crumple depth at impact (metres)
+const LAND_HOLD := 1.5      # hold the crouch through the floor-start mist
+                            # (mist holds 1.6s then fades 0.9s — see hud.gd)
+const LAND_RECOVER := 0.7   # then rise as the mist clears — the VISIBLE beat
+const LAND_SOUND := preload("res://assets/audio/sfx/player/start_landing.wav")
 # Crystal tiers index these: none / tier 1 / tier 2.
-const FLEET_MULTS: Array[float] = [1.0, 1.15, 1.28]
+const FLEET_MULTS: Array[float] = [1.0, 1.2, 1.4]  # Fleetfoot movement speed
 const HASTY_MULTS: Array[float] = [1.0, 1.3, 1.6]
+const QUICKSTEP_MULT := 1.5  # Quickstep: dash lasts/reaches this much further
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
@@ -69,6 +76,12 @@ const STAFF_ORB_IMPACTS: Array[AudioStream] = [
 ]
 const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.wav")
 const DASH_SOUND := preload("res://assets/audio/sfx/player/footsteps_player_dash1.wav")
+const BARREL_RANGE := 1.2   # Barrelstone dash-strike contact reach (metres)
+const BARREL_DAMAGE := 2    # a shove first, a hit second — mobility, not DPS
+const BARREL_PUSH := 2.6    # hard shove (torch is 1.8) — the point is the pits
+const BARREL_IFRAME_TAIL := 0.15  # i-frames linger this long after the charge ends
+const BARREL_WALL_REACH := 1.5    # how far ahead the charge smashes a wooden wall
+const BARREL_WALL_DAMAGE := 10    # enough to break a wooden wall in one barrel
 
 var max_health := BASE_MAX_HEALTH
 var health := BASE_MAX_HEALTH
@@ -86,6 +99,9 @@ var dash_timer := 0.0
 var dash_cooldown_timer := 0.0
 var dash_charges := 1
 var dash_dir := Vector3.ZERO
+var barrel_hit := {}  # enemies the current dash has already struck (Barrelstone)
+var base_fov := 75.0  # camera's rest FOV, captured in _ready (for the dash kick)
+var fov_tween: Tween  # the dash FOV recovery, killed on a fresh dash
 var boomerang_out := false
 var controls_enabled := true
 var gate_pull := false  # a mist gate's tween owns the body; physics stands down
@@ -96,6 +112,7 @@ var gate_pull := false  # a mist gate's tween owns the body; physics stands down
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	base_fov = camera.fov
 	# The torch never stops burning; loop the crackle by hand.
 	$TorchCrackle.finished.connect($TorchCrackle.play)
 	if RunState.carried_max_health > 0:
@@ -216,6 +233,38 @@ func pickup_gapleaper() -> bool:
 		return false
 	RunState.gapleaper = true
 	return true
+
+
+func pickup_barrelstone() -> bool:
+	if RunState.barrelstone:
+		return false
+	RunState.barrelstone = true
+	return true
+
+
+func _barrel_strike() -> void:
+	# Barrelstone: the dash is a shoulder-charge. Any enemy it barrels into
+	# takes a hit and flies off your momentum — ideally over a rim (the whole
+	# reason to run it). Once per enemy per dash; credited to you, so shoving
+	# a creature into a pit counts as your kill.
+	for node: Node3D in get_tree().get_nodes_in_group("enemies"):
+		if barrel_hit.has(node.get_instance_id()) or node.get("dead") == true:
+			continue
+		if global_position.distance_to(node.global_position) <= BARREL_RANGE:
+			node.take_damage(BARREL_DAMAGE, dash_dir * BARREL_PUSH, self)
+			barrel_hit[node.get_instance_id()] = true
+			RunState.record_damage_dealt(BARREL_DAMAGE)
+	# Barrel THROUGH breakable walls: a short ray along the dash — the
+	# dungeon smashes the cell if it's wooden (stone just stops you). It
+	# breaks a hair before you reach it, so you charge through clean.
+	var from := camera.global_position
+	var query := PhysicsRayQueryParameters3D.create(
+			from, from + dash_dir * BARREL_WALL_REACH, 1, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty() and hit.collider is GridMap:
+		var scene := get_tree().current_scene
+		if scene.has_method("damage_wall"):
+			scene.damage_wall(hit.position, hit.normal, BARREL_WALL_DAMAGE)
 
 
 func pickup_wideswing() -> bool:
@@ -349,11 +398,24 @@ func _physics_process(delta: float) -> void:
 		dash_dir.y = 0.0
 		dash_dir = dash_dir.normalized()
 		# Quickstep stretches the burst.
-		dash_timer = DASH_TIME * (1.35 if RunState.quickstep else 1.0)
+		dash_timer = DASH_TIME * (QUICKSTEP_MULT if RunState.quickstep else 1.0)
 		dash_charges -= 1
 		dash_cooldown_timer = DASH_COOLDOWN
 		# The dash swoosh.
 		Sfx.play_ui(DASH_SOUND, -1.0)
+		barrel_hit.clear()  # a fresh dash can strike each enemy once
+		# Power-feel: the view punches out on the burst, then eases back over
+		# the dash — the classic first-person sense of speed.
+		camera.fov = base_fov + DASH_FOV_KICK
+		if fov_tween and fov_tween.is_valid():
+			fov_tween.kill()
+		fov_tween = create_tween()
+		fov_tween.tween_property(camera, "fov", base_fov, dash_timer) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		if RunState.barrelstone:
+			# Barrelstone: untouchable through the charge and a beat after —
+			# dash INTO danger, shove it off a rim, and come out clean.
+			invuln_timer = maxf(invuln_timer, dash_timer + BARREL_IFRAME_TAIL)
 
 	if dash_timer > 0.0:
 		velocity.x = dash_dir.x * DASH_SPEED
@@ -362,6 +424,8 @@ func _physics_process(delta: float) -> void:
 			# The Gapleaper: the dash flies level, so a one-cell gap
 			# is a guarantee instead of a gamble.
 			velocity.y = 0.0
+		if RunState.barrelstone:
+			_barrel_strike()
 	elif direction:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed
@@ -576,6 +640,25 @@ func _check_creep() -> void:
 
 func toast(title: String, sub: String) -> void:
 	$HUD.show_toast(title, sub)
+
+
+func land_hard() -> void:
+	# The hard arrival: you fell onto this x-1 floor. The camera CRUMPLES at
+	# impact and the thud plays now (mostly hidden by the floor-start mist),
+	# HOLDS the crouch through the mist, then RISES as it clears — so the
+	# readable beat (standing up out of the landing) happens when you can
+	# actually see it. Movement is held until you're on your feet; mouselook
+	# stays live, so you can look around the room revealing itself.
+	controls_enabled = false
+	velocity = Vector3.ZERO
+	var rest_y := camera.position.y
+	camera.position.y = rest_y - LAND_DIP
+	Sfx.play_ui(LAND_SOUND, -3.0)
+	var tw := create_tween()
+	tw.tween_interval(LAND_HOLD)
+	tw.tween_property(camera, "position:y", rest_y, LAND_RECOVER) \
+			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func() -> void: controls_enabled = true)
 
 
 func start_gate_crossing(through_dir := Vector3.ZERO) -> void:

@@ -26,7 +26,30 @@ const BACK_FRAMES: Array[Texture2D] = [
 ]
 const DEAD_TEXTURE := preload("res://assets/sprites/skeleton/skeleton_dead.png")
 const RISE_TEXTURE := preload("res://assets/sprites/skeleton/skeleton_mid_rise.png")
+const FRONT_ATTACK: Array[Texture2D] = [  # faces what it hits, so no back
+	preload("res://assets/sprites/skeleton/skeleton_front_attack1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_front_attack2.png"),
+]
+const SIDE_ATTACK: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/skeleton/skeleton_side_attack1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_side_attack2.png"),
+]
 const WALK_FRAME_TIME := 0.3
+const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
+const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TEX := preload("res://assets/sprites/skeleton/skeleton_front_aggro1.png")
+const FRONT_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/skeleton/skeleton_front_takehit1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_front_takehit2.png"),
+]
+const SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/skeleton/skeleton_side_takehit1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_side_takehit2.png"),
+]
+const BACK_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/skeleton/skeleton_back_takehit1.png"),
+	preload("res://assets/sprites/skeleton/skeleton_back_takehit2.png"),
+]
 
 const RISE_CHANCE := 0.15
 const RISE_RANGE := 3.5
@@ -55,6 +78,9 @@ const FALL_Y := -1.5
 var speed := BASE_SPEED
 var health := MAX_HEALTH
 var attack_timer := 0.0
+var attack_anim := 0.0  # counts down while the lunge frames play
+var noticed := false    # true while it currently perceives the player
+var aggro_timer := 0.0  # counts down through the startle freeze
 var walk_time := 0.0
 var dead := false
 var restless := false
@@ -99,6 +125,7 @@ func _physics_process(delta: float) -> void:
 		_fall_into_dark()
 		return
 	attack_timer = maxf(attack_timer - delta, 0.0)
+	aggro_timer = maxf(aggro_timer - delta, 0.0)
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
@@ -109,6 +136,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
 		move_and_slide()
+		# The stagger IS the hit reaction: the 2-stage take-hit plays across
+		# the skid (the red flash from take_damage tints it).
+		_hit_view(0 if knock_timer > KNOCK_TIME * 0.5 else 1)
 		return
 
 	var t := _get_target()
@@ -117,7 +147,24 @@ func _physics_process(delta: float) -> void:
 	var dist := to_target.length()
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
-	if _perceives(t, dist, sight):
+	var seen := _perceives(t, dist, sight)
+	if seen and t == player and not noticed:
+		noticed = true
+		aggro_timer = AGGRO_TIME
+	elif not seen:
+		noticed = false
+	if aggro_timer > 0.0:
+		# The notice beat: freeze in alarm facing you, then it charges.
+		facing = to_target.normalized()
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		sprite.flip_h = false
+		sprite.texture = AGGRO_TEX
+		if step_sound.playing:
+			step_sound.stop()
+		return
+	if seen:
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
 			facing = dir
@@ -134,6 +181,7 @@ func _physics_process(delta: float) -> void:
 			facing = to_target.normalized()
 			if attack_timer == 0.0:
 				attack_timer = ATTACK_COOLDOWN
+				attack_anim = ATTACK_FRAME_TIME * 2.0
 				t.take_damage(2, to_target.normalized(), self)
 	else:
 		_wander(delta)
@@ -145,7 +193,13 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-	_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
+	if attack_anim > 0.0:
+		# The lunge takes over the walk: front or side (never back — a
+		# skeleton faces what it hits), same projection as the walk view.
+		attack_anim -= delta
+		_attack_view(0 if attack_anim > ATTACK_FRAME_TIME else 1)
+	else:
+		_update_view(int(walk_time / WALK_FRAME_TIME) % 2 if moving else 0)
 	if moving and not step_sound.playing:
 		step_sound.play()
 	elif not moving and step_sound.playing:
@@ -189,6 +243,40 @@ func _update_view(frame: int) -> void:
 	else:
 		sprite.flip_h = side > 0.0
 		sprite.texture = SIDE_FRAMES[frame]
+
+
+func _attack_view(frame: int) -> void:
+	# The strike, same projection as _update_view but front/side only — no
+	# back attack, since a skeleton turns to face whatever it hits.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		# No back-ATTACK art: facing away, the walk's back view stands in
+		# (the lunge isn't visible from behind anyway).
+		sprite.texture = BACK_FRAMES[frame] if depth > 0.0 else FRONT_ATTACK[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_ATTACK[frame]
+
+
+func _hit_view(frame: int) -> void:
+	# Take-hit turnaround, same projection as _update_view — the recoil
+	# reads from whatever side the blow landed on.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (BACK_TAKEHIT if depth > 0.0 else FRONT_TAKEHIT)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_TAKEHIT[frame]
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -292,6 +380,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The corpse stays: swap to the bone pile and stop being a threat.
 	dead = true
+	attack_anim = 0.0  # drop any mid-lunge so a rise doesn't flash it
 	step_sound.stop()
 	Sfx.play_at(DEATH_SOUND, global_position, -3.0)
 	if by_player:

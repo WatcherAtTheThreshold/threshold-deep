@@ -1,186 +1,232 @@
-[gd_resource type="MeshLibrary" load_steps=33 format=3]
+[gd_resource type="MeshLibrary" format=3 uid="uid://dlm6uwg551mq3"]
 
-[ext_resource type="Texture2D" path="res://assets/tiles/floor_stone.png" id="1_floor"]
-[ext_resource type="Texture2D" path="res://assets/tiles/wall_stone.png" id="2_wall"]
-[ext_resource type="Texture2D" path="res://assets/tiles/floor_wooden.png" id="3_floor_wood"]
-[ext_resource type="Texture2D" path="res://assets/tiles/wall_wooden.png" id="4_wall_wood"]
-[ext_resource type="Texture2D" path="res://assets/tiles/wall_wooden_partially_broken.png" id="8_wall_partial"]
-[ext_resource type="Texture2D" path="res://assets/tiles/ceiling_stone.png" id="5_ceiling"]
-[ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper1.png" id="6_upper1"]
-[ext_resource type="Texture2D" path="res://assets/tiles/wall_stone_upper2.png" id="7_upper2"]
+[ext_resource type="Texture2D" uid="uid://bap38wojkya5n" path="res://assets/tiles/floor_stone.png" id="1_floor"]
+[ext_resource type="Texture2D" uid="uid://cfvpjh1b5x37e" path="res://assets/tiles/wall_stone.png" id="2_wall"]
+[ext_resource type="Texture2D" uid="uid://dornhinmsesks" path="res://assets/tiles/floor_wooden.png" id="3_floor_wood"]
+[ext_resource type="Texture2D" uid="uid://c3lffwyf2efyr" path="res://assets/tiles/wall_wooden.png" id="4_wall_wood"]
+[ext_resource type="Texture2D" uid="uid://dkcyx4jfjok2f" path="res://assets/tiles/ceiling_stone.png" id="5_ceiling"]
+[ext_resource type="Texture2D" uid="uid://bcmeo0dk3c728" path="res://assets/tiles/wall_stone_upper1.png" id="6_upper1"]
+[ext_resource type="Texture2D" uid="uid://hxhvkdncuet5" path="res://assets/tiles/wall_stone_upper2.png" id="7_upper2"]
+[ext_resource type="Texture2D" uid="uid://c1mcdc88p65t7" path="res://assets/tiles/wall_wooden_partially_broken.png" id="8_wall_partial"]
 
 [sub_resource type="StandardMaterial3D" id="mat_floor"]
 albedo_texture = ExtResource("1_floor")
 roughness = 0.9
-texture_filter = 0
-uv1_triplanar = true
 uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_wall"]
-albedo_texture = ExtResource("2_wall")
-roughness = 0.85
-texture_filter = 0
 uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_wall_upper1"]
-albedo_texture = ExtResource("6_upper1")
-roughness = 0.85
 texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_wall_upper2"]
-albedo_texture = ExtResource("7_upper2")
-roughness = 0.85
-texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_floor_wood"]
-albedo_texture = ExtResource("3_floor_wood")
-roughness = 0.8
-texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_floor_wood_pale"]
-albedo_texture = ExtResource("3_floor_wood")
-albedo_color = Color(0.74, 0.8, 0.95, 1)
-roughness = 0.8
-texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_wall_wood"]
-albedo_texture = ExtResource("4_wall_wood")
-roughness = 0.8
-texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
-
-[sub_resource type="StandardMaterial3D" id="mat_hole"]
-shading_mode = 0
-albedo_color = Color(0, 0, 0, 1)
-roughness = 1.0
-
-[sub_resource type="StandardMaterial3D" id="mat_ceiling"]
-albedo_texture = ExtResource("5_ceiling")
-roughness = 0.95
-texture_filter = 0
-uv1_triplanar = true
-uv1_scale = Vector3(0.5, 0.5, 0.5)
 
 [sub_resource type="BoxMesh" id="mesh_floor"]
 material = SubResource("mat_floor")
 size = Vector3(2, 4.5, 2)
 
+[sub_resource type="BoxShape3D" id="shape_floor"]
+size = Vector3(2, 0.5, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall"]
+albedo_texture = ExtResource("2_wall")
+roughness = 0.85
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
 [sub_resource type="BoxMesh" id="mesh_wall"]
 material = SubResource("mat_wall")
 size = Vector3(2, 6.2, 2)
 
-[sub_resource type="BoxMesh" id="mesh_wall_upper0"]
-material = SubResource("mat_wall")
-size = Vector3(2, 2, 2)
+[sub_resource type="BoxShape3D" id="shape_wall"]
+size = Vector3(2, 4, 2)
 
-[sub_resource type="BoxMesh" id="mesh_wall_upper1"]
-material = SubResource("mat_wall_upper1")
-size = Vector3(2, 2, 2)
-
-[sub_resource type="BoxMesh" id="mesh_wall_upper2"]
-material = SubResource("mat_wall_upper2")
-size = Vector3(2, 2, 2)
-
-[sub_resource type="BoxMesh" id="mesh_floor_wood"]
-material = SubResource("mat_floor_wood")
-size = Vector3(2, 0.5, 2)
+[sub_resource type="StandardMaterial3D" id="mat_floor_wood_pale"]
+albedo_color = Color(0.74, 0.8, 0.95, 1)
+albedo_texture = ExtResource("3_floor_wood")
+roughness = 0.8
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
 
 [sub_resource type="BoxMesh" id="mesh_floor_wood_pale"]
 material = SubResource("mat_floor_wood_pale")
 size = Vector3(2, 0.5, 2)
 
-[sub_resource type="BoxMesh" id="mesh_wall_wood"]
-material = SubResource("mat_wall_wood")
-size = Vector3(2, 8.2, 2)
-
 [sub_resource type="StandardMaterial3D" id="mat_wall_wood_partial"]
 albedo_texture = ExtResource("8_wall_partial")
 roughness = 0.8
-texture_filter = 0
-uv1_triplanar = true
 uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
 
 [sub_resource type="BoxMesh" id="mesh_wall_wood_partial"]
 material = SubResource("mat_wall_wood_partial")
 size = Vector3(2, 8.2, 2)
 
+[sub_resource type="BoxMesh" id="mesh_wall_fill"]
+material = SubResource("mat_wall")
+size = Vector3(2, 4, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_floor_wood"]
+albedo_texture = ExtResource("3_floor_wood")
+roughness = 0.8
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
+[sub_resource type="BoxMesh" id="mesh_floor_wood"]
+material = SubResource("mat_floor_wood")
+size = Vector3(2, 0.5, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall_wood"]
+albedo_texture = ExtResource("4_wall_wood")
+roughness = 0.8
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
+[sub_resource type="BoxMesh" id="mesh_wall_wood"]
+material = SubResource("mat_wall_wood")
+size = Vector3(2, 8.2, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_hole"]
+shading_mode = 0
+albedo_color = Color(0, 0, 0, 1)
+
 [sub_resource type="BoxMesh" id="mesh_hole"]
 material = SubResource("mat_hole")
 size = Vector3(2, 0.2, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_ceiling"]
+albedo_texture = ExtResource("5_ceiling")
+roughness = 0.95
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
 
 [sub_resource type="BoxMesh" id="mesh_ceiling"]
 material = SubResource("mat_ceiling")
 size = Vector3(2, 0.5, 2)
 
-[sub_resource type="BoxShape3D" id="shape_floor"]
-size = Vector3(2, 0.5, 2)
+[sub_resource type="BoxMesh" id="mesh_wall_upper0"]
+material = SubResource("mat_wall")
+size = Vector3(2, 2, 2)
 
-[sub_resource type="BoxShape3D" id="shape_wall"]
-size = Vector3(2, 4, 2)
+[sub_resource type="StandardMaterial3D" id="mat_wall_upper1"]
+albedo_texture = ExtResource("6_upper1")
+roughness = 0.85
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
 
-[sub_resource type="BoxShape3D" id="shape_hole"]
-size = Vector3(2, 3, 2)
+[sub_resource type="BoxMesh" id="mesh_wall_upper1"]
+material = SubResource("mat_wall_upper1")
+size = Vector3(2, 2, 2)
+
+[sub_resource type="StandardMaterial3D" id="mat_wall_upper2"]
+albedo_texture = ExtResource("7_upper2")
+roughness = 0.85
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
+[sub_resource type="BoxMesh" id="mesh_wall_upper2"]
+material = SubResource("mat_wall_upper2")
+size = Vector3(2, 2, 2)
 
 [resource]
 item/0/name = "floor"
 item/0/mesh = SubResource("mesh_floor")
 item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.75, 0)
+item/0/mesh_cast_shadow = 1
 item/0/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/0/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/0/navigation_layers = 1
 item/1/name = "wall"
 item/1/mesh = SubResource("mesh_wall")
 item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -3.1, 0)
+item/1/mesh_cast_shadow = 1
 item/1/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
+item/1/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/1/navigation_layers = 1
 item/2/name = "floor_wood"
 item/2/mesh = SubResource("mesh_floor_wood")
 item/2/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
+item/2/mesh_cast_shadow = 1
 item/2/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/2/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/2/navigation_layers = 1
 item/3/name = "wall_wood"
 item/3/mesh = SubResource("mesh_wall_wood")
 item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.1, 0)
+item/3/mesh_cast_shadow = 1
 item/3/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
+item/3/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/3/navigation_layers = 1
 item/4/name = "hole"
 item/4/mesh = SubResource("mesh_hole")
 item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5.9, 0)
+item/4/mesh_cast_shadow = 1
 item/4/shapes = []
+item/4/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/4/navigation_layers = 1
 item/5/name = "ceiling"
 item/5/mesh = SubResource("mesh_ceiling")
 item/5/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
+item/5/mesh_cast_shadow = 1
 item/5/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/5/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/5/navigation_layers = 1
 item/6/name = "void"
 item/6/mesh = SubResource("mesh_hole")
 item/6/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -5.9, 0)
+item/6/mesh_cast_shadow = 1
 item/6/shapes = []
+item/6/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/6/navigation_layers = 1
 item/7/name = "wall_upper"
 item/7/mesh = SubResource("mesh_wall_upper0")
 item/7/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/7/mesh_cast_shadow = 1
 item/7/shapes = []
+item/7/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/7/navigation_layers = 1
 item/8/name = "wall_upper1"
 item/8/mesh = SubResource("mesh_wall_upper1")
 item/8/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/8/mesh_cast_shadow = 1
 item/8/shapes = []
+item/8/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/8/navigation_layers = 1
 item/9/name = "wall_upper2"
 item/9/mesh = SubResource("mesh_wall_upper2")
 item/9/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+item/9/mesh_cast_shadow = 1
 item/9/shapes = []
+item/9/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/9/navigation_layers = 1
 item/10/name = "buried_stone"
 item/10/mesh = SubResource("mesh_floor")
 item/10/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -4.25, 0)
+item/10/mesh_cast_shadow = 1
 item/10/shapes = []
+item/10/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/10/navigation_layers = 1
 item/11/name = "floor_wood_pale"
 item/11/mesh = SubResource("mesh_floor_wood_pale")
 item/11/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)
+item/11/mesh_cast_shadow = 1
 item/11/shapes = [SubResource("shape_floor"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.75, 0)]
+item/11/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/11/navigation_layers = 1
 item/12/name = "wall_wood_partial"
 item/12/mesh = SubResource("mesh_wall_wood_partial")
 item/12/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -2.1, 0)
+item/12/mesh_cast_shadow = 1
 item/12/shapes = [SubResource("shape_wall"), Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)]
+item/12/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/12/navigation_layers = 1
+item/13/name = "wall_fill"
+item/13/mesh = SubResource("mesh_wall_fill")
+item/13/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/13/mesh_cast_shadow = 1
+item/13/shapes = []
+item/13/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/13/navigation_layers = 1

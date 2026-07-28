@@ -90,7 +90,16 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - Ceilings are slabs at grid layer y = 1 over every walkable cell
   (breaking a wooden wall must also lid the opened cell). They block
   the directional light: interiors are lit by ambient + carried torch
-  only, and that darkness is intentional.
+  only, and that darkness is intentional. **Varied ceiling heights**
+  (`_vary_ceilings` → `_raise_room`): per room, the ceiling can lift by
+  N cell-layers (4 m each). Raising a room moves its ceiling to a higher
+  layer, then fills the 1-cell border frame with the collisionless
+  `wall_fill` tile (a 4 m stone box) up to it — walls AND doorway
+  openings (fill the transom or a gap yawns above the door). Interior
+  stays open air; spawn stays standard; boss arenas + item rooms go
+  grand. Visual only — the torch can't reach the top, so tall rooms
+  dissolve into shadow (the intimidating "Barony" effect). Tuning consts:
+  `CEILING_TALL_CHANCE`, `CEILING_CATHEDRAL_CHANCE`, `CEILING_GRAND_LAYERS`.
 - `RunState` autoload = everything that must survive scene reloads:
   depth, kills (total + per-creature tally), damage dealt/taken,
   carried health/max health/magic hearts, sword ownership, and the
@@ -191,8 +200,21 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   `take_damage(amount, push_dir, attacker = null)`. Hits stagger:
   a 0.35 s knock window where the chase logic stands down and the
   body skids under friction — steering hard-sets velocity every
-  tick and would otherwise erase the knockback impulse. New
-  creatures must include the knock_timer skid branch. Knockback
+  tick and would otherwise erase the knockback impulse. **Take-hit
+  frames** (now on the whole roster) play HERE, inside the knock branch,
+  since it `return`s before the normal animation block: drive the 2
+  stages off `knock_timer` (`> KNOCK_TIME*0.5 ? 0 : 1`), directional
+  (front/side/back) for turnaround creatures, front-only for billboards;
+  the red flash from `take_damage` tints the frame. **Exception:** the
+  amalgam has no knock, so it flinches off a dedicated `hit_anim` timer
+  in its animation block (a visual-only flinch, no stagger). New
+  creatures must include the knock_timer skid branch. **Aggro startle:**
+  on the rising edge of first perceiving the player, creatures freeze
+  ~0.35s facing you in a front `aggro_tex` alert pose (a `noticed` flag +
+  `aggro_timer`, decremented with the other timers; the block early-returns
+  before the movement logic). Split/spawn-born bodies set `noticed = true`
+  so they never startle-freeze mid-fight. New creatures should follow the
+  pattern; the aggro SOUND is a one-liner at that same rising edge (TODO). Knockback
   scales with push_dir's length (torch passes a long vector). Damage from
   another enemy switches aggro to the attacker (Doom-style
   infighting) until that grudge target dies; only player kills count.

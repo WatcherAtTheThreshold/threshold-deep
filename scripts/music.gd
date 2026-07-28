@@ -5,17 +5,18 @@ extends Node
 ## silences. Persists across floor reloads and deaths; the dungeon's
 ## music doesn't care about your run.
 
-const VOLUME_DB := -16.0
-const FADE_TIME := 8.0
+const VOLUME_DB := -8.0
+const FADE_TIME := 5.0
 const PLAY_MIN := 40.0
-const PLAY_MAX := 80.0
-const SILENCE_MIN := 30.0
-const SILENCE_MAX := 90.0
+const PLAY_MAX := 90.0
+const SILENCE_MIN := 10.0
+const SILENCE_MAX := 40.0
 
 const TRACKS: Array[AudioStream] = [
 	preload("res://assets/audio/music/threshold-deep.ogg"),
 	preload("res://assets/audio/music/AMinorLament.ogg"),
 	preload("res://assets/audio/music/AMurderOfCrows.ogg"),
+	preload("res://assets/audio/music/summersTale.mp3"),
 ]
 
 var player := AudioStreamPlayer.new()

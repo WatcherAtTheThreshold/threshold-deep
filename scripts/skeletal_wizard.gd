@@ -35,6 +35,15 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit3.wav"),
 ]
 const WALK_FRAME_TIME := 0.28
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_death.wav")
+const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.wav")
+const ROAR_TEX := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_roar1.png")
+const ROAR_TIME := 1.0  # the rise: reared up and bellowing before the hunt
+const FRONT_TAKEHIT: Array[Texture2D] = [  # front-only; it always faces you
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit1.png"),
+	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit2.png"),
+]
+const HIT_FRAME_TIME := 0.12  # per take-hit frame; two = one flinch
 
 const RUSH_TIME := 4.0
 const RUSH_SPEED := 3.0
@@ -57,11 +66,18 @@ var attack_timer := 0.0
 var walk_time := 0.0
 var dead := false
 var facing := Vector3.FORWARD
+var roar_timer := ROAR_TIME  # counts down through the rise-roar freeze
+var hit_anim := 0.0  # counts down through the take-hit flinch
 
 @onready var sprite: Sprite3D = $Sprite
 @onready var cast_glow: OmniLight3D = $CastGlow
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
 @onready var player: Player = get_tree().get_first_node_in_group("player")
+
+
+func _ready() -> void:
+	# It heaves up out of the pile of your dead with a bellow — the rise.
+	Sfx.play_at(ROAR_SOUND, global_position, -2.0)
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -84,6 +100,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	attack_timer = maxf(attack_timer - delta, 0.0)
+	hit_anim = maxf(hit_anim - delta, 0.0)
 	mode_timer -= delta
 
 	var to_player := player.global_position - global_position
@@ -92,6 +109,16 @@ func _physics_process(delta: float) -> void:
 	# It was built from things that saw you: it always faces you.
 	if dist > 0.01:
 		facing = to_player.normalized()
+
+	if roar_timer > 0.0:
+		# The rise: reared up, bellowing, before the hunt begins.
+		roar_timer -= delta
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		sprite.flip_h = false
+		sprite.texture = ROAR_TEX
+		return
 
 	if mode == Mode.RUSH:
 		# The skeleton verb. It knows where you are — it was built
@@ -139,7 +166,11 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if moving:
 		walk_time += delta
-	if mode == Mode.CHARGE:
+	if hit_anim > 0.0:
+		# A hit-flinch that doesn't stall the boss's momentum (no stagger).
+		sprite.flip_h = false
+		sprite.texture = FRONT_TAKEHIT[0 if hit_anim > HIT_FRAME_TIME else 1]
+	elif mode == Mode.CHARGE:
 		# The drawn telegraph: windup while rooted, glow swelling.
 		sprite.flip_h = false
 		sprite.texture = ATTACK_FRAMES[0]
@@ -200,6 +231,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 	Sfx.play_at(TAKE_HIT_SOUNDS[randi_range(0, TAKE_HIT_SOUNDS.size() - 1)],
 			global_position, -4.0)
 	velocity += push_dir * 2.0  # too heavy to shove far
+	hit_anim = HIT_FRAME_TIME * 2.0
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:
@@ -211,6 +243,7 @@ func _die(by_player: bool) -> void:
 	# fight you had twice.
 	dead = true
 	step_sound.stop()
+	Sfx.play_at(DEATH_SOUND, global_position, -2.0)
 	cast_glow.light_energy = 0.0
 	if by_player:
 		RunState.record_kill(kill_label())

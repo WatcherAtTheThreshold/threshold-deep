@@ -21,6 +21,7 @@ const LUCKYLUCK_SCENE := preload("res://scenes/luckyluck_pickup.tscn")
 const QUICKSTEP_SCENE := preload("res://scenes/quickstep_pickup.tscn")
 const TWICECUT_SCENE := preload("res://scenes/twicecut_pickup.tscn")
 const GAPLEAPER_SCENE := preload("res://scenes/gapleaper_pickup.tscn")
+const BARRELSTONE_SCENE := preload("res://scenes/barrelstone_pickup.tscn")
 const WIDESWING_SCENE := preload("res://scenes/wideswing_pickup.tscn")
 const ROTSTONE_SCENE := preload("res://scenes/rotstone_pickup.tscn")
 const EMBERSTONE_SCENE := preload("res://scenes/emberstone_pickup.tscn")
@@ -70,6 +71,9 @@ const WALL_RUBBLE_FRAMES: Array[Texture2D] = [
 const BREAK_FRAME_TIME := 0.07
 const WALL_BREAK_Y := 1.5  # eye/torch height on the 4m opening
 const SECRET_SLIDE_TIME := 3.0  # matches the stone-grind sound length
+const CEILING_TALL_CHANCE := 0.35   # a regular room's odds of a raised ceiling
+const CEILING_CATHEDRAL_CHANCE := 0.2  # of raised rooms, odds of +2 vs +1 layer
+const CEILING_GRAND_LAYERS := 2     # boss arenas + item rooms go this tall
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -104,6 +108,7 @@ var wall_wood_partial_id := -1
 var hole_id := -1
 var void_id := -1
 var ceiling_id := -1
+var wall_fill_id := -1
 var wall_upper_id := -1
 var wall_upper_variants: Array[int] = []
 var buried_stone_id := -1
@@ -166,6 +171,7 @@ func _ready() -> void:
 	buried_stone_id = grid_map.mesh_library.find_item_by_name("buried_stone")
 	floor_wood_pale_id = grid_map.mesh_library.find_item_by_name("floor_wood_pale")
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
+	wall_fill_id = grid_map.mesh_library.find_item_by_name("wall_fill")
 
 	kind = RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
@@ -203,13 +209,15 @@ func _ready() -> void:
 		_setup_item_room()
 	else:
 		_populate(rooms)
+	_vary_ceilings()
 	if RunState.stage(RunState.depth) != 1:
 		# The sealed doorway you arrived through — bare frame, stone
 		# showing through, no way back.
 		_place_against_wall(ARRIVAL_DOOR_SCENE, rooms[0])
 	else:
-		# You fell onto this floor: the hatch you dropped through is
-		# still overhead, dark and out of reach. Continuity.
+		# You fell onto this floor: land hard as the mist clears, and the
+		# hatch you dropped through hangs overhead, dark and out of reach.
+		player.land_hard()
 		var above := Sprite3D.new()
 		above.texture = HATCH_TEXTURE
 		above.pixel_size = 0.03125
@@ -323,8 +331,12 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 	wall_damage[cell] = wall_damage.get(cell, 0) + amount
 	if wall_damage[cell] >= WOOD_WALL_HITS:
 		grid_map.set_cell_item(cell, floor_id)
-		# The opened cell needs a lid too, or you'd see the void.
-		grid_map.set_cell_item(cell + Vector3i(0, 1, 0), ceiling_id)
+		# The opened cell needs a lid, or you'd see the void — UNLESS a tall
+		# room already filled the column above with wall_fill, which caps the
+		# opening at 4m AND closes the transom up to the raised ceiling. Keep
+		# that; a plain lid would re-open the gap above the doorway.
+		if grid_map.get_cell_item(cell + Vector3i(0, 1, 0)) != wall_fill_id:
+			grid_map.set_cell_item(cell + Vector3i(0, 1, 0), ceiling_id)
 		Sfx.play_at(SOUND_WALL_BREAK,
 				_cell_to_world(Vector2i(cell.x, cell.z), 1.0), -5.0)
 		_spawn_wall_break_effect(cell)
@@ -746,6 +758,56 @@ func _dress_upper_walls() -> void:
 		upper_map.set_cell_item(cell, room_variant[best])
 
 
+func _vary_ceilings() -> void:
+	# Roll a ceiling height per room for variety (visual only). The spawn
+	# room stays standard — its hatch/arrival door sits at the standard
+	# height; boss arenas and item rooms go grand; the rest mostly stay
+	# standard, with the occasional tall chamber and a rare cathedral.
+	for i in floor_rooms.size():
+		if i == 0:
+			continue  # spawn stays standard, always
+		var extra := 0
+		if i == arena_room_idx or i == item_room_idx:
+			extra = CEILING_GRAND_LAYERS
+		elif randf() < CEILING_TALL_CHANCE:
+			extra = 2 if randf() < CEILING_CATHEDRAL_CHANCE else 1
+		if extra > 0:
+			_raise_room(floor_rooms[i], extra)
+
+
+func _raise_room(room: Rect2i, extra: int) -> void:
+	# Lift a room's ceiling by `extra` cell-layers (4m each) and fill its
+	# perimeter walls up to meet it. Purely visual — the play space is the
+	# floor plane. The torch can't reach up there, so the top dissolves
+	# into shadow: walls rising into the dark (the Barony effect).
+	if extra <= 0 or wall_fill_id < 0:
+		return
+	# The room's own floor cells get their ceiling raised to the new layer.
+	for x in range(room.position.x, room.end.x):
+		for z in range(room.position.y, room.end.y):
+			if not _is_open_cell(Vector2i(x, z)):
+				continue
+			grid_map.set_cell_item(Vector3i(x, 1, z), GridMap.INVALID_CELL_ITEM)
+			grid_map.set_cell_item(Vector3i(x, 1 + extra, z), ceiling_id)
+	# Fill the 1-cell border frame from the band-top (4m) up to the ceiling.
+	# Wall cells raise the wall; a DOORWAY (a floor opening in the frame)
+	# gets its transom filled too — otherwise a gap yawns above the door
+	# into the dark ("a fake doorway above the doorway"). The fill's bottom
+	# face caps the corridor at 4m, so the door stays a normal opening. The
+	# interior is left as open air — that's the whole point.
+	for x in range(room.position.x - 1, room.end.x + 1):
+		for z in range(room.position.y - 1, room.end.y + 1):
+			if x >= room.position.x and x < room.end.x \
+					and z >= room.position.y and z < room.end.y:
+				continue  # interior floor — leave the tall space open
+			var base := grid_map.get_cell_item(Vector3i(x, 0, z))
+			if base != wall_id and base != wall_wood_id \
+					and not _is_open_cell(Vector2i(x, z)):
+				continue  # not a wall (stone OR breakable wood) nor a doorway
+			for layer in range(1, 1 + extra):
+				grid_map.set_cell_item(Vector3i(x, layer, z), wall_fill_id)
+
+
 func _build(map: Array[String]) -> void:
 	for z in map.size():
 		for x in map[z].length():
@@ -1109,6 +1171,8 @@ func _relic_pool() -> Array[PackedScene]:
 		pool.append(TWICECUT_SCENE)
 	if not RunState.gapleaper:
 		pool.append(GAPLEAPER_SCENE)
+	if not RunState.barrelstone:
+		pool.append(BARRELSTONE_SCENE)
 	if not RunState.wideswing:
 		pool.append(WIDESWING_SCENE)
 	if not RunState.rotstone:

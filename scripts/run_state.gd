@@ -31,6 +31,7 @@ var lucky := false   # gold: the deep is generous
 var quickstep := false  # cyan: dash goes further
 var twicecut := false   # cyan: two dash charges
 var gapleaper := false  # cyan: dashes fly level over gaps
+var barrelstone := false  # cyan: the dash bowls enemies over (shove into pits)
 var wideswing := false  # orange: strikes spread
 var rotstone := false   # green: wounds fester (poison ticks)
 var emberstone := false # red rough: wounds burn (fire ticks + chars planks)
@@ -114,6 +115,7 @@ func reset() -> void:
 	quickstep = false
 	twicecut = false
 	gapleaper = false
+	barrelstone = false
 	wideswing = false
 	rotstone = false
 	emberstone = false

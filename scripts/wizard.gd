@@ -27,6 +27,21 @@ const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
 const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn")
 const WALK_FRAME_TIME := 0.3
+const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_front_aggro1.png")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/wizard_death1.wav")
+const FRONT_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_front_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_front_takehit2.png"),
+]
+const SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/wizard/wizard_side_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_side_takehit2.png"),
+]
+const BACK_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_back_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_back_takehit2.png"),
+]
 
 const SPEED := 1.6
 const RETREAT_RANGE := 4.0
@@ -62,6 +77,8 @@ var glow_tween: Tween
 var knock_timer := 0.0
 var last_attacker: PhysicsBody3D = null
 var facing := Vector3.FORWARD
+var noticed := false    # true while it currently perceives the player
+var aggro_timer := 0.0  # counts down through the startle freeze
 var wander_dir := Vector3.ZERO
 var wander_timer := 0.0
 var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
@@ -81,6 +98,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 
+	aggro_timer = maxf(aggro_timer - delta, 0.0)
 	if knock_timer > 0.0:
 		# Staggered: the shove owns the body for a beat. Skid under
 		# friction — steering would erase the knockback next tick.
@@ -88,6 +106,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
 		move_and_slide()
+		# The stagger IS the hit reaction: the 2-stage take-hit plays across
+		# the skid (the red flash from take_damage tints it).
+		_hit_view(0 if knock_timer > KNOCK_TIME * 0.5 else 1)
 		return
 
 	var t := _get_target()
@@ -99,6 +120,23 @@ func _physics_process(delta: float) -> void:
 	if sees_target and dist > 0.01:
 		# A caster keeps its eyes on you even while backpedaling.
 		facing = to_target.normalized()
+	if sees_target and t == player and not noticed:
+		noticed = true
+		aggro_timer = AGGRO_TIME
+	elif not sees_target:
+		noticed = false
+	if aggro_timer > 0.0:
+		# The notice beat: freeze, the cast broken, facing you.
+		_stop_cast_glow()
+		charging = false
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		sprite.flip_h = false
+		sprite.texture = AGGRO_TEX
+		if step_sound.playing:
+			step_sound.stop()
+		return
 
 	if charging:
 		# Rooted while the cast winds up — orb at the chest, glow
@@ -213,6 +251,22 @@ func _update_view(frame: int) -> void:
 		sprite.texture = SIDE_FRAMES[frame]
 
 
+func _hit_view(frame: int) -> void:
+	# Take-hit turnaround, same projection as _update_view — the recoil
+	# reads from whatever side the blow landed on.
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (BACK_TAKEHIT if depth > 0.0 else FRONT_TAKEHIT)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = SIDE_TAKEHIT[frame]
+
+
 func _fall_into_dark() -> void:
 	# The under-place keeps what it catches: credited if the player's
 	# shove sent it over, but the body and its drops are gone.
@@ -301,6 +355,7 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 func _die(by_player: bool) -> void:
 	# The corpse stays: crumpled robes where the wizard fell.
 	dead = true
+	Sfx.play_at(DEATH_SOUND, global_position, -3.0)
 	_stop_cast_glow()
 	step_sound.stop()
 	if by_player:

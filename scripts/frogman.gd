@@ -45,6 +45,31 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 ]
 const WALK_FRAME_TIME := 0.3
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
+const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_COATED := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_aggro1.png")
+const AGGRO_FROG := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_aggro1.png")
+const AGGRO_TOAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_aggro1.png")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_death.wav")
+const COATED_TAKEHIT_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit2.png"),
+]
+const COATED_TAKEHIT_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side_takehit1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_side_takehit2.png"),
+]
+const COATED_TAKEHIT_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back_takehit1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_back_takehit2.png"),
+]
+const FROG_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase2/frog_takehit1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase2/frog_takehit2.png"),
+]
+const TOAD_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/frogmen/frogmen-phase2/toad_takehit1.png"),
+	preload("res://assets/sprites/frogmen/frogmen-phase2/toad_takehit2.png"),
+]
 
 const COATED_HEALTH := 14
 const REVEAL_AT := 6
@@ -81,6 +106,9 @@ var reveal_timer := 0.0
 var hop_clock := 0.0
 var attack_timer := 0.0
 var attack_anim := 0.0  # counts down while the lunge frames play
+var noticed := false    # true while it currently perceives the player
+var aggro_timer := 0.0  # counts down through the startle freeze
+var aggro_tex: Texture2D = AGGRO_COATED  # the alert pose, set per state
 var walk_time := 0.0
 var dead := false
 var target: PhysicsBody3D = null
@@ -104,6 +132,7 @@ func _ready() -> void:
 
 func configure(new_state: State, hp: int) -> void:
 	# Called before add_child by the splitting parent.
+	noticed = true  # born mid-fight, already aware — no startle on spawn
 	state = new_state
 	health = hp
 
@@ -131,6 +160,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	attack_timer = maxf(attack_timer - delta, 0.0)
+	aggro_timer = maxf(aggro_timer - delta, 0.0)
 
 	if state == State.REVEAL:
 		# The comedic beat: coat off, secret out, nobody moves.
@@ -149,6 +179,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, 0.0, KNOCK_FRICTION * delta)
 		velocity.z = move_toward(velocity.z, 0.0, KNOCK_FRICTION * delta)
 		move_and_slide()
+		# The stagger IS the hit reaction: play the 2-stage take-hit across
+		# the skid (the red flash from take_damage tints it).
+		_hit_view(0 if knock_timer > KNOCK_TIME * 0.5 else 1)
 		return
 
 	var t := _get_target()
@@ -157,7 +190,24 @@ func _physics_process(delta: float) -> void:
 	var dist := to_target.length()
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
-	if _perceives(t, dist, sight):
+	var seen := _perceives(t, dist, sight)
+	if seen and t == player and not noticed:
+		noticed = true
+		aggro_timer = AGGRO_TIME
+	elif not seen:
+		noticed = false
+	if aggro_timer > 0.0:
+		# The notice beat: freeze in alarm facing you, then it comes.
+		facing = to_target.normalized()
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		sprite.flip_h = false
+		sprite.texture = aggro_tex
+		if step_sound.playing:
+			step_sound.stop()
+		return
+	if seen:
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
 			facing = dir
@@ -290,10 +340,36 @@ func _coated_attack_view(frame: int) -> void:
 	var side := facing.dot(cam.global_transform.basis.x)
 	if absf(depth) >= absf(side):
 		sprite.flip_h = false
-		sprite.texture = COATED_ATTACK_FRONT[frame]
+		# No back-ATTACK art: facing away, the walk's back view stands in.
+		sprite.texture = COATED_BACK[frame] if depth > 0.0 else COATED_ATTACK_FRONT[frame]
 	else:
 		sprite.flip_h = side > 0.0
 		sprite.texture = COATED_ATTACK_SIDE[frame]
+
+
+func _hit_view(frame: int) -> void:
+	# Take-hit frames. Frog/toad are front-only; the coat uses a full
+	# turnaround (same projection as the walk) so the recoil reads from
+	# whatever side the blow landed on.
+	if state == State.FROG:
+		sprite.flip_h = false
+		sprite.texture = FROG_TAKEHIT[frame]
+		return
+	if state == State.TOAD:
+		sprite.flip_h = false
+		sprite.texture = TOAD_TAKEHIT[frame]
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		return
+	var depth := facing.dot(-cam.global_transform.basis.z)
+	var side := facing.dot(cam.global_transform.basis.x)
+	if absf(depth) >= absf(side):
+		sprite.flip_h = false
+		sprite.texture = (COATED_TAKEHIT_BACK if depth > 0.0 else COATED_TAKEHIT_FRONT)[frame]
+	else:
+		sprite.flip_h = side > 0.0
+		sprite.texture = COATED_TAKEHIT_SIDE[frame]
 
 
 func _start_reveal() -> void:
@@ -326,6 +402,7 @@ func _split() -> void:
 	toad.velocity = side * 2.5
 	get_parent().add_child.call_deferred(toad)
 	state = State.FROG
+	noticed = true  # the frog bursts out mid-fight — already aware
 	health = FROG_HEALTH
 	velocity = -side * 2.5
 	_apply_state()
@@ -335,6 +412,7 @@ func _apply_state() -> void:
 	match state:
 		State.COATED:
 			frame_a = COATED_FRONT[0]
+			aggro_tex = AGGRO_COATED
 			frame_b = COATED_FRONT[1]
 			$CollisionShape3D.shape = CapsuleShape3D.new()
 			$CollisionShape3D.shape.radius = 0.5
@@ -343,6 +421,7 @@ func _apply_state() -> void:
 			step_sound.pitch_scale = 1.0
 		State.FROG:
 			frame_a = TEX_FROG_1
+			aggro_tex = AGGRO_FROG
 			frame_b = TEX_FROG_2
 			$CollisionShape3D.shape = SphereShape3D.new()
 			$CollisionShape3D.shape.radius = 0.5
@@ -350,6 +429,7 @@ func _apply_state() -> void:
 			step_sound.pitch_scale = 1.25
 		State.TOAD:
 			frame_a = TEX_TOAD_1
+			aggro_tex = AGGRO_TOAD
 			frame_b = TEX_TOAD_2
 			$CollisionShape3D.shape = SphereShape3D.new()
 			$CollisionShape3D.shape.radius = 0.5
@@ -420,6 +500,7 @@ func _die(by_player: bool) -> void:
 	# The corpse stays: frog or toad, collapsed where it fell.
 	dead = true
 	step_sound.stop()
+	Sfx.play_at(DEATH_SOUND, global_position, -3.0)
 	if by_player:
 		RunState.record_kill(kill_label())
 	remove_from_group("enemies")

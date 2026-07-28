@@ -13,6 +13,7 @@ const ICON_LUCKY := preload("res://assets/items/crystals/crystal_luckyluck1.png"
 const ICON_QUICKSTEP := preload("res://assets/items/crystals/crystal_quickstep1.png")
 const ICON_TWICECUT := preload("res://assets/items/crystals/crystal_twicecut1.png")
 const ICON_GAPLEAPER := preload("res://assets/items/crystals/crystal_gapleaper1.png")
+const ICON_BARRELSTONE := preload("res://assets/items/crystals/crystal_barrelstone1.png")
 const ICON_WIDESWING := preload("res://assets/items/crystals/crystal_wideswing1.png")
 const ICON_ROTSTONE := preload("res://assets/items/crystals/crystal_rotstone1.png")
 const ICON_EMBERSTONE := preload("res://assets/items/crystals/crystal_emberstone1.png")
@@ -337,6 +338,8 @@ func _rebuild_items() -> void:
 		item_strip.add_child(_make_item_icon(ICON_TWICECUT))
 	if RunState.gapleaper:
 		item_strip.add_child(_make_item_icon(ICON_GAPLEAPER))
+	if RunState.barrelstone:
+		item_strip.add_child(_make_item_icon(ICON_BARRELSTONE))
 	if RunState.armor_tier > 0:
 		item_strip.add_child(_make_item_icon(ICON_TURNING[RunState.armor_tier]))
 
