@@ -3,6 +3,7 @@ extends CharacterBody3D
 
 signal health_changed(current: int, maximum: int, magic: int)
 signal attacked
+signal torch_attacked  # the off-hand torch shove (drives the left-hand viewmodel)
 signal blocked
 signal died
 signal poisoned(current: int, maximum: int, magic: int)
@@ -29,7 +30,16 @@ const WIDESWING_ARC_DEG := 85.0
 # should feel like trading the shove away for damage. Distance goes
 # with the SQUARE of this: 1.0 ≈ 0.6m skid, 1.8 ≈ 1.9m, 2.8 ≈ 4.7m.
 const TORCH_KNOCKBACK := 1.8
-const FALL_DEATH_Y := -1.5
+# The off-hand torch (right-click once a weapon is in the main hand): a shove,
+# not a swing. Base torch damage, full knockback, its own slower cadence so
+# it's a deliberate spacing tool that weaves with the weapon rather than a
+# second damage stream. No crystals/walls/dots — the value is the push.
+const TORCH_OFFHAND_DAMAGE := 2
+const TORCH_OFFHAND_COOLDOWN := 0.6
+const FALL_DEATH_Y := -1.5  # default death plane, just under the floor
+# The live death plane — the dungeon lowers it when a scripted drop (the
+# boss floor cave-in) means the survivable ground is far below the usual one.
+var fall_death_y := FALL_DEATH_Y
 const INVULN_TIME := 1.0
 const POISON_TICKS := 2           # delayed ticks after a slime touch / creep
 const POISON_TICK_DAMAGE := 1     # half-heart per tick
@@ -38,7 +48,7 @@ const CREEP_POISON_RANGE := 0.6   # horizontal metres to count as standing in it
 const CREEP_SCAN_INTERVAL := 0.25 # throttle the creep proximity check
 const LAND_DIP := 0.4       # camera crumple depth at impact (metres)
 const LAND_HOLD := 1.5      # hold the crouch through the floor-start mist
-                            # (mist holds 1.6s then fades 0.9s — see hud.gd)
+							# (mist holds 1.6s then fades 0.9s — see hud.gd)
 const LAND_RECOVER := 0.7   # then rise as the mist clears — the VISIBLE beat
 const LAND_SOUND := preload("res://assets/audio/sfx/player/start_landing.wav")
 # Crystal tiers index these: none / tier 1 / tier 2.
@@ -89,6 +99,7 @@ var magic_hearts := 0
 var attack_damage := 1
 var move_speed := SPEED
 var attack_timer := 0.0
+var torch_attack_timer := 0.0  # off-hand torch shove cooldown, independent of the weapon
 var invuln_timer := 0.0
 var poison_ticks := 0
 var poison_clock := 0.0
@@ -102,6 +113,10 @@ var dash_dir := Vector3.ZERO
 var barrel_hit := {}  # enemies the current dash has already struck (Barrelstone)
 var base_fov := 75.0  # camera's rest FOV, captured in _ready (for the dash kick)
 var fov_tween: Tween  # the dash FOV recovery, killed on a fresh dash
+var _shake_dur := 0.0     # camera-shake countdown (0 = still)
+var _shake_elapsed := 0.0
+var _shake_strength := 0.0
+var _shake_base := Vector3.ZERO  # the camera rest pos the shake perturbs around
 var boomerang_out := false
 var controls_enabled := true
 var gate_pull := false  # a mist gate's tween owns the body; physics stands down
@@ -334,6 +349,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			# Clicking back into the window recaptures instead of swinging.
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	elif event.is_action_pressed("torch_attack"):
+		# The off-hand torch shove — live only once a weapon fills the main
+		# hand (before that the torch IS the main hand, on left-click).
+		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED \
+				and RunState.weapon != "torch":
+			_torch_attack()
 	elif event.is_action_pressed("ui_cancel"):
 		# Esc toggles the mouse in and out of capture.
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
@@ -342,10 +363,36 @@ func _unhandled_input(event: InputEvent) -> void:
 			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
 
 
+func shake(strength: float, duration: float) -> void:
+	# A camera kick — the floor caving, a heavy landing. Perturbs the camera
+	# around its rest pos and settles. Captures the rest pos only on a fresh
+	# shake so re-triggers don't bake in an offset.
+	if _shake_dur <= 0.0:
+		_shake_base = camera.position
+	_shake_strength = maxf(_shake_strength, strength)
+	_shake_dur = duration
+	_shake_elapsed = 0.0
+
+
+func _apply_shake(delta: float) -> void:
+	if _shake_dur <= 0.0:
+		return
+	_shake_elapsed += delta
+	if _shake_elapsed >= _shake_dur:
+		camera.position = _shake_base
+		_shake_dur = 0.0
+		return
+	# Decay to nothing over the duration; jitter X/Y, leave depth alone.
+	var amp := _shake_strength * (1.0 - _shake_elapsed / _shake_dur)
+	camera.position = _shake_base + Vector3(
+			randf_range(-amp, amp), randf_range(-amp, amp), 0.0)
+
+
 func _physics_process(delta: float) -> void:
 	if gate_pull:
 		return
-	if controls_enabled and global_position.y < FALL_DEATH_Y:
+	_apply_shake(delta)
+	if controls_enabled and global_position.y < fall_death_y:
 		# Walked, dashed, or was shoved into the under-place.
 		RunState.set_killer("the Dark Below", null)
 		health = 0
@@ -354,6 +401,7 @@ func _physics_process(delta: float) -> void:
 		$TorchCrackle.stop()
 		died.emit()
 	attack_timer = maxf(attack_timer - delta, 0.0)
+	torch_attack_timer = maxf(torch_attack_timer - delta, 0.0)
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
 	dash_timer = maxf(dash_timer - delta, 0.0)
 	dash_cooldown_timer = maxf(dash_cooldown_timer - delta, 0.0)
@@ -532,6 +580,29 @@ func _attack() -> void:
 		var scene := get_tree().current_scene
 		if scene.has_method("damage_wall"):
 			scene.damage_wall(hit.position, hit.normal, attack_damage)
+
+
+func _torch_attack() -> void:
+	# The torch as a shield: a shove that barely scratches (base torch
+	# damage) but keeps its full knockback — spacing, interrupts, and
+	# pit-work while the main weapon does the killing. Its own cooldown, so
+	# it weaves freely with the weapon; deliberately NO crystals, walls, or
+	# dots — a control tool, not a second weapon.
+	if torch_attack_timer > 0.0:
+		return
+	torch_attack_timer = TORCH_OFFHAND_COOLDOWN
+	torch_attacked.emit()
+	Sfx.play_at(TORCH_HIT_SOUNDS[randi_range(0, TORCH_HIT_SOUNDS.size() - 1)],
+			global_position, -4.0)
+	var forward := -global_transform.basis.z
+	for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
+		var to := enemy.global_position - global_position
+		to.y = 0.0
+		if to.length() <= ATTACK_RANGE \
+				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
+			enemy.take_damage(
+					TORCH_OFFHAND_DAMAGE, to.normalized() * TORCH_KNOCKBACK, self)
+			RunState.record_damage_dealt(TORCH_OFFHAND_DAMAGE)
 
 
 func heal(amount: int) -> bool:

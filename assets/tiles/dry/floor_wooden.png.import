@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cu282tsafod05"
-path="res://.godot/imported/skeleton_dead.png-02751c38e0e6f24df5e8547ec0fa4b78.ctex"
+uid="uid://bpi2ixwxabbu8"
+path="res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/skeleton_dead.png"
-dest_files=["res://.godot/imported/skeleton_dead.png-02751c38e0e6f24df5e8547ec0fa4b78.ctex"]
+source_file="res://assets/tiles/dry/floor_wooden.png"
+dest_files=["res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.ctex"]
 
 [params]
 

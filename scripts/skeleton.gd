@@ -37,6 +37,12 @@ const SIDE_ATTACK: Array[Texture2D] = [  # drawn facing left; flipped for right
 const WALK_FRAME_TIME := 0.3
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
+const AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro1.wav"),
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro2.wav"),
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro3.wav"),
+]
 const AGGRO_TEX := preload("res://assets/sprites/skeleton/skeleton_front_aggro1.png")
 const FRONT_TAKEHIT: Array[Texture2D] = [
 	preload("res://assets/sprites/skeleton/skeleton_front_takehit1.png"),
@@ -151,16 +157,27 @@ func _physics_process(delta: float) -> void:
 	if seen and t == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
+		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	elif not seen:
 		noticed = false
 	if aggro_timer > 0.0:
-		# The notice beat: freeze in alarm facing you, then it charges.
-		facing = to_target.normalized()
+		# The notice beat: freeze and WHEEL to face you — creep up on its
+		# back and it turns through a side view — then it charges. The alarm
+		# pose lands once it's basically looking at you; until then the
+		# turnaround frames show the spin.
+		var want := to_target.normalized()
+		var swing := facing.signed_angle_to(want, Vector3.UP)
+		facing = facing.rotated(Vector3.UP,
+				clampf(swing, -AGGRO_TURN_SPEED * delta, AGGRO_TURN_SPEED * delta))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
-		sprite.flip_h = false
-		sprite.texture = AGGRO_TEX
+		if facing.dot(want) > 0.85:
+			sprite.flip_h = false
+			sprite.texture = AGGRO_TEX
+		else:
+			_update_view(0)
 		if step_sound.playing:
 			step_sound.stop()
 		return

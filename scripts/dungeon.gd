@@ -74,6 +74,8 @@ const SECRET_SLIDE_TIME := 3.0  # matches the stone-grind sound length
 const CEILING_TALL_CHANCE := 0.35   # a regular room's odds of a raised ceiling
 const CEILING_CATHEDRAL_CHANCE := 0.2  # of raised rooms, odds of +2 vs +1 layer
 const CEILING_GRAND_LAYERS := 2     # boss arenas + item rooms go this tall
+const BOSS_DROP_LAYERS := 3         # the amalgam chamber sits this many cell-
+                                    # layers (4m each) below the boss arena
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -128,6 +130,8 @@ var boss_index := 0
 var fight_active := false
 var fight_grace := 0.0
 var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
+var boss_floor_dropped := false  # the arena floor has caved into the chamber
+var boss_plate: Node3D = null    # the consent plate, so the drop can clear it
 var mush_stage := 0  # world 2: 0 = slime fake-out, 1 = the real boss
 var boss_hatch: Node3D = null
 var boss_hatch_cell := Vector2i(-1, -1)
@@ -154,6 +158,50 @@ var item_resolved := false
 @onready var player: Player = $Player
 
 
+# --- Per-world tile appearances (docs/tile-appearances.md) ---
+# One look per WORLD (the first label number); all three stages share it.
+# A world points at a folder under assets/tiles/; the shared tile materials
+# have their albedo_texture reskinned to that folder at floor load. The
+# geometry contract (dungeon_tiles.tres meshes/shapes, the ASCII grid) is
+# untouched — this is paint only. Index by world; [0] and out-of-range worlds
+# (endless descent past the demo) fall back to the nearest built look.
+const WORLD_APPEARANCE := ["dry", "dry", "damp", "deep"]
+# Which contract texture each reskinnable tile material pulls from the folder.
+# Names are fixed and identical across every appearance folder (the contract).
+# Shared materials ride along: wall_fill uses "wall"; floor_wood_pale reuses
+# the wood texture and keeps its own cool tint.
+const APPEARANCE_TEXTURES := {
+	"floor": "floor_stone.png",
+	"wall": "wall_stone.png",
+	"ceiling": "ceiling_stone.png",
+	"floor_wood": "floor_wooden.png",
+	"floor_wood_pale": "floor_wooden.png",
+	"wall_wood": "wall_wooden.png",
+	"wall_wood_partial": "wall_wooden_partially_broken.png",
+	"wall_upper1": "wall_stone_upper1.png",
+	"wall_upper2": "wall_stone_upper2.png",
+}
+
+
+func _apply_appearance(world: int) -> void:
+	var idx := clampi(world, 1, WORLD_APPEARANCE.size() - 1)
+	var folder: String = WORLD_APPEARANCE[idx]
+	var lib := grid_map.mesh_library
+	for item_name: String in APPEARANCE_TEXTURES:
+		var id := lib.find_item_by_name(item_name)
+		if id < 0:
+			continue
+		var mesh := lib.get_item_mesh(id)
+		if mesh == null or mesh.get_surface_count() == 0:
+			continue
+		var mat := mesh.surface_get_material(0) as StandardMaterial3D
+		if mat == null:
+			continue
+		var path := "res://assets/tiles/%s/%s" % [folder, APPEARANCE_TEXTURES[item_name]]
+		if ResourceLoader.exists(path):
+			mat.albedo_texture = load(path) as Texture2D
+
+
 func _ready() -> void:
 	MusicDrift.begin()  # the dungeon owns the drifting ambient; the title stays quiet
 	floor_id = grid_map.mesh_library.find_item_by_name("floor")
@@ -172,6 +220,9 @@ func _ready() -> void:
 	floor_wood_pale_id = grid_map.mesh_library.find_item_by_name("floor_wood_pale")
 	ceiling_id = grid_map.mesh_library.find_item_by_name("ceiling")
 	wall_fill_id = grid_map.mesh_library.find_item_by_name("wall_fill")
+	# Re-skin the shared tile materials for THIS world's look (texture only —
+	# the meshes, shapes, and the ASCII the generator emits never change).
+	_apply_appearance(RunState.world(RunState.depth))
 
 	kind = RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
@@ -262,9 +313,11 @@ func _physics_process(_delta: float) -> void:
 		fight_grace = maxf(fight_grace - _delta, 0.0)
 		if fight_grace == 0.0 and not _arena_has_living_enemies():
 			if boss_index >= 2 and amalgam_stage == 0:
-				# Phase two: the bodies got up.
+				# Phase two: the floor gives way — the fight, the player,
+				# and every corpse plunge into the chamber, where the
+				# bodies drag together and rise as one.
 				amalgam_stage = 1
-				_begin_assembly()
+				_drop_into_assembly()
 			elif boss_index == 1 and mush_stage == 0:
 				# The fake-out lands: same opening as last world —
 				# then the real boss arrives, and its minis are
@@ -923,6 +976,9 @@ func _setup_boss_room() -> void:
 	var arena := floor_rooms[arena_room_idx]
 	arena_mists = _spawn_mists(arena, false)
 	boss_index = mini(RunState.bosses_defeated, 2)
+	# PHASE 1 (all boss floors for now; will gate to the amalgam later): the
+	# chamber this arena can drop into.
+	_build_boss_chamber(arena)
 	var cells := _stone_cells(arena)
 	if cells.is_empty():
 		var center := arena.get_center()
@@ -949,6 +1005,203 @@ func _setup_boss_room() -> void:
 	plate.position = _cell_to_world(plate_cell, 0.5)
 	plate.activated.connect(_start_boss_fight)
 	add_child(plate)
+	boss_plate = plate
+
+
+func _build_boss_chamber(arena: Rect2i) -> void:
+	# PHASE 1: a chamber the boss arena drops into, built BENEATH the arena
+	# BOSS_DROP_LAYERS cell-layers down. The arena floor is its lid (it caves
+	# in on the drop). Mirrors a normal room's stack, just lowered: floor +
+	# collision wall + a decorative band at the base, then collisionless fill
+	# encloses the shaft up to the arena so the whole fall reads solid.
+	var floor_y := -BOSS_DROP_LAYERS
+	for x in range(arena.position.x - 1, arena.end.x + 1):
+		for z in range(arena.position.y - 1, arena.end.y + 1):
+			var interior := x >= arena.position.x and x < arena.end.x \
+					and z >= arena.position.y and z < arena.end.y
+			if interior:
+				grid_map.set_cell_item(Vector3i(x, floor_y, z), floor_id)
+			else:
+				grid_map.set_cell_item(Vector3i(x, floor_y, z), wall_id)
+				upper_map.set_cell_item(Vector3i(x, floor_y, z), wall_upper_id)
+				# Fill the shaft up toward the arena — but STOP one layer short
+				# under a solid arena wall: its 6.2m mesh already hangs down to
+				# y=-4.2, so a fill tile there double-stacks and z-fights (the
+				# seam that flickers as you move). Under a doorway (floor, no
+				# wall) the top layer IS needed, or the shaft yawns open there.
+				var above := grid_map.get_cell_item(Vector3i(x, 0, z))
+				var top_layer := -2
+				if above != wall_id and above != wall_wood_id:
+					top_layer = -1
+				for layer in range(floor_y + 1, top_layer + 1):
+					grid_map.set_cell_item(Vector3i(x, layer, z), wall_fill_id)
+
+
+func _drop_boss_floor() -> void:
+	# The arena floor caves in: every arena floor cell (and its ceiling lid)
+	# vanishes, so the fight plunges into the chamber below. controls off
+	# BOTH locks input and skips the "Dark Below" death, so the fall is
+	# survived; the chamber floor catches the player, then control returns.
+	if boss_floor_dropped:
+		return
+	boss_floor_dropped = true
+	# Drop the death plane below the chamber floor: standing in the chamber
+	# (y ~ -11.5) is now safe, but a fall THROUGH it still ends the run.
+	player.fall_death_y = 0.5 - float(BOSS_DROP_LAYERS) * 4.0 - 2.5
+	# The consent plate AND the sealed hatch ride down with the floor — the
+	# dropped flow spawns a fresh hatch in the chamber on clear, so the
+	# arena's is redundant; either way, no prop hangs in the air.
+	if is_instance_valid(boss_plate):
+		boss_plate.queue_free()
+		boss_plate = null
+	if is_instance_valid(boss_hatch):
+		boss_hatch.queue_free()
+		boss_hatch = null
+	var arena := floor_rooms[arena_room_idx]
+	# Interior: the WHOLE floor plane caves — stone, planks, and cells that
+	# already collapsed to open holes (those keep a hole slab + rim in the
+	# HoleMap that would otherwise float). Border ring: only doorway floor
+	# stubs, never the walls that hold up the chamber shaft.
+	for x in range(arena.position.x - 1, arena.end.x + 1):
+		for z in range(arena.position.y - 1, arena.end.y + 1):
+			var interior := x >= arena.position.x and x < arena.end.x \
+					and z >= arena.position.y and z < arena.end.y
+			var id := grid_map.get_cell_item(Vector3i(x, 0, z))
+			var is_floor := id == floor_id or id == floor_wood_id \
+					or id == floor_wood_pale_id
+			if not interior and not is_floor:
+				continue
+			if is_floor:
+				_spawn_falling_floor_chunk(Vector3i(x, 0, z), id)
+			grid_map.set_cell_item(Vector3i(x, 0, z), GridMap.INVALID_CELL_ITEM)
+			grid_map.set_cell_item(Vector3i(x, 1, z), GridMap.INVALID_CELL_ITEM)
+			hole_map.set_cell_item(Vector3i(x, 0, z), GridMap.INVALID_CELL_ITEM)
+	_rebuild_hole_rims()  # the arena's rims go now that its hole cells cleared
+	_clear_arena_props(arena)  # splats, creep, any flat aftermath over the pit
+	# The cave-in beat: the break crack, a deep boom under it (the same stone
+	# pitched right down), a curtain of dust down the shaft, a hard camera kick.
+	Sfx.play_at(SOUND_FLOOR_BREAK, player.global_position, -2.0)
+	Sfx.play_at(SOUND_FLOOR_BREAK, player.global_position, 1.0, 0.42)
+	_spawn_shaft_dust(arena)
+	player.shake(0.2, 0.8)
+	player.controls_enabled = false
+	_watch_boss_landing()
+
+
+func _spawn_shaft_dust(arena: Rect2i) -> void:
+	# A curtain of grit pours down the open shaft as the floor lets go —
+	# emitted across the whole arena footprint at the old floor line, falling
+	# into the dark. CPUParticles for the web renderer; frees itself after.
+	var p := CPUParticles3D.new()
+	p.one_shot = true
+	p.amount = 90
+	p.lifetime = 2.6
+	p.explosiveness = 0.25  # a heavy first gout, then a trailing shower
+	p.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	p.emission_box_extents = Vector3(
+			arena.size.x * CELL_SIZE * 0.5, 0.3, arena.size.y * CELL_SIZE * 0.5)
+	p.direction = Vector3(0.0, -1.0, 0.0)
+	p.spread = 12.0
+	p.initial_velocity_min = 1.0
+	p.initial_velocity_max = 3.5
+	p.gravity = Vector3(0.0, -9.0, 0.0)
+	p.damping_min = 0.2
+	p.damping_max = 0.8
+	p.scale_amount_min = 0.6
+	p.scale_amount_max = 1.6
+	var grad := Gradient.new()
+	grad.set_color(0, Color(0.55, 0.5, 0.44, 0.9))
+	grad.set_color(1, Color(0.4, 0.36, 0.32, 0.0))
+	p.color_ramp = grad
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.09, 0.09)
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	mat.vertex_color_use_as_albedo = true
+	quad.material = mat
+	p.mesh = quad
+	add_child(p)
+	p.global_position = _cell_to_world(arena.get_center(), 0.5)
+	p.emitting = true
+	get_tree().create_timer(p.lifetime + 0.5).timeout.connect(p.queue_free)
+
+
+func _clear_arena_props(arena: Rect2i) -> void:
+	# Anything resting on the vanished floor goes with it, or it hangs in the
+	# air over the shaft: flat splats and creep stains laid on the stone. The
+	# fingerprint is a flat ground Sprite3D (or a creep patch) low in the
+	# arena's world-XZ box; live bodies and pickups are left alone. (The
+	# sealed hatch and consent plate are freed by name in the caller.)
+	var min_x := arena.position.x * CELL_SIZE - 0.5
+	var max_x := arena.end.x * CELL_SIZE + 0.5
+	var min_z := arena.position.y * CELL_SIZE - 0.5
+	var max_z := arena.end.y * CELL_SIZE + 0.5
+	var doomed: Array[Node] = []
+	for child in get_children():
+		if not child is Node3D or child == player:
+			continue
+		if child.is_in_group("enemies"):
+			continue
+		if not (child is Sprite3D or child.is_in_group("creep")):
+			continue
+		var p: Vector3 = (child as Node3D).global_position
+		if p.y < 1.6 and p.x >= min_x and p.x <= max_x \
+				and p.z >= min_z and p.z <= max_z:
+			doomed.append(child)
+	for d in doomed:
+		d.queue_free()
+
+
+func _watch_boss_landing() -> void:
+	# Wait out the plunge, then hand control back once the chamber floor has
+	# caught the player (capped so a bug can't lock control away forever).
+	await get_tree().create_timer(0.25).timeout
+	# ~3m into the chamber: floor top (0.5) minus the drop (4m PER Y-layer,
+	# not CELL_SIZE, which is the 2m XZ pitch).
+	var landed_below := 0.5 - float(BOSS_DROP_LAYERS) * 4.0 + 3.0
+	var frames := 0
+	while frames < 300 \
+			and (player.global_position.y > landed_below or not player.is_on_floor()):
+		await get_tree().physics_frame
+		frames += 1
+	player.controls_enabled = true
+
+
+func _spawn_falling_floor_chunk(cell: Vector3i, tile_id: int) -> void:
+	# The caved-in slab as a real body: the actual floor mesh (stone or the
+	# wooden plank it was) cut loose so it tumbles down the shaft and fades,
+	# instead of a flat splinter puff. It collides with the world (layer 1)
+	# but sits on no layer itself (0) — so it never shoves the falling player
+	# nor grinds against its siblings; it just drops and dissolves.
+	var mesh := grid_map.mesh_library.get_item_mesh(tile_id)
+	if mesh == null:
+		return
+	var body := RigidBody3D.new()
+	body.collision_layer = 0
+	body.collision_mask = 1
+	body.gravity_scale = 1.2
+	var mi := MeshInstance3D.new()
+	mi.mesh = mesh
+	body.add_child(mi)
+	var col := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(2.0, 0.5, 2.0)
+	col.shape = box
+	body.add_child(col)
+	add_child(body)
+	body.global_position = _cell_to_world(Vector2i(cell.x, cell.z), 0.5)
+	# a shove of chaos so the slabs tumble rather than sink flat
+	body.linear_velocity = Vector3(
+			randf_range(-1.5, 1.5), randf_range(-1.0, 0.5), randf_range(-1.5, 1.5))
+	body.angular_velocity = Vector3(
+			randf_range(-5.0, 5.0), randf_range(-3.0, 3.0), randf_range(-5.0, 5.0))
+	# tumble a while, fade to nothing, gone
+	var t := create_tween()
+	t.tween_interval(1.6)
+	t.tween_property(mi, "transparency", 1.0, 0.6)
+	t.tween_callback(body.queue_free)
 
 
 func _nearest_cell_to_center(room: Rect2i, cells: Array[Vector2i]) -> Vector2i:
@@ -1023,9 +1276,11 @@ func _spawn_mush_boss() -> void:
 	fight_grace = 1.5
 
 
-func _begin_assembly() -> void:
-	# Everything stops. Every corpse in the arena — every body the
-	# player made — drags itself slowly toward the centre.
+func _drop_into_assembly() -> void:
+	# The 3-3 climax: the arena floor caves in. The player falls by real
+	# physics; every corpse they made — captured first, before the tiles
+	# vanish — rides down on tweens timed to land with them, then drags to
+	# the chamber centre and rises as the amalgam.
 	var arena := floor_rooms[arena_room_idx]
 	# Half-meter slop only: 3m used to reach through the arena wall,
 	# and a corridor skeleton wandering past outside could hold the
@@ -1043,31 +1298,25 @@ func _begin_assembly() -> void:
 		var p: Vector3 = child.global_position
 		if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
 			corpses.append(child)
-	# Assemble on stone nearest the centre (never over a hole, and
-	# not on the sealed hatch).
+	# Cave the floor: player plunges, tiles tumble, the way back seals.
+	_drop_boss_floor()
+	# Assemble at the arena centre XZ, just above the chamber floor (the
+	# chamber is solid — no holes, no hatch yet — so the centre is safe).
 	var center_cell := arena.get_center()
-	var cells := _stone_cells(arena)
-	var best_d := INF
-	for c in cells:
-		if c == boss_hatch_cell:
-			continue
-		var d := Vector2(c - center_cell).length_squared()
-		if d < best_d:
-			best_d = d
-			center_cell = c
-	var center := _cell_to_world(center_cell, 1.1)
+	var chamber_top := 0.5 - float(BOSS_DROP_LAYERS) * 4.0
+	var center := _cell_to_world(center_cell, chamber_top + 0.6)
 	var i := 0
 	for c in corpses:
 		c.set_physics_process(false)
 		var offset := Vector3(
-			randf_range(-0.5, 0.5), randf_range(-0.1, 0.5), randf_range(-0.5, 0.5))
+			randf_range(-0.5, 0.5), randf_range(0.0, 0.6), randf_range(-0.5, 0.5))
 		var tw := create_tween()
-		tw.tween_interval(0.5 + i * 0.15)
-		tw.tween_property(c, "global_position", center + offset, 2.6) \
+		tw.tween_interval(0.4 + i * 0.12)
+		tw.tween_property(c, "global_position", center + offset, 2.4) \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		i += 1
 	var timer := Timer.new()
-	timer.wait_time = 0.5 + corpses.size() * 0.15 + 2.6 + 0.6
+	timer.wait_time = 0.4 + corpses.size() * 0.12 + 2.4 + 0.6
 	timer.one_shot = true
 	add_child(timer)
 	timer.timeout.connect(_spawn_amalgam.bind(corpses, center, corpses.size()))
@@ -1080,6 +1329,11 @@ func _spawn_amalgam(corpses: Array, center: Vector3, body_count: int) -> void:
 			c.queue_free()
 	var boss := SKELETAL_WIZARD_SCENE.instantiate()
 	boss.position = center + Vector3(0, 0.7, 0)
+	# When it assembles in the chamber it stands far below the normal fall
+	# plane — drop its self-despawn net below the chamber floor, or it
+	# deletes itself the frame after the roar.
+	if boss_floor_dropped:
+		boss.fall_y = 0.5 - float(BOSS_DROP_LAYERS) * 4.0 - 5.0
 	add_child(boss)
 	# The player built this boss: HP scales with the bodies, capped —
 	# panic must cost, but never spiral. (Half-heart units.)
@@ -1112,26 +1366,40 @@ func _finish_boss_fight() -> void:
 	for m in arena_mists:
 		if is_instance_valid(m):
 			m.dissolve()
-	# The sealed hatch at the arena's heart opens — but never under
-	# anyone's feet.
-	if is_instance_valid(boss_hatch):
-		boss_hatch.open()
 	# The reward is earned by the fight — and the deep decides what
 	# it is: one random draw from the same pool the pedestals use.
 	# Never empty (golden hearts are always in the draw).
 	var pool := _relic_pool()
 	var reward: Node3D = pool[randi_range(0, pool.size() - 1)].instantiate()
-	if reward != null:
+	if boss_floor_dropped:
+		# The arena is gone overhead — the way down and the reward wait
+		# here in the chamber, at the amalgam's fallen centre.
 		var arena := floor_rooms[arena_room_idx]
-		var cells := _stone_cells(arena)
-		cells.shuffle()
-		var reward_cell := boss_hatch_cell + Vector2i(1, 0)
-		for c in cells:
-			if c != boss_hatch_cell:
-				reward_cell = c
-				break
-		reward.position = _cell_to_world(reward_cell, 0.5)
-		add_child(reward)
+		var center_cell := arena.get_center()
+		var chamber_top := 0.5 - float(BOSS_DROP_LAYERS) * 4.0
+		var hatch := HATCH_SCENE.instantiate()
+		hatch.position = _cell_to_world(center_cell, chamber_top)
+		add_child(hatch)
+		if reward != null:
+			reward.position = _cell_to_world(
+					center_cell + Vector2i(1, 0), chamber_top)
+			add_child(reward)
+	else:
+		# The sealed hatch at the arena's heart opens — but never under
+		# anyone's feet.
+		if is_instance_valid(boss_hatch):
+			boss_hatch.open()
+		if reward != null:
+			var arena := floor_rooms[arena_room_idx]
+			var cells := _stone_cells(arena)
+			cells.shuffle()
+			var reward_cell := boss_hatch_cell + Vector2i(1, 0)
+			for c in cells:
+				if c != boss_hatch_cell:
+					reward_cell = c
+					break
+			reward.position = _cell_to_world(reward_cell, 0.5)
+			add_child(reward)
 	RunState.bosses_defeated += 1
 	if RunState.bosses_defeated >= 3 and not RunState.victory_shown:
 		RunState.victory_shown = true

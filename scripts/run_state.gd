@@ -58,11 +58,16 @@ func stage(d: int) -> int:
 	return ((d - 1) % 3) + 1
 
 
+func world(d: int) -> int:
+	# The first number in the world-stage label: 1-x → 1, 4-x → 2... every
+	# three depths is a new world (three worlds to an act).
+	@warning_ignore("integer_division")
+	return (d + 2) / 3
+
+
 func floor_label(d: int) -> String:
 	# Depth rendered as world - stage: 1-1, 1-2, 1-3, 2-1...
-	@warning_ignore("integer_division")
-	var world := (d + 2) / 3
-	return "%d - %d" % [world, stage(d)]
+	return "%d - %d" % [world(d), stage(d)]
 
 
 func record_kill(label: String) -> void:

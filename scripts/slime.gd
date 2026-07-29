@@ -65,7 +65,13 @@ const SMALL_ATTACK_SIDE: Array[Texture2D] = [
 ]
 const WALK_FRAME_TIME := 0.25
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
-const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TIME := 0.45  # startle freeze — a touch longer; the blob is ponderous
+const AGGRO_TURN_SPEED := 10.0  # rad/s it wheels around; slower = a heavier turn
+const AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/slime_aggro1.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_aggro2.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_aggro3.wav"),
+]
 const AGGRO_LARGE := preload("res://assets/sprites/slime/slime-large/slime_large_front_aggro1.png")
 const AGGRO_SMALL := preload("res://assets/sprites/slime/slime-small/slime_small_front_aggro1.png")
 const AGGRO_BOSS := preload("res://assets/sprites/slime/slime-boss/slime-boss-front_aggro1.png")
@@ -265,16 +271,26 @@ func _physics_process(delta: float) -> void:
 	if seen and goal == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
+		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	elif not seen:
 		noticed = false
 	if aggro_timer > 0.0:
-		# The notice beat: the blob rears up facing you, then rolls in.
-		facing = to_goal.normalized()
+		# The notice beat: the blob rears up and WHEELS to face you — caught
+		# from behind it turns through a side view — then it rolls in. Alarm
+		# pose lands once it's basically looking at you.
+		var want := to_goal.normalized()
+		var swing := facing.signed_angle_to(want, Vector3.UP)
+		facing = facing.rotated(Vector3.UP,
+				clampf(swing, -AGGRO_TURN_SPEED * delta, AGGRO_TURN_SPEED * delta))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
-		sprite.flip_h = false
-		sprite.texture = aggro_tex
+		if facing.dot(want) > 0.85:
+			sprite.flip_h = false
+			sprite.texture = aggro_tex
+		else:
+			_update_view(0)
 		if step_sound.playing:
 			step_sound.stop()
 		return

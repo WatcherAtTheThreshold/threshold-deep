@@ -164,6 +164,32 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   taking one pedestal (always_consume) dissolves the mist and
   removes the other. Pedestal pairs carry AT MOST ONE weapon. R is inert
   during a boss fight. Trigger-plate item hunts are retired.
+- **The 3-3 floor drop** (the amalgam climax): the arena floor caves in
+  when the wave clears and the fight plunges into a chamber below, where
+  the Skeletal Wizard amalgam assembles from the corpses. Real, seamless
+  geometry — NOT a scene swap. `_build_boss_chamber` builds the chamber at
+  room setup, `BOSS_DROP_LAYERS` (3) cell-layers (×4 m) beneath the arena:
+  interior floor, and per border cell a collision wall + upper band + a
+  stack of collisionless `wall_fill` closing the shaft. The fill STOPS one
+  layer short under a solid arena wall (its 6.2 m mesh already hangs to
+  y = -4.2; a fill tile there z-fights) but fills fully under a doorway.
+  On wave-clear (`boss_index >= 2`) `_drop_into_assembly` captures the
+  arena corpses, calls `_drop_boss_floor` (caves every arena floor cell +
+  HoleMap slab + collapsed-hole rims, frees the plate AND the sealed
+  hatch, spawns tumbling `RigidBody3D` floor chunks, camera shake, dust,
+  a pitched-down boom), then TWEENS the corpses down (physics off — no
+  reliance on gravity, so any corpse type assembles) and `_spawn_amalgam`
+  rises it in the chamber. `_finish_boss_fight` branches on
+  `boss_floor_dropped`: dropped → hatch + reward spawn on the CHAMBER
+  floor, not the vanished arena. **Fall-death gotcha:** the chamber floor
+  sits ~12 m below the normal `-1.5` death plane, so `player.fall_death_y`
+  AND the amalgam's `fall_y` are lowered below the chamber on the drop, or
+  each self-despawns to "the Dark Below" on landing. `controls_enabled =
+  false` during the plunge both locks input AND skips the death check
+  (the chamber floor catches the fall; `_watch_boss_landing` restores
+  control). (A temporary debug **G** key that caved the floor on demand
+  was removed once the flow was confirmed — re-add a keycode branch in
+  `_unhandled_input` calling `_drop_into_assembly` if you need to iterate.)
 - The commoner secret (x-1 floors): the generator grafts a sealed
   2×2 chamber outside walkable space (after the solvability proof —
   sealed space is invisible to it) and buries a trigger under one

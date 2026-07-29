@@ -39,6 +39,7 @@ const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_dea
 const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.wav")
 const ROAR_TEX := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_roar1.png")
 const ROAR_TIME := 1.0  # the rise: reared up and bellowing before the hunt
+const RISE_HEIGHT := 1.6  # how far it heaves up out of the pile during the roar
 const FRONT_TAKEHIT: Array[Texture2D] = [  # front-only; it always faces you
 	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit1.png"),
 	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit2.png"),
@@ -58,6 +59,9 @@ const CAST_RECOVER := 0.6
 enum Mode { RUSH, CHARGE, RECOVER }
 
 const FALL_Y := -1.5
+# Live floor: the dungeon drops it below the boss chamber when the amalgam
+# assembles down there, so its own safety net doesn't delete it on spawn.
+var fall_y := FALL_Y
 
 var health := 40
 var mode := Mode.RUSH
@@ -67,6 +71,8 @@ var walk_time := 0.0
 var dead := false
 var facing := Vector3.FORWARD
 var roar_timer := ROAR_TIME  # counts down through the rise-roar freeze
+var _rise_stand_y := 0.0  # the height it settles at once risen
+var _rise_start_y := 0.0  # sunk into the pile at spawn, rises to _rise_stand_y
 var hit_anim := 0.0  # counts down through the take-hit flinch
 
 @onready var sprite: Sprite3D = $Sprite
@@ -78,6 +84,9 @@ var hit_anim := 0.0  # counts down through the take-hit flinch
 func _ready() -> void:
 	# It heaves up out of the pile of your dead with a bellow — the rise.
 	Sfx.play_at(ROAR_SOUND, global_position, -2.0)
+	_rise_stand_y = global_position.y
+	_rise_start_y = _rise_stand_y - RISE_HEIGHT
+	global_position.y = _rise_start_y  # start sunk; the roar heaves it up
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -93,7 +102,7 @@ func _floor_ahead(dir: Vector3) -> bool:
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
-	if global_position.y < FALL_Y:
+	if global_position.y < fall_y:
 		# Safety net only — the probe should make this unreachable.
 		queue_free()
 		return
@@ -111,11 +120,14 @@ func _physics_process(delta: float) -> void:
 		facing = to_player.normalized()
 
 	if roar_timer > 0.0:
-		# The rise: reared up, bellowing, before the hunt begins.
+		# The rise: it heaves up out of the pile, reared up and bellowing
+		# before the hunt. Drive Y by hand (ease-out) so gravity can't slam
+		# it back down mid-rise.
 		roar_timer -= delta
-		velocity.x = 0.0
-		velocity.z = 0.0
-		move_and_slide()
+		var rise_t := clampf(1.0 - roar_timer / ROAR_TIME, 0.0, 1.0)
+		var eased := 1.0 - pow(1.0 - rise_t, 3.0)
+		global_position.y = lerpf(_rise_start_y, _rise_stand_y, eased)
+		velocity = Vector3.ZERO
 		sprite.flip_h = false
 		sprite.texture = ROAR_TEX
 		return

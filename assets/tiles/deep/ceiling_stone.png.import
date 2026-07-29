@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://34plkyhfof73"
-path="res://.godot/imported/skeleton2.png-9018bcf17e75482dc5c42fa0de039ace.ctex"
+uid="uid://516eimidu34"
+path="res://.godot/imported/ceiling_stone.png-e352ff7adf0e435b4c983a16b1ea6bbd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/skeleton2.png"
-dest_files=["res://.godot/imported/skeleton2.png-9018bcf17e75482dc5c42fa0de039ace.ctex"]
+source_file="res://assets/tiles/deep/ceiling_stone.png"
+dest_files=["res://.godot/imported/ceiling_stone.png-e352ff7adf0e435b4c983a16b1ea6bbd.ctex"]
 
 [params]
 

@@ -53,10 +53,15 @@ func _physics_process(delta: float) -> void:
 		return
 	clock = 0.0
 	ticks_left -= 1
-	host.take_damage(damage, Vector3.ZERO, attacker)
+	# The source can die mid-wound (a slime that caustic-touched this victim,
+	# then got killed) — a freed attacker passed to take_damage crashes, so
+	# credit it only while it's still valid; otherwise the tick is uncredited
+	# (there's nothing left to infight anyway).
+	var credit: CharacterBody3D = attacker if is_instance_valid(attacker) else null
+	host.take_damage(damage, Vector3.ZERO, credit)
 	# Ticks hurt but never stagger — the wound works quietly.
 	host.set("knock_timer", 0.0)
-	if attacker is Player:
+	if credit is Player:
 		RunState.record_damage_dealt(damage)
 	if burn:
 		var scene := get_tree().current_scene

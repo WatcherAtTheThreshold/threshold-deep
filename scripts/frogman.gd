@@ -46,6 +46,12 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 const WALK_FRAME_TIME := 0.3
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
+const AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro2.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro3.wav"),
+]
 const AGGRO_COATED := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_aggro1.png")
 const AGGRO_FROG := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_aggro1.png")
 const AGGRO_TOAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_aggro1.png")
@@ -194,16 +200,26 @@ func _physics_process(delta: float) -> void:
 	if seen and t == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
+		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	elif not seen:
 		noticed = false
 	if aggro_timer > 0.0:
-		# The notice beat: freeze in alarm facing you, then it comes.
-		facing = to_target.normalized()
+		# The notice beat: freeze and WHEEL to face you — caught from behind
+		# it turns through a side view — then it comes. Alarm pose lands once
+		# it's basically looking at you.
+		var want := to_target.normalized()
+		var swing := facing.signed_angle_to(want, Vector3.UP)
+		facing = facing.rotated(Vector3.UP,
+				clampf(swing, -AGGRO_TURN_SPEED * delta, AGGRO_TURN_SPEED * delta))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
-		sprite.flip_h = false
-		sprite.texture = aggro_tex
+		if facing.dot(want) > 0.85:
+			sprite.flip_h = false
+			sprite.texture = aggro_tex
+		else:
+			_update_view(0)
 		if step_sound.playing:
 			step_sound.stop()
 		return

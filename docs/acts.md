@@ -67,6 +67,20 @@ rather than a from-scratch bestiary — same discipline as the
 slime/mush turnarounds already in the parking lot. A cosmic slime is a
 slime that has *become*, not a blank sheet.
 
+### New creature *shapes*, not just skins (parked → segmented-creatures.md)
+
+One shape worth having in the drawer for the acts: **segmented,
+multi-body creatures** — a horizontal centipede, a vertical dragon,
+built from many small chained billboards each with its own hitbox
+(never one giant PNG). Full write-up in **docs/segmented-creatures.md**.
+It belongs here because its most interesting version is the
+transformation principle applied *linearly*: a **severable** segment
+chain is the slime/mush split turned continuous and persistent — cut it
+mid-body and it becomes two shorter things. Same grammar the player
+already reads, arranged in a line. Feature-sized (a movement model + a
+damage model), so it's Act II/III or mini-boss material, not demo work
+— parked with the rest.
+
 ## The guardrail: cosmic horror must not break Pillar 3
 
 **This is the one that will try to sink the act if it's not written

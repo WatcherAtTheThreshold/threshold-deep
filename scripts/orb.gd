@@ -45,18 +45,22 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node3D) -> void:
 	if body == shooter:
 		return
+	# The caster can die while the orb is still in flight — a freed shooter
+	# passed to take_damage crashes, so validate once and credit only while
+	# it's alive (a dead caster has nothing to infight or record anyway).
+	var credit: PhysicsBody3D = shooter if is_instance_valid(shooter) else null
 	Sfx.play_at(impact_sounds[randi_range(0, impact_sounds.size() - 1)],
 			global_position, -4.0)
 	if body is Player:
 		# Credit the caster.
-		body.take_damage(damage, direction, shooter if is_instance_valid(shooter) else null)
+		body.take_damage(damage, direction, credit)
 	elif body.is_in_group("enemies"):
 		# Friendly fire: a stray orb starts an infight. Player orbs
 		# (the staff) count toward damage dealt.
-		body.take_damage(damage, direction, shooter)
-		if shooter is Player:
+		body.take_damage(damage, direction, credit)
+		if credit is Player:
 			RunState.record_damage_dealt(damage)
-			shooter.apply_dots(body)
+			credit.apply_dots(body)
 	elif body is GridMap:
 		# Orbs splinter wood — anyone's orbs. Each point of damage
 		# counts as a hit against the wall.
@@ -70,8 +74,8 @@ func _on_body_entered(body: Node3D) -> void:
 			if e == body or e == shooter or not is_instance_valid(e):
 				continue
 			if e.global_position.distance_to(global_position) <= SPLASH_RANGE:
-				e.take_damage(damage, direction, shooter)
-				if shooter is Player:
+				e.take_damage(damage, direction, credit)
+				if credit is Player:
 					RunState.record_damage_dealt(damage)
-					shooter.apply_dots(e)
+					credit.apply_dots(e)
 	queue_free()

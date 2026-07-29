@@ -28,7 +28,13 @@ const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
 const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn")
 const WALK_FRAME_TIME := 0.3
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
 const AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_front_aggro1.png")
+const AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_aggro1.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_aggro2.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_aggro3.wav"),
+]
 const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/wizard_death1.wav")
 const FRONT_TAKEHIT: Array[Texture2D] = [
 	preload("res://assets/sprites/wizard/wizard_front_takehit1.png"),
@@ -117,23 +123,35 @@ func _physics_process(delta: float) -> void:
 	var dist := to_target.length()
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 	var sees_target := _perceives(t, dist, sight)
-	if sees_target and dist > 0.01:
-		# A caster keeps its eyes on you even while backpedaling.
-		facing = to_target.normalized()
 	if sees_target and t == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
+		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	elif not sees_target:
 		noticed = false
+	if sees_target and dist > 0.01 and aggro_timer <= 0.0:
+		# A caster keeps its eyes on you even while backpedaling — but not
+		# mid-startle, where it's still wheeling round toward the noise.
+		facing = to_target.normalized()
 	if aggro_timer > 0.0:
-		# The notice beat: freeze, the cast broken, facing you.
+		# The notice beat: freeze, cast broken, and WHEEL to face you —
+		# caught from behind it turns through a side view — then it resumes
+		# keeping eyes on you. Alarm pose lands once it's basically there.
 		_stop_cast_glow()
 		charging = false
+		var want := to_target.normalized()
+		var swing := facing.signed_angle_to(want, Vector3.UP)
+		facing = facing.rotated(Vector3.UP,
+				clampf(swing, -AGGRO_TURN_SPEED * delta, AGGRO_TURN_SPEED * delta))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
-		sprite.flip_h = false
-		sprite.texture = AGGRO_TEX
+		if facing.dot(want) > 0.85:
+			sprite.flip_h = false
+			sprite.texture = AGGRO_TEX
+		else:
+			_update_view(0)
 		if step_sound.playing:
 			step_sound.stop()
 		return

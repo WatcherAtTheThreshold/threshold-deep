@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cqwkf7uweu13f"
-path="res://.godot/imported/skeleton_mid_rise.png-0c97bd168d5da95b697913b890feecba.ctex"
+uid="uid://bok4hu40xjo88"
+path="res://.godot/imported/wall_wooden_partially_broken.png-083e3c2a66b7f134dcd77f32bd10efde.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/skeleton_mid_rise.png"
-dest_files=["res://.godot/imported/skeleton_mid_rise.png-0c97bd168d5da95b697913b890feecba.ctex"]
+source_file="res://assets/tiles/damp/wall_wooden_partially_broken.png"
+dest_files=["res://.godot/imported/wall_wooden_partially_broken.png-083e3c2a66b7f134dcd77f32bd10efde.ctex"]
 
 [params]
 

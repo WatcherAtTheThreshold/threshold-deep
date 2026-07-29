@@ -102,7 +102,13 @@ const BOSS_ATTACK: Array[Texture2D] = [  # front-only, like the boss walk
 ]
 const WALK_FRAME_TIME := 0.28
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
-const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
+const AGGRO_TIME := 0.45  # startle freeze — a touch longer; the cap is ponderous
+const AGGRO_TURN_SPEED := 10.0  # rad/s it wheels around; slower = a heavier turn
+const AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/mush_aggro1.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_aggro2.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_aggro3.wav"),
+]
 const AGGRO_MINI := preload("res://assets/sprites/mush/mini-mush/mini-mush_front_aggro1.png")
 const AGGRO_MUSH := preload("res://assets/sprites/mush/mush/mush_front_aggro1.png")
 const AGGRO_MEGA := preload("res://assets/sprites/mush/mega-mush/mega-mush_front_aggro1.png")
@@ -327,16 +333,26 @@ func _physics_process(delta: float) -> void:
 	if seen and goal == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
+		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+				global_position, -4.0)
 	elif not seen:
 		noticed = false
 	if aggro_timer > 0.0:
-		# The notice beat: the cap rears up facing you, then creeps in.
-		facing = to_goal.normalized()
+		# The notice beat: the cap rears up and WHEELS to face you — caught
+		# from behind it turns through a side view — then it creeps in. Alarm
+		# pose lands once it's basically looking at you.
+		var want := to_goal.normalized()
+		var swing := facing.signed_angle_to(want, Vector3.UP)
+		facing = facing.rotated(Vector3.UP,
+				clampf(swing, -AGGRO_TURN_SPEED * delta, AGGRO_TURN_SPEED * delta))
 		velocity.x = 0.0
 		velocity.z = 0.0
 		move_and_slide()
-		sprite.flip_h = false
-		sprite.texture = aggro_tex
+		if facing.dot(want) > 0.85:
+			sprite.flip_h = false
+			sprite.texture = aggro_tex
+		else:
+			_update_view(0)
 		if step_sound.playing:
 			step_sound.stop()
 		return

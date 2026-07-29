@@ -1,27 +1,43 @@
 extends TextureRect
 
-const FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/torch/left-hand-torch.png"),
-	preload("res://assets/sprites/torch/left-hand-torch2.png"),
-	preload("res://assets/sprites/torch/left-hand-torch3.png"),
+# The off-hand torch is a MIRROR of the main-hand torch (viewmodel.gd): the
+# same flame frames and the same drawn swing, flipped horizontally and pinned
+# to the bottom-LEFT corner. It idles as a passive light while you hold a
+# weapon, and plays the full torch swing on the right-click shove
+# (player.torch_attacked). Swap in dedicated left-hand frames later under the
+# same structure — flip_h off, new textures, nothing else changes.
+
+const TORCH_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/torch/hand-torch1.png"),
+	preload("res://assets/sprites/torch/hand-torch2.png"),
+	preload("res://assets/sprites/torch/hand-torch3.png"),
 ]
+const TORCH_SWING_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/torch/hand-torch_swing1.png"),
+	preload("res://assets/sprites/torch/hand-torch_swing2.png"),
+	preload("res://assets/sprites/torch/hand-torch_swing3.png"),
+]
+# Windup / extended strike / follow-through — same three beats as the right hand.
+const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
 const FLICKER_TIME := 0.16
 const SWAY_AMOUNT := 6.0
+# Mirror of the main-hand torch's corner pin (viewmodel anchor_off = (12,12),
+# from its -372 offset + 128*3 slot): the art's bottom-LEFT corner sits this
+# far past the screen's bottom-left, so the two hands are symmetric.
+const ANCHOR_OFF := Vector2(12.0, 12.0)
 
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
+var swinging := false
 var flicker_clock := 0.0
 var bob_time := 0.0
-var base_offset: Vector2
-var strike_offset := Vector2.ZERO
+var swing_tween: Tween = null
 
 
 func _ready() -> void:
-	base_offset = Vector2(offset_left, offset_top)
-	# Pivot at the bottom-left corner so the attack tilt leans the
-	# torch toward screen center without lifting the canvas edges.
-	pivot_offset = Vector2(0.0, size.y)
-	player.attacked.connect(_on_attacked)
+	flip_h = true  # the exact horizontal mirror of the right hand
+	texture = TORCH_FRAMES[0]
+	player.torch_attacked.connect(_on_torch_attack)
 
 
 func _process(delta: float) -> void:
@@ -32,27 +48,39 @@ func _process(delta: float) -> void:
 	var ground_speed := Vector2(player.velocity.x, player.velocity.z).length()
 	if ground_speed > 0.1 and player.is_on_floor():
 		bob_time += delta * ground_speed * 2.0
-	# The flame never rests.
-	flicker_clock += delta
-	texture = FRAMES[int(flicker_clock / FLICKER_TIME) % FRAMES.size()]
-	# Mirrored sway of the right hand, pinned to the bottom-left corner.
-	var corner_base := Vector2(0.0, get_viewport_rect().size.y) + base_offset \
-			+ pivot_offset * (scale - Vector2.ONE)
-	position = corner_base + strike_offset + Vector2(
-		-sin(bob_time) * SWAY_AMOUNT,
-		absf(cos(bob_time)) * SWAY_AMOUNT * 0.5
-	)
+	# The flame always flickers, unless a swing owns the frame.
+	if not swinging:
+		flicker_clock += delta
+		texture = TORCH_FRAMES[int(flicker_clock / FLICKER_TIME) % TORCH_FRAMES.size()]
+	# Pin the art's bottom-LEFT corner to the corner (the mirror of the right
+	# hand's bottom-right pin): force rect size to the texture, pivot at the
+	# bottom-left so scale grows up-and-inward, X of the sway negated.
+	var tsize := texture.get_size() if texture != null else size
+	size = tsize
+	pivot_offset = Vector2(0.0, tsize.y)
+	position = Vector2(-ANCHOR_OFF.x, get_viewport_rect().size.y + ANCHOR_OFF.y - tsize.y) \
+			+ Vector2(
+				-sin(bob_time) * SWAY_AMOUNT,
+				absf(cos(bob_time)) * SWAY_AMOUNT * 0.5
+			)
 
 
-func _on_attacked() -> void:
-	# Body-lean: as the sword arm swings, the torch dips down-left
-	# with a slight lean, like weight shifting into the strike.
-	if not visible:
-		return
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "strike_offset", Vector2(-12.0, 10.0), 0.08) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", -0.09, 0.08) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(self, "strike_offset", Vector2.ZERO, 0.26)
-	tween.parallel().tween_property(self, "rotation", 0.0, 0.26)
+func _on_torch_attack() -> void:
+	# The same drawn arc as the main-hand torch, mirrored: windup → strike →
+	# follow, pure frame swaps (no rotation to mirror). No embers yet — the
+	# left hand has no Embers node.
+	swinging = true
+	if swing_tween != null and swing_tween.is_valid():
+		swing_tween.kill()
+	texture = TORCH_SWING_FRAMES[0]
+	swing_tween = create_tween()
+	swing_tween.tween_interval(TORCH_SWING_TIMES[0])
+	swing_tween.tween_callback(func() -> void:
+		texture = TORCH_SWING_FRAMES[1])
+	swing_tween.tween_interval(TORCH_SWING_TIMES[1])
+	swing_tween.tween_callback(func() -> void:
+		texture = TORCH_SWING_FRAMES[2])
+	swing_tween.tween_interval(TORCH_SWING_TIMES[2])
+	swing_tween.tween_callback(func() -> void:
+		texture = TORCH_FRAMES[0]
+		swinging = false)
