@@ -302,7 +302,7 @@ func _floor_ahead(dir: Vector3) -> bool:
 func _fall_into_dark() -> void:
 	# The under-place keeps what it catches: credited if the player's
 	# shove sent it over, but the body and its drops are gone.
-	if last_attacker is Player:
+	if is_instance_valid(last_attacker) and last_attacker is Player:
 		RunState.record_kill(kill_label())
 	queue_free()
 
@@ -490,6 +490,19 @@ func _can_see(t: PhysicsBody3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func alert() -> void:
+	# Woken by a nearby kin's shout: snap awake, turn on the player, sting.
+	# A grudge stays its own; only an idle frogman adopts the player as target.
+	if noticed:
+		return
+	noticed = true
+	if target == null:
+		target = player
+	aggro_timer = AGGRO_TIME
+	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+			global_position, -4.0)
+
+
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	# The reveal beat is untouchable — the joke always lands.
 	if dead or state == State.REVEAL:
@@ -503,6 +516,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		# Pain redirects attention to whoever caused it.
 		target = attacker
 		last_attacker = attacker
+		if attacker is Player:
+			noticed = true  # a player hit wakes it — the dungeon poll then propagates
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if state == State.COATED:

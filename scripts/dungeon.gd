@@ -82,6 +82,10 @@ const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
 const ROOM_ATTEMPTS := 14
 const CELL_SIZE := 2.0
+# Alert propagation: the first beat an enemy notices you (or takes a player
+# hit), it wakes nearby kin — a one-hop ripple, not a chain, so a shout can't
+# cascade across the whole floor.
+const ALERT_RADIUS := 7.0
 
 const ROOM_POTION_CHANCE := 0.3
 const EXTRA_SKELETON_CHANCE_PER_DEPTH := 0.15
@@ -127,6 +131,7 @@ var wall_damage := {}
 var hole_rims_root: Node3D  # container for the torn-lip sprites around holes
 var last_player_cell := Vector3i(-9999, 0, -9999)
 var enemy_cells := {}  # instance id -> last grid cell, for enemy-worn planks
+var alert_seen := {}   # instance id -> was-noticed last frame, for alert propagation
 var floor_rooms: Array[Rect2i] = []
 var kind: int = RunState.FloorKind.REGULAR
 
@@ -308,9 +313,17 @@ func _physics_process(_delta: float) -> void:
 	for e: Node3D in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e):
 			continue
+		var eid := e.get_instance_id()
+		# Alert propagation: on the rising edge of an enemy noticing you, it
+		# shouts and wakes nearby kin (one-hop — _alert_around pre-marks the
+		# ones it wakes so they don't re-shout next frame).
+		if e.has_method("alert"):
+			var aware: bool = e.get("noticed") == true
+			if aware and not alert_seen.get(eid, false):
+				_alert_around(e.global_position, ALERT_RADIUS, e)
+			alert_seen[eid] = aware
 		var ecell := grid_map.local_to_map(grid_map.to_local(e.global_position))
 		ecell.y = 0
-		var eid := e.get_instance_id()
 		var prev: Variant = enemy_cells.get(eid)
 		if prev != null and prev != ecell:
 			_try_collapse(prev)
@@ -660,7 +673,14 @@ func _open_secret_room() -> void:
 	# Open the passage in the STATIC maps at once (floor + ceiling in, wall
 	# + band out); the slide below is a purely visual prop laid on top.
 	grid_map.set_cell_item(door, floor_id)
-	grid_map.set_cell_item(door + Vector3i(0, 1, 0), ceiling_id)
+	# Cap the doorway to match its surroundings. Normally a plain ceiling lid
+	# at 4m — but if this wall sat in a RAISED room, _raise_room already
+	# filled its transom with wall_fill up to the tall ceiling (as it does for
+	# every doorway). Overwriting that with a low lid would leave the opening
+	# yawning over the chamber's short ceiling straight into the sky, so keep
+	# the transom where it exists.
+	if grid_map.get_cell_item(door + Vector3i(0, 1, 0)) != wall_fill_id:
+		grid_map.set_cell_item(door + Vector3i(0, 1, 0), ceiling_id)
 	upper_map.set_cell_item(door, GridMap.INVALID_CELL_ITEM)
 	Sfx.play_at(SOUND_SECRET_GRIND, _cell_to_world(secret_door, 1.0), -3.0)
 	_slide_secret_wall(door, upper_prev)
@@ -984,6 +1004,21 @@ func _spawn_skeleton_pack(room: Rect2i, origin: Vector2i, origin_skel: Node3D) -
 		for s in pack:
 			s.set("pack", pack)
 			s.set("revenant", true)
+
+
+func _alert_around(origin: Vector3, radius: float, source: Node) -> void:
+	# The shout: every enemy within radius that isn't already aware snaps
+	# awake and turns on the player (each plays its own "sees-you" sting via
+	# alert()). Pre-mark the woken ones so the per-frame poll doesn't treat
+	# their fresh noticed=true as a NEW shout — that keeps it one hop.
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == source or not is_instance_valid(e) or not e.has_method("alert"):
+			continue
+		if e.get("noticed") == true:
+			continue  # already awake; don't re-sting or re-count it
+		if e.global_position.distance_to(origin) <= radius:
+			e.alert()
+			alert_seen[e.get_instance_id()] = true
 
 
 func _face_spawn_doorway(room: Rect2i) -> void:

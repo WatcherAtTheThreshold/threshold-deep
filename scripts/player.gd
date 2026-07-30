@@ -21,6 +21,10 @@ const MAGIC_CAP := 12
 const ATTACK_COOLDOWN := 0.5
 const ATTACK_RANGE := 2.2
 const ATTACK_ARC_DEG := 55.0
+# Ranged fire is LOUD: it wakes enemies within this radius (through the
+# dungeon's alert system) even ones you didn't hit — so shooting trades
+# safety-per-hit for giving away your position, while melee stays quiet.
+const NOISE_RADIUS := 9.0
 # The halberd's whole pitch is reach; a longer haft than sword or torch.
 const HALBERD_RANGE := 3.0
 # Wide Swing: the melee arc opens to catch the flanking tiles too.
@@ -538,6 +542,7 @@ func _attack() -> void:
 		boomerang.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(boomerang)
 		boomerang_out = true
+		_make_noise(NOISE_RADIUS)  # the throw is loud — nearby sleepers wake
 	elif RunState.weapon == "staff":
 		# The staff's verb: a bolt where you're looking, pitch and all.
 		var aim := -camera.global_transform.basis.z
@@ -552,6 +557,7 @@ func _attack() -> void:
 		orb.direction = aim
 		orb.position = camera.global_position + aim * 0.9
 		get_parent().add_child.call_deferred(orb)
+		_make_noise(NOISE_RADIUS)  # the bolt is loud — nearby sleepers wake
 	else:
 		# Melee arc: hit every enemy close enough and roughly in front.
 		# Enemies scale their shove by the push vector's length, so the
@@ -586,6 +592,14 @@ func _attack() -> void:
 		var scene := get_tree().current_scene
 		if scene.has_method("damage_wall"):
 			scene.damage_wall(hit.position, hit.normal, attack_damage)
+
+
+func _make_noise(radius: float) -> void:
+	# A loud action (ranged fire) carries: the dungeon wakes enemies within
+	# radius of us — hit or not. No-op outside the dungeon (title/test room).
+	var scene := get_tree().current_scene
+	if scene and scene.has_method("_alert_around"):
+		scene._alert_around(global_position, radius, null)
 
 
 func _torch_attack() -> void:

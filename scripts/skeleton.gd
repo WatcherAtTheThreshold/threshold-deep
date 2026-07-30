@@ -77,6 +77,10 @@ const HEAR_RANGE := 3.5  # sensed this close regardless of facing
 const SIGHT_CONE_DEG := 110.0  # forward vision arc, full width
 const ATTACK_RANGE := 1.4
 const ATTACK_COOLDOWN := 1.2
+# Flanking: when several bones chase the same prey, they shove off each other
+# so the pack fans around you and closes in from the sides.
+const FLANK_RANGE := 3.5     # a nearby enemy within this bends the approach
+const FLANK_STRENGTH := 1.0  # how hard that push arcs the chase to a flank
 const MAX_HEALTH := 6
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
@@ -194,6 +198,10 @@ func _physics_process(delta: float) -> void:
 	if seen:
 		if dist > ATTACK_RANGE:
 			var dir := to_target.normalized()
+			if t == player:
+				# Pack flanking: shove off nearby kin so a group arcs around
+				# you and closes in from the sides, not a single-file line.
+				dir = (dir + _flank_push() * FLANK_STRENGTH).normalized()
 			facing = dir
 			if _floor_ahead(dir):
 				velocity.x = dir.x * speed
@@ -316,10 +324,25 @@ func _floor_ahead(dir: Vector3) -> bool:
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func _flank_push() -> Vector3:
+	# Separation from nearby enemies, added to the seek so a pack fans out and
+	# surrounds you instead of stacking single-file. Closer = harder push.
+	var push := Vector3.ZERO
+	for e in get_tree().get_nodes_in_group("enemies"):
+		if e == self or not is_instance_valid(e) or e.get("dead") == true:
+			continue
+		var away: Vector3 = global_position - e.global_position
+		away.y = 0.0
+		var d := away.length()
+		if d > 0.01 and d < FLANK_RANGE:
+			push += away.normalized() * (1.0 - d / FLANK_RANGE)
+	return push
+
+
 func _fall_into_dark() -> void:
 	# The under-place keeps what it catches: credited if the player's
 	# shove sent it over, but the body and its drops are gone.
-	if last_attacker is Player:
+	if is_instance_valid(last_attacker) and last_attacker is Player:
 		RunState.record_kill(kill_label())
 	queue_free()
 
@@ -399,6 +422,19 @@ func _revenant_check() -> void:
 			m.set("rise_delay", REVENANT_RISE_DELAY)
 
 
+func alert() -> void:
+	# Woken by a nearby kin's shout: snap awake, turn on the player, sting.
+	# A grudge stays its own; only idle bones adopt the player as target.
+	if noticed:
+		return
+	noticed = true
+	if target == null:
+		target = player
+	aggro_timer = AGGRO_TIME
+	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+			global_position, -4.0)
+
+
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if dead:
 		if rising:
@@ -418,6 +454,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		# Pain redirects attention to whoever caused it.
 		target = attacker
 		last_attacker = attacker
+		if attacker is Player:
+			noticed = true  # a player hit wakes it — the dungeon poll then propagates
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	if health <= 0:

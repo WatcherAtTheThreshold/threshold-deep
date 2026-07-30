@@ -129,6 +129,10 @@ const POISON_SCAN_INTERVAL := 0.25  # throttle the contact sweep
 const CREEP_SPACING := 0.55  # metres of travel between creep patches (1m art)
 const MERGE_RANGE := 1.0
 const PLAYER_PRIORITY_RANGE := 5.0
+# Flanking: when several slimes chase the SAME prey, they shove off each other
+# so the pack fans around it instead of stacking on the near side.
+const FLANK_RANGE := 4.0     # another slime within this pushes on the approach
+const FLANK_STRENGTH := 1.0  # how hard that push bends the seek toward the flank
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
@@ -301,6 +305,11 @@ func _physics_process(delta: float) -> void:
 	elif seen:
 		if goal == partner or dist > ATTACK_RANGE:
 			var dir := to_goal.normalized()
+			if goal == player:
+				# Flanking: bend the approach off nearby slimes so the pack
+				# arcs to different sides of you rather than piling up. Merges
+				# (goal == partner) keep converging — only prey gets flanked.
+				dir = (dir + _flank_push() * FLANK_STRENGTH).normalized()
 			facing = dir
 			if _floor_ahead(dir):
 				velocity.x = dir.x * speed
@@ -385,11 +394,27 @@ func _floor_ahead(dir: Vector3) -> bool:
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func _flank_push() -> Vector3:
+	# Sum of shoves away from nearby slimes (closer = harder). Added to the
+	# seek direction, this arcs each blob off its neighbours and around the
+	# prey — emergent flanking, no side-assignment bookkeeping.
+	var push := Vector3.ZERO
+	for s in get_tree().get_nodes_in_group("slimes"):
+		if s == self or not is_instance_valid(s) or s.get("dead") == true:
+			continue
+		var away: Vector3 = global_position - s.global_position
+		away.y = 0.0
+		var d := away.length()
+		if d > 0.01 and d < FLANK_RANGE:
+			push += away.normalized() * (1.0 - d / FLANK_RANGE)
+	return push
+
+
 func _fall_into_dark() -> void:
 	# The under-place keeps what it catches: credited if the player's
 	# shove sent it over, but the body, its splits, and its drops are
 	# gone — a whole boss can vanish mid-cascade.
-	if last_attacker is Player:
+	if is_instance_valid(last_attacker) and last_attacker is Player:
 		RunState.record_kill(kill_label())
 	queue_free()
 
@@ -702,6 +727,19 @@ func _can_see(t: PhysicsBody3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func alert() -> void:
+	# Woken by a nearby kin's shout: snap awake, turn on the player, sting.
+	# A dormant puddle stays dormant; a grudge stays its own.
+	if noticed or state == State.PUDDLE:
+		return
+	noticed = true
+	if target == null:
+		target = player
+	aggro_timer = AGGRO_TIME
+	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+			global_position, -4.0)
+
+
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
 	if dead or state == State.PUDDLE:
 		return
@@ -714,6 +752,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 		# Pain redirects attention to whoever caused it.
 		target = attacker
 		last_attacker = attacker
+		if attacker is Player:
+			noticed = true  # a player hit wakes it — the dungeon poll then propagates
 	sprite.modulate = Color(1.0, 0.3, 0.3)
 	create_tween().tween_property(sprite, "modulate", Color.WHITE, 0.25)
 	# Tiers above the bottom never die — lethal damage bursts them
