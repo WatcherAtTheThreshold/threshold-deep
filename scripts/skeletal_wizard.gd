@@ -25,18 +25,18 @@ const ORB_SCENE := preload("res://scenes/orb.tscn")
 const ORB_FRAME_1 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb1.png")
 const ORB_FRAME_2 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb2.png")
 const ORB_IMPACTS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit1.wav"),
-	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit2.wav"),
-	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit3.wav"),
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit3.ogg"),
 ]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit1.wav"),
-	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit2.wav"),
-	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit3.wav"),
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeletal_wizard_take_hit3.ogg"),
 ]
 const WALK_FRAME_TIME := 0.28
-const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_death.wav")
-const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.wav")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_death.ogg")
+const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.ogg")
 const ROAR_TEX := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_roar1.png")
 const ROAR_TIME := 1.0  # the rise: reared up and bellowing before the hunt
 const RISE_HEIGHT := 1.6  # how far it heaves up out of the pile during the roar

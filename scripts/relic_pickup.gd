@@ -3,19 +3,19 @@ extends Area3D
 ## One script for the one-time relics (boots, armor, staff): set
 ## `grant` to the Player method that claims it.
 
-const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item.wav")
+const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item.ogg")
 # The crystal voices: the A-minor scale, two octaves of A. Each
 # crystal owns a note; tier 2 is one step up from tier 1, so an
 # upgrade literally ascends. All in the key the whole score lives in.
 const CRYSTAL_NOTES: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/items/pickup_crystal1.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal2.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal3.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal4.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal5.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal6.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal7.wav"),
-	preload("res://assets/audio/sfx/items/pickup_crystal8.wav"),
+	preload("res://assets/audio/sfx/items/pickup_crystal1.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal2.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal3.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal4.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal5.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal6.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal7.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_crystal8.ogg"),
 ]
 
 @export var grant := "pickup_fleetfoot"

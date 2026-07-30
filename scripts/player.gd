@@ -50,7 +50,7 @@ const LAND_DIP := 0.4       # camera crumple depth at impact (metres)
 const LAND_HOLD := 1.5      # hold the crouch through the floor-start mist
 							# (mist holds 1.6s then fades 0.9s — see hud.gd)
 const LAND_RECOVER := 0.7   # then rise as the mist clears — the VISIBLE beat
-const LAND_SOUND := preload("res://assets/audio/sfx/player/start_landing.wav")
+const LAND_SOUND := preload("res://assets/audio/sfx/player/start_landing.ogg")
 # Crystal tiers index these: none / tier 1 / tier 2.
 const FLEET_MULTS: Array[float] = [1.0, 1.2, 1.4]  # Fleetfoot movement speed
 const HASTY_MULTS: Array[float] = [1.0, 1.3, 1.6]
@@ -61,32 +61,32 @@ const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
 const BOOMERANG_SCENE := preload("res://scenes/boomerang.tscn")
 const TORCH_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/torch_hit1.wav"),
-	preload("res://assets/audio/sfx/player/torch_hit2.wav"),
-	preload("res://assets/audio/sfx/player/torch_hit3.wav"),
+	preload("res://assets/audio/sfx/player/torch_hit1.ogg"),
+	preload("res://assets/audio/sfx/player/torch_hit2.ogg"),
+	preload("res://assets/audio/sfx/player/torch_hit3.ogg"),
 ]
 const SWORD_SLICE_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/sword_slice1.wav"),
-	preload("res://assets/audio/sfx/player/sword_slice2.wav"),
-	preload("res://assets/audio/sfx/player/sword_slice3.wav"),
+	preload("res://assets/audio/sfx/player/sword_slice1.ogg"),
+	preload("res://assets/audio/sfx/player/sword_slice2.ogg"),
+	preload("res://assets/audio/sfx/player/sword_slice3.ogg"),
 ]
 const HALBERD_SLICE_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/halberd_slice1.wav"),
-	preload("res://assets/audio/sfx/player/halberd_slice2.wav"),
-	preload("res://assets/audio/sfx/player/halberd_slice3.wav"),
+	preload("res://assets/audio/sfx/player/halberd_slice1.ogg"),
+	preload("res://assets/audio/sfx/player/halberd_slice2.ogg"),
+	preload("res://assets/audio/sfx/player/halberd_slice3.ogg"),
 ]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/player_take_hit1.wav"),
-	preload("res://assets/audio/sfx/player/player_take_hit2.wav"),
-	preload("res://assets/audio/sfx/player/player_take_hit3.wav"),
+	preload("res://assets/audio/sfx/player/player_take_hit1.ogg"),
+	preload("res://assets/audio/sfx/player/player_take_hit2.ogg"),
+	preload("res://assets/audio/sfx/player/player_take_hit3.ogg"),
 ]
 const STAFF_ORB_IMPACTS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/magic_staff_orb_hit1.wav"),
-	preload("res://assets/audio/sfx/player/magic_staff_orb_hit2.wav"),
-	preload("res://assets/audio/sfx/player/magic_staff_orb_hit3.wav"),
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/player/magic_staff_orb_hit3.ogg"),
 ]
-const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.wav")
-const DASH_SOUND := preload("res://assets/audio/sfx/player/footsteps_player_dash1.wav")
+const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.ogg")
+const DASH_SOUND := preload("res://assets/audio/sfx/player/footsteps_player_dash1.ogg")
 const BARREL_RANGE := 1.2   # Barrelstone dash-strike contact reach (metres)
 const BARREL_DAMAGE := 2    # a shove first, a hit second — mobility, not DPS
 const BARREL_PUSH := 2.6    # hard shove (torch is 1.8) — the point is the pits

@@ -3,9 +3,9 @@ extends Area3D
 const FRAME_A := preload("res://assets/sprites/wizard/wizard_orb1.png")
 const FRAME_B := preload("res://assets/sprites/wizard/wizard_orb2.png")
 const WIZARD_IMPACTS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.wav"),
-	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.wav"),
-	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.wav"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.ogg"),
 ]
 const SPEED := 6.0
 const SPLASH_RANGE := 2.0

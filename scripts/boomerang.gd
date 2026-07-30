@@ -11,14 +11,14 @@ const FRAMES: Array[Texture2D] = [
 	preload("res://assets/sprites/boomerang_shot3.png"),
 ]
 const HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/boomerang_hit1.wav"),
-	preload("res://assets/audio/sfx/player/boomerang_hit2.wav"),
-	preload("res://assets/audio/sfx/player/boomerang_hit3.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_hit1.ogg"),
+	preload("res://assets/audio/sfx/player/boomerang_hit2.ogg"),
+	preload("res://assets/audio/sfx/player/boomerang_hit3.ogg"),
 ]
 const CATCH_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/player/boomerang_catch_slap1.wav"),
-	preload("res://assets/audio/sfx/player/boomerang_catch_slap2.wav"),
-	preload("res://assets/audio/sfx/player/boomerang_catch_slap3.wav"),
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap1.ogg"),
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap2.ogg"),
+	preload("res://assets/audio/sfx/player/boomerang_catch_slap3.ogg"),
 ]
 const SPEED_OUT := 8.0
 const SPEED_BACK := 9.5

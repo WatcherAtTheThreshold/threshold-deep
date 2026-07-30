@@ -34,9 +34,9 @@ const SMALL_BACK: Array[Texture2D] = [
 	preload("res://assets/sprites/slime/slime-small/slime_small_back2.png"),
 ]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/slime_taking_hits1.wav"),
-	preload("res://assets/audio/sfx/enemies/slime_taking_hits2.wav"),
-	preload("res://assets/audio/sfx/enemies/slime_taking_hits3.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits1.ogg"),
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits2.ogg"),
+	preload("res://assets/audio/sfx/enemies/slime_taking_hits3.ogg"),
 ]
 const TEX_SPAWN := preload("res://assets/sprites/slime/slime-spawn.png")
 const TEX_MID_SPAWN := preload("res://assets/sprites/slime/slime-mid-spawn.png")
@@ -68,14 +68,14 @@ const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.45  # startle freeze — a touch longer; the blob is ponderous
 const AGGRO_TURN_SPEED := 10.0  # rad/s it wheels around; slower = a heavier turn
 const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/slime_aggro1.wav"),
-	preload("res://assets/audio/sfx/enemies/slime_aggro2.wav"),
-	preload("res://assets/audio/sfx/enemies/slime_aggro3.wav"),
+	preload("res://assets/audio/sfx/enemies/slime_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/slime_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/slime_aggro3.ogg"),
 ]
 const AGGRO_LARGE := preload("res://assets/sprites/slime/slime-large/slime_large_front_aggro1.png")
 const AGGRO_SMALL := preload("res://assets/sprites/slime/slime-small/slime_small_front_aggro1.png")
 const AGGRO_BOSS := preload("res://assets/sprites/slime/slime-boss/slime-boss-front_aggro1.png")
-const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/slime_death.wav")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/slime_death.ogg")
 const LARGE_TAKEHIT_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit1.png"),
 	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit2.png"),

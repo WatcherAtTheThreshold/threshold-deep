@@ -45,23 +45,24 @@ The web only runs the **Compatibility** renderer; our project is
   out, tune ambient/torch **per-renderer** rather than globally so the
   desktop look is untouched.
 
-### 2. Audio size: 58 MB of WAV (do this or the download hurts)
+### 2. Audio size: 58 MB of WAV — DONE 2026-07-29
 
-Assets are ~61 MB, ~58 MB of it uncompressed `.wav` SFX. That's a brutal
-browser download as-is. Deferred on purpose (it's real work), but this
-is the single biggest win for web:
+The SFX were 53 MB of uncompressed `.wav` — a brutal browser download.
+**Converted to `.ogg` and the wavs removed:**
 
-- [ ] Convert SFX from `.wav` → `.ogg` (Ableton export or a batch
-  convert). Ogg alone should cut the build ~5–10×.
-- [ ] Update every code reference to the new extension. These live in
-  the `preload(...)` and `load(...)` paths across `scripts/` and in the
-  `index.html` gallery manifest. Grep the repo for `.wav` and fix all
-  sites (same "update both reference sites" rule as renaming a sprite).
-- [ ] Music is already `.mp3` (6.6 MB) — fine to leave.
+- [x] Convert SFX `.wav` → `.ogg` — all **111** files via ffmpeg
+  (`-c:a libvorbis -q:a 5`), installed with `winget install Gyan.FFmpeg`.
+  Result: **53.1 MB → 3.1 MB (~17×)**.
+- [x] Update every code reference — swapped `.wav` → `.ogg` across 17
+  `scripts/`, 10 `scenes/` (path-only ext_resources, no uid remap needed),
+  and the `index.html` gallery. Verified 0 `.wav` refs and no stale wav
+  UIDs remain.
+- [x] Deleted the 111 `.wav` + `.import` sidecars (53.1 MB freed). Masters
+  preserved in Jessop's Desktop `threshold-deep-assets-backup` + git.
+- [x] Music is `.mp3` (6.6 MB) — left as-is.
 
-*Note: this is the one step that DOES touch code + assets. The export
-itself doesn't; this optimization does. Treat it as its own task with a
-full `.wav` grep afterward.*
+*The one step that touched code + assets. Done as its own task with a
+full `.wav` grep afterward (came back clean).*
 
 ## Export steps (Godot editor)
 

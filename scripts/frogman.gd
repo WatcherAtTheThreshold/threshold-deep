@@ -39,23 +39,23 @@ const TOAD_ATTACK: Array[Texture2D] = [
 	preload("res://assets/sprites/frogmen/frogmen-phase2/toad_attack2.png"),
 ]
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage1.wav"),
-	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage2.wav"),
-	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage3.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage1.ogg"),
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage2.ogg"),
+	preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_take_damage3.ogg"),
 ]
 const WALK_FRAME_TIME := 0.3
 const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
 const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
 const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/frogmen_aggro.wav"),
-	preload("res://assets/audio/sfx/enemies/frogmen_aggro2.wav"),
-	preload("res://assets/audio/sfx/enemies/frogmen_aggro3.wav"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro.ogg"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro3.ogg"),
 ]
 const AGGRO_COATED := preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_aggro1.png")
 const AGGRO_FROG := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_aggro1.png")
 const AGGRO_TOAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_aggro1.png")
-const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_death.wav")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_death.ogg")
 const COATED_TAKEHIT_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit1.png"),
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit2.png"),

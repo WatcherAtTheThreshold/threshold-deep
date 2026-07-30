@@ -6,7 +6,7 @@ extends Area3D
 
 const MIST_SHADER := preload("res://assets/shaders/mist.gdshader")
 const MIST_TEXTURE := preload("res://assets/textures/mist-overlay.png")
-const CROSS_SOUND := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
+const CROSS_SOUND := preload("res://assets/audio/sfx/environment/item_room_mist_door.ogg")
 const PALE := Color(0.88, 0.92, 1.0, 0.5)
 
 var used := false

@@ -1,11 +1,11 @@
 extends CharacterBody3D
 
-const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_death.wav")
-const REVIVE_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_revive.wav")
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_death.ogg")
+const REVIVE_SOUND := preload("res://assets/audio/sfx/enemies/skeleton_revive.ogg")
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/skeleton_take_hit1.wav"),
-	preload("res://assets/audio/sfx/enemies/skeleton_take_hit2.wav"),
-	preload("res://assets/audio/sfx/enemies/skeleton_take_hit3.wav"),
+	preload("res://assets/audio/sfx/enemies/skeleton_take_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeleton_take_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeleton_take_hit3.ogg"),
 ]
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
@@ -39,9 +39,9 @@ const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
 const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
 const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/skeleton_aggro1.wav"),
-	preload("res://assets/audio/sfx/enemies/skeleton_aggro2.wav"),
-	preload("res://assets/audio/sfx/enemies/skeleton_aggro3.wav"),
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/skeleton_aggro3.ogg"),
 ]
 const AGGRO_TEX := preload("res://assets/sprites/skeleton/skeleton_front_aggro1.png")
 const FRONT_TAKEHIT: Array[Texture2D] = [

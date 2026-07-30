@@ -1,6 +1,6 @@
 extends Area3D
 
-const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item_magic_hearts.wav")
+const PICKUP_SOUND := preload("res://assets/audio/sfx/items/pickup_item_magic_hearts.ogg")
 
 # Pedestals in item rooms are a commitment: consumed even at cap.
 var always_consume := false

@@ -7,9 +7,9 @@ extends Area3D
 @export var amount := 2
 
 const PICKUP_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/items/pickup_magic_heart_single1.wav"),
-	preload("res://assets/audio/sfx/items/pickup_magic_heart_single2.wav"),
-	preload("res://assets/audio/sfx/items/pickup_magic_heart_single3.wav"),
+	preload("res://assets/audio/sfx/items/pickup_magic_heart_single1.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_magic_heart_single2.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_magic_heart_single3.ogg"),
 ]
 
 

@@ -52,7 +52,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 ## Audio
 
 - `assets/audio/sfx/` by category (`player/`, `enemies/`, `items/`).
-  `.wav` preferred; Ableton `.asd` sidecars are gitignored.
+  **SFX are `.ogg`** in the repo (converted from Ableton `.wav` masters
+  for web build size — the whole folder went `.wav`→`.ogg` 2026-07-29,
+  53→3 MB). New sounds: record the `.wav`, convert to `.ogg`
+  (`ffmpeg -i in.wav -c:a libvorbis -q:a 5 out.ogg`; ffmpeg is installed),
+  reference the `.ogg`, keep the `.wav` master in the backup only. Ableton
+  `.asd` sidecars are gitignored.
 - Footstep files are walking **loops**, not one-shots: scripts play
   them while the body moves and stop them when still/dead (no import
   loop flags needed). Own-player sounds are flat `AudioStreamPlayer`;

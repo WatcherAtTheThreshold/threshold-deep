@@ -3,9 +3,9 @@ extends Area3D
 # In half-heart units: 2 = a full heart, 1 = the half potion.
 @export var heal_amount := 2
 const PICKUP_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/items/pickup_potion1.wav"),
-	preload("res://assets/audio/sfx/items/pickup_potion2.wav"),
-	preload("res://assets/audio/sfx/items/pickup_potion3.wav"),
+	preload("res://assets/audio/sfx/items/pickup_potion1.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_potion2.ogg"),
+	preload("res://assets/audio/sfx/items/pickup_potion3.ogg"),
 ]
 
 

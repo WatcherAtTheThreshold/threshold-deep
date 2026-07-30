@@ -48,14 +48,14 @@ const MINI_BACK: Array[Texture2D] = [
 ]
 const TEX_MINI_SURPRISE := preload("res://assets/sprites/mush/mini-mush/mini-mush-suprise.png")
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/mush_take_hit1.wav"),
-	preload("res://assets/audio/sfx/enemies/mush_take_hit2.wav"),
-	preload("res://assets/audio/sfx/enemies/mush_take_hit3.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_take_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/mush_take_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/mush_take_hit3.ogg"),
 ]
 const DISCOVER_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle1.wav"),
-	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle2.wav"),
-	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle3.wav"),
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle1.ogg"),
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle2.ogg"),
+	preload("res://assets/audio/sfx/enemies/mini_mush_discover_slime_puddle3.ogg"),
 ]
 const TEX_DEAD_MEGA := preload("res://assets/sprites/mush/mega-mush/mega_mush_dead.png")
 const TEX_DEAD_MUSH := preload("res://assets/sprites/mush/mush/mush_dead.png")
@@ -105,18 +105,18 @@ const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.45  # startle freeze — a touch longer; the cap is ponderous
 const AGGRO_TURN_SPEED := 10.0  # rad/s it wheels around; slower = a heavier turn
 const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/mush_aggro1.wav"),
-	preload("res://assets/audio/sfx/enemies/mush_aggro2.wav"),
-	preload("res://assets/audio/sfx/enemies/mush_aggro3.wav"),
+	preload("res://assets/audio/sfx/enemies/mush_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/mush_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/mush_aggro3.ogg"),
 ]
 const AGGRO_MINI := preload("res://assets/sprites/mush/mini-mush/mini-mush_front_aggro1.png")
 const AGGRO_MUSH := preload("res://assets/sprites/mush/mush/mush_front_aggro1.png")
 const AGGRO_MEGA := preload("res://assets/sprites/mush/mega-mush/mega-mush_front_aggro1.png")
 const AGGRO_BOSS := preload("res://assets/sprites/mush/boss-mush/boss-mush_aggro1.png")
-const DEATH_MINI := preload("res://assets/audio/sfx/enemies/mini_mush_death.wav")
-const DEATH_MUSH := preload("res://assets/audio/sfx/enemies/mush_death.wav")
-const DEATH_MEGA := preload("res://assets/audio/sfx/enemies/mega_mush_death.wav")
-const DEATH_BOSS := preload("res://assets/audio/sfx/enemies/boss_mush_death.wav")
+const DEATH_MINI := preload("res://assets/audio/sfx/enemies/mini_mush_death.ogg")
+const DEATH_MUSH := preload("res://assets/audio/sfx/enemies/mush_death.ogg")
+const DEATH_MEGA := preload("res://assets/audio/sfx/enemies/mega_mush_death.ogg")
+const DEATH_BOSS := preload("res://assets/audio/sfx/enemies/boss_mush_death.ogg")
 const MINI_TAKEHIT_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/mush/mini-mush/mini-mush_front_takehit1.png"),
 	preload("res://assets/sprites/mush/mini-mush/mini-mush_front_takehit2.png"),
