@@ -55,6 +55,7 @@ const LAND_SOUND := preload("res://assets/audio/sfx/player/start_landing.wav")
 const FLEET_MULTS: Array[float] = [1.0, 1.2, 1.4]  # Fleetfoot movement speed
 const HASTY_MULTS: Array[float] = [1.0, 1.3, 1.6]
 const QUICKSTEP_MULT := 1.5  # Quickstep: dash lasts/reaches this much further
+const GAPLEAP_MULT := 1.7    # Gapleaper: a longer LEAP (stacks with Quickstep)
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
 const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
@@ -445,8 +446,11 @@ func _physics_process(delta: float) -> void:
 		dash_dir = direction if direction else -global_transform.basis.z
 		dash_dir.y = 0.0
 		dash_dir = dash_dir.normalized()
-		# Quickstep stretches the burst.
-		dash_timer = DASH_TIME * (QUICKSTEP_MULT if RunState.quickstep else 1.0)
+		# Quickstep and Gapleaper each stretch the burst — and they stack
+		# multiplicatively, so both together is a room-crossing bound.
+		dash_timer = DASH_TIME \
+				* (QUICKSTEP_MULT if RunState.quickstep else 1.0) \
+				* (GAPLEAP_MULT if RunState.gapleaper else 1.0)
 		dash_charges -= 1
 		dash_cooldown_timer = DASH_COOLDOWN
 		# The dash swoosh.
@@ -469,8 +473,10 @@ func _physics_process(delta: float) -> void:
 		velocity.x = dash_dir.x * DASH_SPEED
 		velocity.z = dash_dir.z * DASH_SPEED
 		if RunState.gapleaper:
-			# The Gapleaper: the dash flies level, so a one-cell gap
-			# is a guarantee instead of a gamble.
+			# The Gapleaper: a longer leap (GAPLEAP_MULT, set above) that
+			# flies DEAD level — clears a two-cell gap outright instead of
+			# just barely making one, and the level flight means no fall to
+			# gamble on at the far lip.
 			velocity.y = 0.0
 		if RunState.barrelstone:
 			_barrel_strike()
@@ -586,8 +592,9 @@ func _torch_attack() -> void:
 	# The torch as a shield: a shove that barely scratches (base torch
 	# damage) but keeps its full knockback — spacing, interrupts, and
 	# pit-work while the main weapon does the killing. Its own cooldown, so
-	# it weaves freely with the weapon; deliberately NO crystals, walls, or
-	# dots — a control tool, not a second weapon.
+	# it weaves freely with the weapon; deliberately NO crystals or dots — a
+	# control tool, not a second weapon. It DOES break wooden walls, same as
+	# the main-hand torch (two shoves), so the off-hand can open a way in.
 	if torch_attack_timer > 0.0:
 		return
 	torch_attack_timer = TORCH_OFFHAND_COOLDOWN
@@ -603,6 +610,17 @@ func _torch_attack() -> void:
 			enemy.take_damage(
 					TORCH_OFFHAND_DAMAGE, to.normalized() * TORCH_KNOCKBACK, self)
 			RunState.record_damage_dealt(TORCH_OFFHAND_DAMAGE)
+	# The shove also smacks whatever wall you're facing — breaks a wooden
+	# wall in two, matching the main torch's bite (damage_wall counts each
+	# point as a hit).
+	var from := camera.global_position
+	var ray_to := from - camera.global_transform.basis.z * (ATTACK_RANGE + 0.2)
+	var query := PhysicsRayQueryParameters3D.create(from, ray_to, 1, [get_rid()])
+	var hit := get_world_3d().direct_space_state.intersect_ray(query)
+	if not hit.is_empty() and hit.collider is GridMap:
+		var scene := get_tree().current_scene
+		if scene.has_method("damage_wall"):
+			scene.damage_wall(hit.position, hit.normal, TORCH_OFFHAND_DAMAGE)
 
 
 func heal(amount: int) -> bool:

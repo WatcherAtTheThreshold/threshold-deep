@@ -44,6 +44,7 @@ const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wal
 const SOUND_WALL_PARTIAL := preload("res://assets/audio/sfx/environment/broken_partial_wall.ogg")
 const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretroom_wallslidegrind1.wav")
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.wav")
+const SOUND_BOSS_FLOOR_FALL := preload("res://assets/audio/sfx/environment/boss_floor_fall.wav")
 const SOUND_ITEM_MIST := preload("res://assets/audio/sfx/environment/item_room_mist_door.wav")
 const HATCH_TEXTURE := preload("res://assets/tiles/hatch_open.png")
 const HOLE_EDGE_TEXTURE := preload("res://assets/tiles/floor_hole_edge.png")
@@ -92,6 +93,12 @@ const MUSH_CHANCE_MAX := 0.25
 const FROGMAN_CHANCE_PER_DEPTH := 0.06
 const FROGMAN_CHANCE_MAX := 0.18
 const FROGMAN_MIN_DEPTH := 3
+# A rolled skeleton often arrives as a knot of them — a pack of 2-3. Normal
+# rooms only (never the fixed boss wave); the enemy-TYPE odds are untouched,
+# skeleton spawns just cluster more often than not.
+const SKELETON_PACK_CHANCE := 0.6        # of skeleton spawns that become a pack
+const SKELETON_PACK_THIRD_CHANCE := 0.4  # of those packs that are 3, not 2
+const REVENANT_PACK_CHANCE := 0.2        # of packs that rise ONCE after you clear them
 
 const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
@@ -919,6 +926,7 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 			spawn_cells.append(rooms[i].get_center() + Vector2i(-1, 0))
 		for cell in spawn_cells:
 			var enemy: Node3D
+			var is_skeleton := false
 			var roll := randf()
 			if roll < wizard_chance:
 				enemy = WIZARD_SCENE.instantiate()
@@ -930,9 +938,14 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 				enemy = FROGMAN_SCENE.instantiate()
 			else:
 				enemy = SKELETON_SCENE.instantiate()
+				is_skeleton = true
 			enemy.setup(RunState.depth)
 			enemy.position = _cell_to_world(cell)
 			add_child(enemy)
+			# A rolled skeleton rarely arrives as a pack — the type odds above
+			# are never touched, some singletons just become 2-3.
+			if is_skeleton and randf() < SKELETON_PACK_CHANCE:
+				_spawn_skeleton_pack(rooms[i], cell, enemy)
 		if randf() < ROOM_POTION_CHANCE:
 			var stone := _stone_cells(rooms[i])
 			if stone.size() > 0:
@@ -942,6 +955,35 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 				add_child(potion)
 	if with_hatch:
 		_place_hatch(rooms, hatch_exclude)
+
+
+func _spawn_skeleton_pack(room: Rect2i, origin: Vector2i, origin_skel: Node3D) -> void:
+	# 1-2 more bones stir beside the one that just spawned — a knot of 2-3.
+	# They take the stone cells nearest the origin (the floor is contiguous,
+	# so they cluster right around it) and never the origin itself.
+	var extra := 2 if randf() < SKELETON_PACK_THIRD_CHANCE else 1
+	var spots := _stone_cells(room)
+	spots.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return Vector2(a - origin).length() < Vector2(b - origin).length())
+	var pack: Array[Node] = [origin_skel]
+	var placed := 0
+	for c in spots:
+		if placed >= extra:
+			break
+		if c == origin:
+			continue
+		var skel := SKELETON_SCENE.instantiate()
+		skel.setup(RunState.depth)
+		skel.position = _cell_to_world(c)
+		add_child(skel)
+		pack.append(skel)
+		placed += 1
+	# Rarely the WHOLE pack is a revenant ambush: fight it, clear it, and a
+	# beat later the bones rattle and rise once, together, for a second wave.
+	if randf() < REVENANT_PACK_CHANCE:
+		for s in pack:
+			s.set("pack", pack)
+			s.set("revenant", true)
 
 
 func _face_spawn_doorway(room: Rect2i) -> void:
@@ -1078,10 +1120,9 @@ func _drop_boss_floor() -> void:
 			hole_map.set_cell_item(Vector3i(x, 0, z), GridMap.INVALID_CELL_ITEM)
 	_rebuild_hole_rims()  # the arena's rims go now that its hole cells cleared
 	_clear_arena_props(arena)  # splats, creep, any flat aftermath over the pit
-	# The cave-in beat: the break crack, a deep boom under it (the same stone
-	# pitched right down), a curtain of dust down the shaft, a hard camera kick.
-	Sfx.play_at(SOUND_FLOOR_BREAK, player.global_position, -2.0)
-	Sfx.play_at(SOUND_FLOOR_BREAK, player.global_position, 1.0, 0.42)
+	# The cave-in beat: the dedicated floor-fall sound, a curtain of dust
+	# down the shaft, a hard camera kick.
+	Sfx.play_at(SOUND_BOSS_FLOOR_FALL, player.global_position, -1.0)
 	_spawn_shaft_dust(arena)
 	player.shake(0.2, 0.8)
 	player.controls_enabled = false

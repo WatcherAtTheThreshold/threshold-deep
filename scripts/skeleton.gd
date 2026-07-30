@@ -62,6 +62,7 @@ const RISE_RANGE := 3.5
 const RISE_TIME := 1.0
 const RISE_GRACE := 4.0
 const RISEN_HEALTH := 4
+const REVENANT_RISE_DELAY := 1.0  # beat of false calm after a pack drops, then it rises
 
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
@@ -93,6 +94,10 @@ var restless := false
 var rising := false
 var rise_timer := 0.0
 var rise_delay := 0.0
+var revenant := false          # part of a rise-ONCE revenant pack (rises after you clear it)
+var revenant_risen := false    # already spent its one revenant rise — stays down now
+var revenant_pending := false  # whole pack is down; waiting out the beat to rise together
+var pack: Array = []           # packmates, for the revenant all-down check
 var target: PhysicsBody3D = null
 var knock_timer := 0.0
 var wander_dir := Vector3.ZERO
@@ -108,19 +113,24 @@ var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 
 func _physics_process(delta: float) -> void:
 	if dead:
-		# Some piles are restless: stir when the player comes close,
-		# take a slow second to stand — smash them mid-rise to
-		# scatter the bones for good.
-		if restless:
+		# Some piles are restless (stir when you come close); a revenant pack
+		# rises once, together, after the whole pack is down. Both take a slow
+		# second to stand — smash them mid-rise to scatter the bones for good.
+		if restless or revenant_pending:
 			rise_delay = maxf(rise_delay - delta, 0.0)
 			if rising:
 				rise_timer -= delta
 				if rise_timer <= 0.0:
 					_rise()
-			elif rise_delay == 0.0 and is_instance_valid(player):
-				var to_p := player.global_position - global_position
-				to_p.y = 0.0
-				if to_p.length() < RISE_RANGE:
+			elif rise_delay == 0.0:
+				# Revenant: the pack already called it. Restless: only once
+				# you've wandered into range.
+				var wake := revenant_pending
+				if restless and not wake and is_instance_valid(player):
+					var to_p := player.global_position - global_position
+					to_p.y = 0.0
+					wake = to_p.length() < RISE_RANGE
+				if wake:
 					rising = true
 					rise_timer = RISE_TIME
 					sprite.texture = RISE_TEXTURE
@@ -364,11 +374,29 @@ func _rise() -> void:
 	dead = false
 	restless = false
 	rising = false
+	revenant_pending = false
+	if revenant:
+		# A revenant rises exactly once; after this it's an ordinary bone.
+		revenant_risen = true
+		revenant = false
 	health = RISEN_HEALTH
 	target = player
 	add_to_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", false)
 	sprite.texture = FRONT_FRAMES[0]
+
+
+func _revenant_check() -> void:
+	# A revenant packmate just went down. If the WHOLE pack is down (dead or
+	# fallen away), wake them all at once after a beat — the rattle tell, then
+	# they stand together for a second wave.
+	for m in pack:
+		if is_instance_valid(m) and not m.get("dead"):
+			return  # someone's still standing — not yet
+	for m in pack:
+		if is_instance_valid(m) and m.get("dead") and not m.get("revenant_risen"):
+			m.set("revenant_pending", true)
+			m.set("rise_delay", REVENANT_RISE_DELAY)
 
 
 func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null) -> void:
@@ -377,6 +405,8 @@ func take_damage(amount: int, push_dir: Vector3, attacker: PhysicsBody3D = null)
 			# Caught it mid-rise: the bones scatter for good.
 			restless = false
 			rising = false
+			revenant_pending = false
+			revenant_risen = true
 			sprite.texture = DEAD_TEXTURE
 		return
 	health -= amount
@@ -407,8 +437,15 @@ func _die(by_player: bool) -> void:
 	sprite.flip_h = false
 	sprite.texture = DEAD_TEXTURE
 	velocity = Vector3.ZERO
-	restless = randf() < RISE_CHANCE
-	rise_delay = RISE_GRACE
+	if revenant and not revenant_risen:
+		# A revenant packmate is down — it does NOT rise on its own; the pack
+		# rises together once every member is down.
+		_revenant_check()
+	elif not revenant_risen:
+		# A plain skeleton: maybe a restless pile that stirs on approach.
+		restless = randf() < RISE_CHANCE
+		rise_delay = RISE_GRACE
+	# (A revenant that already rose stays down — no restless roll.)
 	# Roll drops off the corpse so the sprites never share a depth
 	# (coplanar billboards z-fight). Halves are the common change,
 	# full drops the treat.

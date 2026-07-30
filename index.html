@@ -104,9 +104,9 @@
 const S = 'assets/sprites/';
 const A = 'assets/audio/sfx/';
 
-const hitTrio = (base) => [1, 2, 3].map(n => A + base + n + '.wav');
+const hitTrio = (base) => [1, 2, 3].map(n => A + base + n + '.ogg');
 // Crystal voices: the A-minor scale, one note per stone, tiers ascend.
-const crystalNote = (n) => [A + 'items/pickup_crystal' + n + '.wav'];
+const crystalNote = (n) => [A + 'items/pickup_crystal' + n + '.ogg'];
 
 const walk = (a, b, ms = 300, reps = 3) => {
   const seq = [];
@@ -130,7 +130,7 @@ const SECTIONS = [
         { frames: walk(S + 'skeleton/skeleton_front_attack1.png', S + 'skeleton/skeleton_front_attack2.png', 150) },
         { frames: walk(S + 'skeleton/skeleton_side_attack1.png', S + 'skeleton/skeleton_side_attack2.png', 150) },
         { frames: walk(S + 'skeleton/skeleton_side_attack1.png', S + 'skeleton/skeleton_side_attack2.png', 150), flip: true },
-        { frames: [[S + 'skeleton/skeleton_front_aggro1.png', 1000]] },
+        { frames: [[S + 'skeleton/skeleton_front_aggro1.png', 1000]], sounds: hitTrio('enemies/skeleton_aggro') },
         { frames: walk(S + 'skeleton/skeleton_front_takehit1.png', S + 'skeleton/skeleton_front_takehit2.png', 120) },
         { frames: walk(S + 'skeleton/skeleton_side_takehit1.png', S + 'skeleton/skeleton_side_takehit2.png', 120) },
         { frames: walk(S + 'skeleton/skeleton_side_takehit1.png', S + 'skeleton/skeleton_side_takehit2.png', 120), flip: true },
@@ -139,7 +139,7 @@ const SECTIONS = [
     },
     {
       name: 'Restless Pile', rest: S + 'skeleton/skeleton_dead.png',
-      sounds: [A + 'enemies/skeleton_revive.wav'],
+      sounds: [A + 'enemies/skeleton_revive.ogg'],
       frames: [
         [S + 'skeleton/skeleton_dead.png', 500],
         [S + 'skeleton/skeleton_mid_rise.png', 1000],
@@ -155,7 +155,7 @@ const SECTIONS = [
         { frames: walk(S + 'wizard/wizard_side1.png', S + 'wizard/wizard_side2.png') },
         { frames: walk(S + 'wizard/wizard_side1.png', S + 'wizard/wizard_side2.png'), flip: true },
         { frames: walk(S + 'wizard/wizard_back1.png', S + 'wizard/wizard_back2.png') },
-        { frames: [[S + 'wizard/wizard_front_aggro1.png', 1000]] },
+        { frames: [[S + 'wizard/wizard_front_aggro1.png', 1000]], sounds: hitTrio('enemies/wizard_aggro') },
         { frames: walk(S + 'wizard/wizard_front_takehit1.png', S + 'wizard/wizard_front_takehit2.png', 120) },
         { frames: walk(S + 'wizard/wizard_side_takehit1.png', S + 'wizard/wizard_side_takehit2.png', 120) },
         { frames: walk(S + 'wizard/wizard_side_takehit1.png', S + 'wizard/wizard_side_takehit2.png', 120), flip: true },
@@ -164,7 +164,7 @@ const SECTIONS = [
     },
     {
       name: 'Wizard Cast', rest: S + 'wizard/wizard_shoot1.png',
-      sounds: [A + 'enemies/projectile-wizard.wav'],
+      sounds: [A + 'enemies/projectile-wizard.ogg'],
       frames: [
         [S + 'wizard/wizard_shoot1.png', 450],
         [S + 'wizard/wizard_shoot2.png', 220],
@@ -183,7 +183,7 @@ const SECTIONS = [
         { frames: walk(S + 'slime/slime-large/slime_large_front_attack1.png', S + 'slime/slime-large/slime_large_front_attack2.png', 150) },
         { frames: walk(S + 'slime/slime-large/slime_large_side_attack1.png', S + 'slime/slime-large/slime_large_side_attack2.png', 150) },
         { frames: walk(S + 'slime/slime-large/slime_large_side_attack1.png', S + 'slime/slime-large/slime_large_side_attack2.png', 150), flip: true },
-        { frames: [[S + 'slime/slime-large/slime_large_front_aggro1.png', 1000]] },
+        { frames: [[S + 'slime/slime-large/slime_large_front_aggro1.png', 1000]], sounds: hitTrio('enemies/slime_aggro') },
         { frames: walk(S + 'slime/slime-large/slime_large_front_takehit1.png', S + 'slime/slime-large/slime_large_front_takehit2.png', 120) },
         { frames: walk(S + 'slime/slime-large/slime_large_side_takehit1.png', S + 'slime/slime-large/slime_large_side_takehit2.png', 120) },
         { frames: walk(S + 'slime/slime-large/slime_large_side_takehit1.png', S + 'slime/slime-large/slime_large_side_takehit2.png', 120), flip: true },
@@ -201,7 +201,7 @@ const SECTIONS = [
         { frames: walk(S + 'slime/slime-small/slime_small_front_attack1.png', S + 'slime/slime-small/slime_small_front_attack2.png', 150) },
         { frames: walk(S + 'slime/slime-small/slime_small_side_attack1.png', S + 'slime/slime-small/slime_small_side_attack2.png', 150) },
         { frames: walk(S + 'slime/slime-small/slime_small_side_attack1.png', S + 'slime/slime-small/slime_small_side_attack2.png', 150), flip: true },
-        { frames: [[S + 'slime/slime-small/slime_small_front_aggro1.png', 1000]] },
+        { frames: [[S + 'slime/slime-small/slime_small_front_aggro1.png', 1000]], sounds: hitTrio('enemies/slime_aggro') },
         { frames: walk(S + 'slime/slime-small/slime_small_front_takehit1.png', S + 'slime/slime-small/slime_small_front_takehit2.png', 120) },
         { frames: walk(S + 'slime/slime-small/slime_small_side_takehit1.png', S + 'slime/slime-small/slime_small_side_takehit2.png', 120) },
         { frames: walk(S + 'slime/slime-small/slime_small_side_takehit1.png', S + 'slime/slime-small/slime_small_side_takehit2.png', 120), flip: true },
@@ -210,7 +210,7 @@ const SECTIONS = [
     },
     {
       name: 'Slime Rises', rest: S + 'slime/slime-spawn.png',
-      sounds: [A + 'enemies/footsteps_slimes.wav'],
+      sounds: [A + 'enemies/footsteps_slimes.ogg'],
       frames: [
         [S + 'slime/slime-spawn.png', 600],
         [S + 'slime/slime-mid-spawn.png', 450],
@@ -225,13 +225,13 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'slime/slime-boss/slime-boss-front1.png', S + 'slime/slime-boss/slime-boss-front2.png', 280) },
         { frames: walk(S + 'slime/slime-boss/slime-boss-front_attack1.png', S + 'slime/slime-boss/slime-boss-front_attack2.png', 150) },
-        { frames: [[S + 'slime/slime-boss/slime-boss-front_aggro1.png', 1000]] },
+        { frames: [[S + 'slime/slime-boss/slime-boss-front_aggro1.png', 1000]], sounds: hitTrio('enemies/slime_aggro') },
         { frames: walk(S + 'slime/slime-boss/slime-boss-front_takehit1.png', S + 'slime/slime-boss/slime-boss-front_takehit2.png', 120) },
       ],
     },
     {
       name: 'Slime Creep', rest: S + 'slime/slime_creep.png',
-      sounds: [A + 'enemies/footsteps_slimes.wav'],
+      sounds: [A + 'enemies/footsteps_slimes.ogg'],
       frames: [[S + 'slime/slime_creep.png', 1000]],
     },
     {
@@ -240,7 +240,7 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'mush/boss-mush/boss-mush1.png', S + 'mush/boss-mush/boss-mush2.png', 280) },
         { frames: walk(S + 'mush/boss-mush/boss-mush_attack1.png', S + 'mush/boss-mush/boss-mush_attack2.png', 150) },
-        { frames: [[S + 'mush/boss-mush/boss-mush_aggro1.png', 1000]] },
+        { frames: [[S + 'mush/boss-mush/boss-mush_aggro1.png', 1000]], sounds: hitTrio('enemies/mush_aggro') },
         { frames: walk(S + 'mush/boss-mush/boss-mush_takehit1.png', S + 'mush/boss-mush/boss-mush_takehit2.png', 120) },
       ],
     },
@@ -256,7 +256,7 @@ const SECTIONS = [
         { frames: walk(S + 'mush/mega-mush/mega-mush_side_attack1.png', S + 'mush/mega-mush/mega-mush_side_attack2.png', 150) },
         { frames: walk(S + 'mush/mega-mush/mega-mush_side_attack1.png', S + 'mush/mega-mush/mega-mush_side_attack2.png', 150), flip: true },
         { frames: walk(S + 'mush/mega-mush/mega-mush_back_attack1.png', S + 'mush/mega-mush/mega-mush_back_attack2.png', 150) },
-        { frames: [[S + 'mush/mega-mush/mega-mush_front_aggro1.png', 1000]] },
+        { frames: [[S + 'mush/mega-mush/mega-mush_front_aggro1.png', 1000]], sounds: hitTrio('enemies/mush_aggro') },
         { frames: walk(S + 'mush/mega-mush/mega-mush_front_takehit1.png', S + 'mush/mega-mush/mega-mush_front_takehit2.png', 120) },
         { frames: walk(S + 'mush/mega-mush/mega-mush_side_takehit1.png', S + 'mush/mega-mush/mega-mush_side_takehit2.png', 120) },
         { frames: walk(S + 'mush/mega-mush/mega-mush_side_takehit1.png', S + 'mush/mega-mush/mega-mush_side_takehit2.png', 120), flip: true },
@@ -275,7 +275,7 @@ const SECTIONS = [
         { frames: walk(S + 'mush/mush/mush_side_attack1.png', S + 'mush/mush/mush_side_attack2.png', 150) },
         { frames: walk(S + 'mush/mush/mush_side_attack1.png', S + 'mush/mush/mush_side_attack2.png', 150), flip: true },
         { frames: walk(S + 'mush/mush/mush_back_attack1.png', S + 'mush/mush/mush_back_attack2.png', 150) },
-        { frames: [[S + 'mush/mush/mush_front_aggro1.png', 1000]] },
+        { frames: [[S + 'mush/mush/mush_front_aggro1.png', 1000]], sounds: hitTrio('enemies/mush_aggro') },
         { frames: walk(S + 'mush/mush/mush_front_takehit1.png', S + 'mush/mush/mush_front_takehit2.png', 120) },
         { frames: walk(S + 'mush/mush/mush_side_takehit1.png', S + 'mush/mush/mush_side_takehit2.png', 120) },
         { frames: walk(S + 'mush/mush/mush_side_takehit1.png', S + 'mush/mush/mush_side_takehit2.png', 120), flip: true },
@@ -294,7 +294,7 @@ const SECTIONS = [
         { frames: walk(S + 'mush/mini-mush/mini-mush_side_attack1.png', S + 'mush/mini-mush/mini-mush_side_attack2.png', 150) },
         { frames: walk(S + 'mush/mini-mush/mini-mush_side_attack1.png', S + 'mush/mini-mush/mini-mush_side_attack2.png', 150), flip: true },
         { frames: walk(S + 'mush/mini-mush/mini-mush_back_attack1.png', S + 'mush/mini-mush/mini-mush_back_attack2.png', 150) },
-        { frames: [[S + 'mush/mini-mush/mini-mush_front_aggro1.png', 1000]] },
+        { frames: [[S + 'mush/mini-mush/mini-mush_front_aggro1.png', 1000]], sounds: hitTrio('enemies/mush_aggro') },
         { frames: walk(S + 'mush/mini-mush/mini-mush_front_takehit1.png', S + 'mush/mini-mush/mini-mush_front_takehit2.png', 120) },
         { frames: walk(S + 'mush/mini-mush/mini-mush_side_takehit1.png', S + 'mush/mini-mush/mini-mush_side_takehit2.png', 120) },
         { frames: walk(S + 'mush/mini-mush/mini-mush_side_takehit1.png', S + 'mush/mini-mush/mini-mush_side_takehit2.png', 120), flip: true },
@@ -324,7 +324,7 @@ const SECTIONS = [
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_front-attack1.png', S + 'frogmen/frogmen-phase1/frogmen_front-attack2.png', 150) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_attack1.png', S + 'frogmen/frogmen-phase1/frogmen_side_attack2.png', 150) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_attack1.png', S + 'frogmen/frogmen-phase1/frogmen_side_attack2.png', 150), flip: true },
-        { frames: [[S + 'frogmen/frogmen-phase1/frogmen_front_aggro1.png', 1000]] },
+        { frames: [[S + 'frogmen/frogmen-phase1/frogmen_front_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_front_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_front_takehit2.png', 120) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_side_takehit2.png', 120) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_side_takehit2.png', 120), flip: true },
@@ -349,7 +349,7 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'frogmen/frogmen-phase2/frog1.png', S + 'frogmen/frogmen-phase2/frog2.png', 200) },
         { frames: walk(S + 'frogmen/frogmen-phase2/frog_attack1.png', S + 'frogmen/frogmen-phase2/frog_attack2.png', 150) },
-        { frames: [[S + 'frogmen/frogmen-phase2/frog_aggro1.png', 1000]] },
+        { frames: [[S + 'frogmen/frogmen-phase2/frog_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase2/frog_takehit1.png', S + 'frogmen/frogmen-phase2/frog_takehit2.png', 120) },
       ],
     },
@@ -359,7 +359,7 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280) },
         { frames: walk(S + 'frogmen/frogmen-phase2/toad_attack1.png', S + 'frogmen/frogmen-phase2/toad_attack2.png', 150) },
-        { frames: [[S + 'frogmen/frogmen-phase2/toad_aggro1.png', 1000]] },
+        { frames: [[S + 'frogmen/frogmen-phase2/toad_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase2/toad_takehit1.png', S + 'frogmen/frogmen-phase2/toad_takehit2.png', 120) },
       ],
     },
@@ -376,7 +376,7 @@ const SECTIONS = [
     },
     {
       name: 'Amalgam Volley', rest: S + 'skeletal-wizard/skeletal_wizard_attack1.png', tall: true,
-      sounds: [A + 'enemies/projectile-wizard.wav'],
+      sounds: [A + 'enemies/projectile-wizard.ogg'],
       frames: [
         [S + 'skeletal-wizard/skeletal_wizard_attack1.png', 550],
         [S + 'skeletal-wizard/skeletal_wizard_attack2.png', 600],
@@ -386,7 +386,7 @@ const SECTIONS = [
     },
     {
       name: 'The Rise', rest: S + 'skeletal-wizard/skeletal_wizard_roar1.png', tall: true,
-      sounds: [A + 'enemies/skeletal_wizard_roar.wav'],
+      sounds: [A + 'enemies/skeletal_wizard_roar.ogg'],
       frames: [
         [S + 'skeletal-wizard/skeletal_wizard_roar1.png', 900],
         [S + 'skeletal-wizard/skeletal_wizard_front1.png', 300],
@@ -401,7 +401,7 @@ const SECTIONS = [
   tiles: [
     {
       name: 'Torch', wide: true, rest: S + 'torch/hand-torch1.png',
-      sounds: [A + 'player/torch_crackle.wav'], stopAfter: 1600,
+      sounds: [A + 'player/torch_crackle.ogg'], stopAfter: 1600,
       frames: walk(S + 'torch/hand-torch1.png', S + 'torch/hand-torch2.png', 160, 5)
         .concat([[S + 'torch/hand-torch3.png', 160]]),
     },
@@ -443,7 +443,7 @@ const SECTIONS = [
     { br: true },
     {
       name: 'Boomerang Throw', wide: true, rest: S + 'hand-boomerang.png',
-      sounds: [A + 'player/boomerang_throw.wav'],
+      sounds: [A + 'player/boomerang_throw.ogg'],
       frames: [
         [S + 'hand-boomerang-swing.png', 200],
         [S + 'hand-boomerang.png', 10],
@@ -493,7 +493,7 @@ const SECTIONS = [
     },
     {
       name: 'Amalgam Orb', rest: S + 'skeletal-wizard/skeletal_wizard_orb1.png',
-      sounds: [1, 2, 3].map(n => A + 'enemies/Skeletal_wizard_orb_hit' + n + '.wav'),
+      sounds: [1, 2, 3].map(n => A + 'enemies/Skeletal_wizard_orb_hit' + n + '.ogg'),
       frames: walk(S + 'skeletal-wizard/skeletal_wizard_orb1.png', S + 'skeletal-wizard/skeletal_wizard_orb2.png', 120, 4),
     },
   ],
@@ -511,9 +511,9 @@ const SECTIONS = [
     { name: 'Half Magic Heart', rest: 'assets/items/half_magic_heart_drop.png',
       sounds: hitTrio('items/pickup_magic_heart_single'), rate: 1.15, bob: true },
     { name: 'Three Hearts', rest: 'assets/items/three_magic_hearts.png',
-      sounds: [A + 'items/pickup_item_magic_hearts.wav'], bob: true },
+      sounds: [A + 'items/pickup_item_magic_hearts.ogg'], bob: true },
     { name: 'Heart Container', rest: 'assets/items/heart_1up.png',
-      sounds: [A + 'items/pickup_item_1up.wav'], bob: true },
+      sounds: [A + 'items/pickup_item_1up.ogg'], bob: true },
     { name: 'Rage Crystal', rest: 'assets/items/crystals/crystal_rage1.png',
       sounds: crystalNote(1), bob: true },
     { name: 'Rage Crystal II', rest: 'assets/items/crystals/crystal_rage2.png',
@@ -547,13 +547,13 @@ const SECTIONS = [
     { name: 'Lucky Luck Stone', rest: 'assets/items/crystals/crystal_luckyluck1.png',
       sounds: crystalNote(8), bob: true },
     { name: 'The Sword', rest: 'assets/items/weapon_sword.png',
-      sounds: [A + 'items/pickup_item.wav'], bob: true },
+      sounds: [A + 'items/pickup_item.ogg'], bob: true },
     { name: 'The Staff', rest: 'assets/items/magic_staff.png',
-      sounds: [A + 'items/pickup_item.wav'], bob: true },
+      sounds: [A + 'items/pickup_item.ogg'], bob: true },
     { name: 'The Boomerang', rest: 'assets/items/weapon_boomerang.png',
-      sounds: [A + 'items/pickup_item.wav'], bob: true },
+      sounds: [A + 'items/pickup_item.ogg'], bob: true },
     { name: 'The Halberd', rest: 'assets/items/weapon_halberd.png',
-      sounds: [A + 'items/pickup_item.wav'], bob: true },
+      sounds: [A + 'items/pickup_item.ogg'], bob: true },
   ],
 },
 {
@@ -561,44 +561,44 @@ const SECTIONS = [
   scale: 2,
   tiles: [
     { name: 'A New Floor', rest: 'assets/tiles/hatch_open.png',
-      sounds: [A + 'environment/normal_floor_start.wav'] },
-    { name: 'Plank Gives Way', rest: 'assets/tiles/floor_wooden.png',
-      sounds: [A + 'environment/broken_floor1.wav'],
+      sounds: [A + 'environment/normal_floor_start.ogg'] },
+    { name: 'Plank Gives Way', rest: 'assets/tiles/dry/floor_wooden.png',
+      sounds: [A + 'environment/broken_floor1.ogg'],
       frames: [
-        ['assets/tiles/floor_wooden.png', 120],
+        ['assets/tiles/dry/floor_wooden.png', 120],
         ['assets/tiles/floor_wooden_break1.png', 70],
         ['assets/tiles/floor_wooden_break2.png', 70],
         ['assets/tiles/floor_wooden_break3.png', 70],
-        ['assets/tiles/floor_wooden.png', 10],
+        ['assets/tiles/dry/floor_wooden.png', 10],
       ] },
     { name: 'The Bargain', rest: 'assets/tiles/gate_doorframe.png', tall: true,
-      sounds: [A + 'environment/item_floor_start.wav'] },
+      sounds: [A + 'environment/item_floor_start.ogg'] },
     { name: 'The Fight', rest: 'assets/tiles/gate_doorframe.png', tall: true,
-      sounds: [A + 'environment/boss_floor_start.wav'] },
-    { name: 'The Seal', rest: 'assets/tiles/wall_wooden.png',
-      sounds: [A + 'environment/boss_room_door_lock.wav'] },
-    { name: 'Wall Gives Way', rest: 'assets/tiles/wall_wooden.png',
-      sounds: [A + 'environment/broken_wall1.wav'],
+      sounds: [A + 'environment/boss_floor_start.ogg'] },
+    { name: 'The Seal', rest: 'assets/tiles/dry/wall_wooden.png',
+      sounds: [A + 'environment/boss_room_door_lock.ogg'] },
+    { name: 'Wall Gives Way', rest: 'assets/tiles/dry/wall_wooden.png',
+      sounds: [A + 'environment/broken_wall1.ogg'],
       frames: [
-        ['assets/tiles/wall_wooden.png', 120],
-        ['assets/tiles/wall_wooden_partially_broken.png', 500],
+        ['assets/tiles/dry/wall_wooden.png', 120],
+        ['assets/tiles/dry/wall_wooden_partially_broken.png', 500],
         ['assets/tiles/wall_wooden_break1.png', 70],
         ['assets/tiles/wall_wooden_break2.png', 70],
         ['assets/tiles/wall_wooden_break3.png', 70],
         ['assets/tiles/wall_wooden_broken1.png', 1200],
-        ['assets/tiles/wall_wooden.png', 10],
+        ['assets/tiles/dry/wall_wooden.png', 10],
       ] },
     { name: 'Wall Rubble', rest: 'assets/tiles/wall_wooden_broken2.png',
-      sounds: [A + 'environment/broken_wall1.wav'],
+      sounds: [A + 'environment/broken_wall1.ogg'],
       frames: [
         ['assets/tiles/wall_wooden_broken1.png', 500],
         ['assets/tiles/wall_wooden_broken2.png', 500],
         ['assets/tiles/wall_wooden_broken3.png', 500],
       ] },
     { name: 'Pale Mist', rest: 'assets/textures/mist-overlay.png',
-      sounds: [A + 'environment/item_room_mist_door.wav'] },
-    { name: 'The Hidden Door', rest: 'assets/tiles/wall_stone.png',
-      sounds: [A + 'environment/secretroom_wallslidegrind1.wav'] },
+      sounds: [A + 'environment/item_room_mist_door.ogg'] },
+    { name: 'The Hidden Door', rest: 'assets/tiles/dry/wall_stone.png',
+      sounds: [A + 'environment/secretroom_wallslidegrind1.ogg'] },
   ],
 },
 ];
@@ -644,18 +644,23 @@ for (const section of SECTIONS) {
 
     let cycleIndex = 0;
     tile.addEventListener('click', () => {
-      // Sound: one of the takes, at the tier's pitch, overlapping ok.
-      const src = t.sounds[Math.floor(Math.random() * t.sounds.length)];
-      const audio = new Audio(src);
-      if (t.rate) audio.playbackRate = t.rate;
-      audio.play().catch(() => {});
-      if (t.stopAfter) setTimeout(() => audio.pause(), t.stopAfter);
-
-      // Animation: run the frame list, or the next cycle entry.
+      // Pick the animation first (the cycle advances each click) so a view
+      // can carry its own sound — e.g. the aggro pose plays the aggro cue
+      // instead of the tile's default take-hit trio.
       let anim = t;
       if (t.cycle) {
         anim = t.cycle[cycleIndex % t.cycle.length];
         cycleIndex++;
+      }
+      // Sound: the view's own set if it has one, else the tile's, at the
+      // tier's pitch, overlapping ok.
+      const soundSet = (anim.sounds && anim.sounds.length) ? anim.sounds : t.sounds;
+      if (soundSet && soundSet.length) {
+        const src = soundSet[Math.floor(Math.random() * soundSet.length)];
+        const audio = new Audio(src);
+        if (t.rate) audio.playbackRate = t.rate;
+        audio.play().catch(() => {});
+        if (t.stopAfter) setTimeout(() => audio.pause(), t.stopAfter);
       }
       img.style.transform = anim.flip ? 'scaleX(-1)' : '';
       if (timers.has(tile)) clearTimeout(timers.get(tile));

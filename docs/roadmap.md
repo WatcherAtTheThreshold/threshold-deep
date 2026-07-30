@@ -82,14 +82,14 @@ Web export validated.
   7. **Sands of Time** — enemies slowed (global speed factor).
   8. **Luck** — more golden heart drops (drop-chance modifier).
   9. **Splash Damage** — hits damage adjacent enemies.
-- **Full turnaround sprites for all mobs** — Doom-style directional
-  billboards (promoted from the parking lot). Needs code support:
-  pick the frame from the viewer's angle to the creature's facing.
-  **Decided: 4 directions** (front/back/left/right), judged in
-  torchlight on the first creature before the bestiary follows;
-  upgrade to 8 only if the snapping reads badly in play.
-- **Attack sprites for enemies** — wind-up and strike frames so
-  melee telegraphs are drawn, not just moved (pillar 3).
+- ~~**Full turnaround sprites for all mobs**~~ — **DONE.** Doom-style
+  4-direction billboards (front/back/left/right) across the whole
+  roster — skeleton, wizard, frogman/frog/toad, slime tiers, mush
+  tiers, amalgam — via `_update_view` projecting facing onto the camera
+  axes. 8-way wasn't needed; the snapping reads fine.
+- ~~**Attack sprites for enemies**~~ — **DONE.** Every creature winds up
+  a directional attack lunge (drawn wind-up + strike frames); the
+  creature-polish Attack-anim column is fully ✓.
 - **Boss plate art** — the consent plate still wears sword-plate
   art; it deserves its own.
 - **Polish sprites** — the running list of frames that need a
@@ -103,12 +103,16 @@ Web export validated.
 
 ### Sound (the wishlist, plus what the game asks for)
 
-Wall crack tick (non-breaking hits; break is in), mush merge/split
+**Done:** the death-sound sweep and the aggro "sees-you" sweep across
+the whole roster (see docs/creature-polish.md), plus the dedicated
+`boss_floor_fall.wav` for the 3-3 cave-in. **Still on the wishlist:**
+wall crack tick (non-breaking hits; break is in), mush merge/split
 squelch, frogman reveal fwump, descending A-minor fall stinger,
 falling wail + distant thud (bodies and cargo taken by the deep),
-amalgam assembly (or its deliberate silence), a dedicated pale-gate
-crossing voice, ambient drips. Plus retune passes on everything
-already in — levels, tails, pitch spreads — as the mix fills up.
+amalgam assembly (or its deliberate silence) + its cast/launch, a
+dedicated pale-gate crossing voice, ambient drips. Plus retune passes
+on everything already in — levels, tails, pitch spreads — as the mix
+fills up.
 
 ### Finish work
 
@@ -155,18 +159,18 @@ already in — levels, tails, pitch spreads — as the mix fills up.
 - Sealed-variant doorframe art (arrival doors currently show bare
   stone through the open frame — works, but a drawn seal could
   read stronger)
-- **The 3-3 floor drop** — after the wave, the arena floor gives
-  way and the player falls into a larger chamber below where the
-  corpses reassemble into the Skeletal Wizard. Endorsed: it's the
-  game weaponizing its own floor-betrayal lesson at the climax,
-  and it's buildable as a scene transition reusing the descent
-  plumbing (special one-room arena floor, corpse props, existing
-  assembly) rather than true two-story geometry. Post-demo-polish
-  tier; pairs with per-act signature arenas.
-- Art incoming (Jessop's pipeline): slime + mush turnarounds
-  (partial redraws from existing poses; the mushes have cute
-  butts), wall-break rubble tiles, break animations, orb singe
-  marks.
+- ~~**The 3-3 floor drop**~~ — **BUILT 2026-07-29** (early, ahead of its
+  post-demo tier). After the wave clears, the arena floor caves in and the
+  fight plunges into a real chamber built 3 cell-layers below, where the
+  corpses tween down and the Skeletal Wizard rises. Shipped with REAL
+  seamless geometry — NOT the scene-swap this entry guessed; the true-3D
+  GridMap made real geometry the better path — plus Phase-3 polish (camera
+  shake, dust cascade, dedicated `boss_floor_fall.wav`, staged rise). See
+  threshold-deep/CLAUDE.md "3-3 floor drop". Watch item it taught: any
+  y-threshold self-despawn (player `fall_death_y`, creature `fall_y`) must
+  drop below the chamber or things delete themselves on landing.
+- Art landed (Jessop's pipeline): slime + mush turnarounds ✓,
+  floor + wall break animations ✓. Still incoming: orb singe marks.
 - **Torch viability** — before 2026-07-18 the torch was a grind to
   escape; now it feels like it belongs. With the right upgrades
   (ember damage? bigger shove? fire spread?) keeping the torch
