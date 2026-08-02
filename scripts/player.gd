@@ -30,6 +30,22 @@ const HALBERD_RANGE := 3.0
 # Wide Swing: the melee arc opens to catch the flanking tiles too.
 const WIDESWING_RANGE := 2.6
 const WIDESWING_ARC_DEG := 85.0
+# Melee recoil: a landed hit shoves YOU back a little, by the weapon's heft.
+# Fires on CONNECT, never on a whiff — swinging at air must stay free. Metres
+# per second, ADDED to your input velocity rather than replacing it, so it
+# bends your movement instead of seizing it (a stagger on the player would
+# read as losing control). Travel is v²/(2·friction): torch ~0.05 m, sword
+# ~0.14 m, halberd ~0.37 m — all well under a 2 m cell, so your own swing
+# can never shove you over a rim.
+const MELEE_RECOIL := {"torch": 1.2, "sword": 2.0, "halberd": 3.2}
+const RECOIL_FRICTION := 14.0
+# Dash contact. A discrete, player-initiated impact — unlike a passive bump,
+# which is continuous and would rattle the screen the whole time an enemy
+# crowds you. Barrelstone's charge hits harder because it went THROUGH.
+const DASH_BUMP_SHAKE := 0.04
+const DASH_BUMP_SHAKE_TIME := 0.18
+const BARREL_SHAKE := 0.08
+const BARREL_SHAKE_TIME := 0.25
 # The torch shoves harder than anything after it: taking the sword
 # should feel like trading the shove away for damage. Distance goes
 # with the SQUARE of this: 1.0 ≈ 0.6m skid, 1.8 ≈ 1.9m, 2.8 ≈ 4.7m.
@@ -91,6 +107,11 @@ const STAFF_ORB_IMPACTS: Array[AudioStream] = [
 ]
 const BOOMERANG_THROW_SOUND := preload("res://assets/audio/sfx/player/boomerang_throw.ogg")
 const DASH_SOUND := preload("res://assets/audio/sfx/player/footsteps_player_dash1.ogg")
+# The two weights of dash contact. The bump sits UNDER the dash swoosh (-3);
+# the Barrelstone charge matches it (-1), so the relic is louder as well as
+# meatier — the upgrade reads in the mix, not just the sample.
+const DASH_BUMP_SOUND := preload("res://assets/audio/sfx/player/dash_bump1.ogg")
+const BARREL_STRIKE_SOUND := preload("res://assets/audio/sfx/player/barrel_strike1.ogg")
 const BARREL_RANGE := 1.2   # Barrelstone dash-strike contact reach (metres)
 const BARREL_DAMAGE := 2    # a shove first, a hit second — mobility, not DPS
 const BARREL_PUSH := 2.6    # hard shove (torch is 1.8) — the point is the pits
@@ -116,6 +137,8 @@ var dash_cooldown_timer := 0.0
 var dash_charges := 1
 var dash_dir := Vector3.ZERO
 var barrel_hit := {}  # enemies the current dash has already struck (Barrelstone)
+var dash_bumped := false  # this dash already thudded into a body (once per dash)
+var recoil := Vector3.ZERO  # decaying self-knockback from a landed melee hit
 var base_fov := 75.0  # camera's rest FOV, captured in _ready (for the dash kick)
 var fov_tween: Tween  # the dash FOV recovery, killed on a fresh dash
 var _shake_dur := 0.0     # camera-shake countdown (0 = still)
@@ -262,6 +285,23 @@ func pickup_barrelstone() -> bool:
 	return true
 
 
+func _dash_bump() -> void:
+	# No Barrelstone: charging a body doesn't hurt it, but it isn't nothing —
+	# a dull thud that says the dash stopped at something solid. Once per dash,
+	# and deliberately weaker than the Barrelstone version, so the relic reads
+	# as an upgrade to a feel the player already knows.
+	if dash_bumped:
+		return
+	for node: Node3D in get_tree().get_nodes_in_group("enemies"):
+		if node.get("dead") == true:
+			continue
+		if global_position.distance_to(node.global_position) <= BARREL_RANGE:
+			dash_bumped = true
+			shake(DASH_BUMP_SHAKE, DASH_BUMP_SHAKE_TIME)
+			Sfx.play_ui(DASH_BUMP_SOUND, -3.0)
+			return
+
+
 func _barrel_strike() -> void:
 	# Barrelstone: the dash is a shoulder-charge. Any enemy it barrels into
 	# takes a hit and flies off your momentum — ideally over a rim (the whole
@@ -274,6 +314,14 @@ func _barrel_strike() -> void:
 			node.take_damage(BARREL_DAMAGE, dash_dir * BARREL_PUSH, self)
 			barrel_hit[node.get_instance_id()] = true
 			RunState.record_damage_dealt(BARREL_DAMAGE)
+			shake(BARREL_SHAKE, BARREL_SHAKE_TIME)
+			if not dash_bumped:
+				# The SOUND is once per dash, not per body: charging through
+				# three skeletons is one event to the player, and three copies
+				# of the same sample a frame apart machine-guns. The shake
+				# still fires per hit — harmlessly, since shake() takes the max.
+				dash_bumped = true
+				Sfx.play_ui(BARREL_STRIKE_SOUND, -1.0)
 	# Barrel THROUGH breakable walls: a short ray along the dash — the
 	# dungeon smashes the cell if it's wooden (stone just stops you). It
 	# breaks a hair before you reach it, so you charge through clean.
@@ -460,6 +508,7 @@ func _physics_process(delta: float) -> void:
 		# The dash swoosh.
 		Sfx.play_ui(DASH_SOUND, -1.0)
 		barrel_hit.clear()  # a fresh dash can strike each enemy once
+		dash_bumped = false
 		# Power-feel: the view punches out on the burst, then eases back over
 		# the dash — the classic first-person sense of speed.
 		camera.fov = base_fov + DASH_FOV_KICK
@@ -484,12 +533,22 @@ func _physics_process(delta: float) -> void:
 			velocity.y = 0.0
 		if RunState.barrelstone:
 			_barrel_strike()
+		else:
+			_dash_bump()
 	elif direction:
 		velocity.x = direction.x * move_speed
 		velocity.z = direction.z * move_speed
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, move_speed)
 		velocity.z = move_toward(velocity.z, 0.0, move_speed)
+
+	# Melee recoil rides ON TOP of whatever the movement branch decided, so a
+	# hit nudges you without ever taking the controls away — walk into it and
+	# you barely move; stand still and you drift back off your own swing.
+	if recoil.length_squared() > 0.0:
+		velocity.x += recoil.x
+		velocity.z += recoil.z
+		recoil = recoil.move_toward(Vector3.ZERO, RECOIL_FRICTION * delta)
 
 	move_and_slide()
 	_update_step_audio()
@@ -572,6 +631,7 @@ func _attack() -> void:
 			reach += WIDESWING_RANGE - ATTACK_RANGE
 			arc = WIDESWING_ARC_DEG
 		var forward := -global_transform.basis.z
+		var landed := false
 		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 			var to := enemy.global_position - global_position
 			to.y = 0.0
@@ -580,6 +640,13 @@ func _attack() -> void:
 				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
 				apply_dots(enemy)
 				RunState.record_damage_dealt(attack_damage)
+				landed = true
+		if landed:
+			# Straight back, not away from the body — one swing gives one kick
+			# no matter how many it caught, and the push can never come at you
+			# sideways and walk you off a rim you weren't looking at.
+			var kick: float = MELEE_RECOIL.get(RunState.weapon, 0.0)
+			recoil = -forward * kick
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable. Matches the melee
 	# reach above so a halberd pokes walls as far as it pokes enemies.

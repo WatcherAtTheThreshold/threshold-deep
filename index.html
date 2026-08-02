@@ -442,6 +442,24 @@ const SECTIONS = [
     },
     { br: true },
     {
+      name: 'Dash Bump', rest: S + 'skeleton/skeleton_front1.png',
+      sounds: [A + 'player/dash_bump1.ogg'],
+      frames: [
+        [S + 'skeleton/skeleton_front_takehit1.png', 120],
+        [S + 'skeleton/skeleton_front1.png', 10],
+      ],
+    },
+    {
+      name: 'Barrel Strike', rest: S + 'skeleton/skeleton_front1.png',
+      sounds: [A + 'player/barrel_strike1.ogg'],
+      frames: [
+        [S + 'skeleton/skeleton_front_takehit1.png', 120],
+        [S + 'skeleton/skeleton_front_takehit2.png', 120],
+        [S + 'skeleton/skeleton_front1.png', 10],
+      ],
+    },
+    { br: true },
+    {
       name: 'Boomerang Throw', wide: true, rest: S + 'hand-boomerang.png',
       sounds: [A + 'player/boomerang_throw.ogg'],
       frames: [

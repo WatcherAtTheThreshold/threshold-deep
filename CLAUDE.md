@@ -67,7 +67,26 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - Music: `assets/audio/music/` (mp3 is fine — Ableton can't export
   ogg; convert only if web build size matters someday). The
   `MusicDrift` autoload drifts random segments of the track in and
-  out with 8 s fades and long silences, surviving reloads.
+  out with 5 s fades and long silences, surviving reloads.
+  **Per-world track sets** mirror the tile appearances: a folder per
+  look (`music/dry/`, `damp/`, `deep/`) and `WORLD_SET` in `music.gd`
+  indexed by world exactly like `dungeon.gd`'s `WORLD_APPEARANCE`.
+  `music/boss/` is the exception — keyed to the floor KIND, it overrides
+  the world set on EVERY boss floor (1-3, 2-3, 3-3). **A boss fight OWNS
+  the music:** the consent plate calls `MusicDrift.take_over()` (drift
+  loop bails, one looping boss track from the top, no random silences),
+  the 3-3 floor drop calls `duck()` for the boom, and
+  `_finish_boss_fight()` calls `release()`. Every other exit — death,
+  quitting to the title — is covered by `begin()` releasing a stale
+  claim on the next floor load, so no path needs its own hook.
+  The folders are organization; the `*_TRACKS` preload arrays are the
+  contract — **a new song must be added to its array**, since runtime
+  `res://` directory scanning doesn't survive an export. An empty set
+  falls back to `DRY_TRACKS`, so a world can ship its look before its
+  songs. `dungeon.gd` passes the world to `MusicDrift.begin()` on every
+  floor load; the world updates before the started-guard, so descending
+  swaps the pool at the next surfacing without interrupting what's
+  playing. `music/` root holds only the title track (title.tscn owns it).
 
 ## Layout
 
@@ -296,7 +315,17 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   All creatures leave persistent corpses; only skeletons and wizards
   drop potions.
 - Player melee is a forgiving arc check against the enemies group —
-  no physics areas involved.
+  no physics areas involved. A landed melee hit recoils the PLAYER
+  back by weapon heft (`MELEE_RECOIL`: torch 1.2 / sword 2.0 /
+  halberd 3.2 m/s, decayed by `RECOIL_FRICTION`). It fires on connect
+  only — never on a whiff — and is ADDED to input velocity after the
+  movement branch rather than replacing it, so it bends your movement
+  instead of seizing it. Travel stays under 0.4 m, well inside a 2 m
+  cell, so a swing can't shove you over a rim.
+- Dash contact shakes the camera: `_dash_bump()` (no relic, small,
+  once per dash, no damage) or `_barrel_strike()` (Barrelstone,
+  larger, per enemy struck). Passive walking bumps deliberately do
+  NOT shake — contact there is continuous and would rattle constantly.
 - Input actions (`project.godot`): `move_*`, `dash` (Space — short
   forward burst, ~1s cooldown; there is deliberately no jump),
   `attack` (left mouse). Esc toggles mouse capture; R rerolls the

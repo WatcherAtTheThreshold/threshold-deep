@@ -133,6 +133,11 @@ const PLAYER_PRIORITY_RANGE := 5.0
 # so the pack fans around it instead of stacking on the near side.
 const FLANK_RANGE := 4.0     # another slime within this pushes on the approach
 const FLANK_STRENGTH := 1.0  # how hard that push bends the seek toward the flank
+# Chase persistence: after losing sight, ooze on to the last-seen spot for a
+# beat before giving up — never live-tracks you through walls.
+const CHASE_GRACE_TIME := 2.5  # seconds it pursues the last-seen position
+const CHASE_ARRIVE := 1.0      # metres from that spot that count as "there"
+const WALL_PROBE := 0.9        # how far ahead a wall counts as "blocking the way"
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
@@ -171,6 +176,8 @@ var attack_side: Array[Texture2D] = LARGE_ATTACK_SIDE  # empty for the boss
 var attack_anim := 0.0  # counts down while the lunge frames play
 var noticed := false    # true while it currently perceives the player
 var aggro_timer := 0.0  # counts down through the startle freeze
+var last_seen := Vector3.ZERO  # where the player was last seen (pursuit target)
+var chase_grace := 0.0         # ticks down out of sight; pursue last_seen until 0
 var aggro_tex: Texture2D = AGGRO_LARGE  # the alert pose, set per tier
 var facing := Vector3.FORWARD
 var wander_dir := Vector3.ZERO
@@ -272,13 +279,18 @@ func _physics_process(delta: float) -> void:
 	var sight := SIGHT_RANGE if _get_target() == player else INFIGHT_SIGHT_RANGE
 
 	var seen := _perceives(goal, dist, sight)
-	if seen and goal == player and not noticed:
-		noticed = true
-		aggro_timer = AGGRO_TIME
-		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
-				global_position, -4.0)
+	if seen and goal == player:
+		last_seen = goal.global_position
+		chase_grace = CHASE_GRACE_TIME
+		if not noticed:
+			noticed = true
+			aggro_timer = AGGRO_TIME
+			Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+					global_position, -4.0)
 	elif not seen:
-		noticed = false
+		chase_grace = maxf(chase_grace - delta, 0.0)
+		if chase_grace <= 0.0:
+			noticed = false
 	if aggro_timer > 0.0:
 		# The notice beat: the blob rears up and WHEELS to face you — caught
 		# from behind it turns through a side view — then it rolls in. Alarm
@@ -310,6 +322,7 @@ func _physics_process(delta: float) -> void:
 				# arcs to different sides of you rather than piling up. Merges
 				# (goal == partner) keep converging — only prey gets flanked.
 				dir = (dir + _flank_push() * FLANK_STRENGTH).normalized()
+			dir = _nav_dir(dir)  # slip around doorway jambs instead of grinding
 			facing = dir
 			if _floor_ahead(dir):
 				velocity.x = dir.x * speed
@@ -331,6 +344,23 @@ func _physics_process(delta: float) -> void:
 				# take_poison; mobs get their Rot from the contact sweep.)
 				if goal.has_method("take_poison"):
 					goal.take_poison(kill_label(), sprite.texture)
+	elif chase_grace > 0.0:
+		# Lost sight but still committed: ooze on to where you were last seen.
+		var to_last := last_seen - global_position
+		to_last.y = 0.0
+		if to_last.length() > CHASE_ARRIVE:
+			var dir := _nav_dir(to_last.normalized())  # navigate the doorway too
+			facing = dir
+			if _floor_ahead(dir):
+				velocity.x = dir.x * speed
+				velocity.z = dir.z * speed
+			else:
+				velocity.x = 0.0
+				velocity.z = 0.0
+		else:
+			chase_grace = 0.0  # reached the empty spot — give it up
+			velocity.x = 0.0
+			velocity.z = 0.0
 	else:
 		_wander(delta, speed)
 
@@ -392,6 +422,31 @@ func _floor_ahead(dir: Vector3) -> bool:
 		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
 	query.hit_from_inside = true
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _wall_ahead(dir: Vector3) -> bool:
+	# A forward feeler for walls (the floor probe only catches pits). Cast at
+	# mid-body height so it reads the wall, not the floor slab.
+	var from := global_position + Vector3.UP * 0.5
+	var query := PhysicsRayQueryParameters3D.create(
+		from, from + dir * WALL_PROBE, 1, [get_rid()])
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _nav_dir(desired: Vector3) -> Vector3:
+	# Direct chase grinds on doorway jambs. If the heading is blocked, fan out
+	# to nearby angles and take the first open one (clear + floored) — a cheap
+	# slip-around-the-corner. No pathfinding; falls through if boxed in.
+	if not _wall_ahead(desired):
+		return desired
+	for a in [0.6, 1.1, 1.7]:
+		var l := desired.rotated(Vector3.UP, a)
+		if _floor_ahead(l) and not _wall_ahead(l):
+			return l
+		var r := desired.rotated(Vector3.UP, -a)
+		if _floor_ahead(r) and not _wall_ahead(r):
+			return r
+	return desired
 
 
 func _flank_push() -> Vector3:

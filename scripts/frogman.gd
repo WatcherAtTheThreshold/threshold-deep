@@ -84,6 +84,11 @@ const FROG_HEALTH := 4
 const TOAD_HEALTH := 6
 const COATED_SPEED := 1.8
 const TOAD_SPEED := 1.6
+# Chase persistence: press on to the last-seen spot for a beat after losing
+# sight, before giving up — never live-tracks you through walls.
+const CHASE_GRACE_TIME := 2.5  # seconds it pursues the last-seen position
+const CHASE_ARRIVE := 1.0      # metres from that spot that count as "there"
+const WALL_PROBE := 0.9        # how far ahead a wall counts as "blocking the way"
 const FROG_HOP_SPEED := 5.0
 const FROG_HOP_TIME := 0.35
 const FROG_HOP_REST := 0.55
@@ -114,6 +119,8 @@ var attack_timer := 0.0
 var attack_anim := 0.0  # counts down while the lunge frames play
 var noticed := false    # true while it currently perceives the player
 var aggro_timer := 0.0  # counts down through the startle freeze
+var last_seen := Vector3.ZERO  # where the player was last seen (pursuit target)
+var chase_grace := 0.0         # ticks down out of sight; pursue last_seen until 0
 var aggro_tex: Texture2D = AGGRO_COATED  # the alert pose, set per state
 var walk_time := 0.0
 var dead := false
@@ -197,13 +204,18 @@ func _physics_process(delta: float) -> void:
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
 	var seen := _perceives(t, dist, sight)
-	if seen and t == player and not noticed:
-		noticed = true
-		aggro_timer = AGGRO_TIME
-		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
-				global_position, -4.0)
+	if seen and t == player:
+		last_seen = t.global_position
+		chase_grace = CHASE_GRACE_TIME
+		if not noticed:
+			noticed = true
+			aggro_timer = AGGRO_TIME
+			Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+					global_position, -4.0)
 	elif not seen:
-		noticed = false
+		chase_grace = maxf(chase_grace - delta, 0.0)
+		if chase_grace <= 0.0:
+			noticed = false
 	if aggro_timer > 0.0:
 		# The notice beat: freeze and WHEEL to face you — caught from behind
 		# it turns through a side view — then it comes. Alarm pose lands once
@@ -225,7 +237,7 @@ func _physics_process(delta: float) -> void:
 		return
 	if seen:
 		if dist > ATTACK_RANGE:
-			var dir := to_target.normalized()
+			var dir := _nav_dir(to_target.normalized())  # slip around doorway jambs
 			facing = dir
 			if not _floor_ahead(dir):
 				# Pulled up at the rim — even the frog knows better.
@@ -253,6 +265,25 @@ func _physics_process(delta: float) -> void:
 				if state != State.REVEAL:  # all attacking states now have a lunge
 					attack_anim = ATTACK_FRAME_TIME * 2.0
 				t.take_damage(damage, to_target.normalized(), self)
+	elif chase_grace > 0.0:
+		# Lost sight but still committed: press on to where you were last seen
+		# (a glide, not the frog's hop — it's investigating, not lunging).
+		var to_last := last_seen - global_position
+		to_last.y = 0.0
+		if to_last.length() > CHASE_ARRIVE:
+			var dir := _nav_dir(to_last.normalized())  # navigate the doorway too
+			facing = dir
+			if _floor_ahead(dir):
+				var sp := (COATED_SPEED if state == State.COATED else TOAD_SPEED) * speed_scale
+				velocity.x = dir.x * sp
+				velocity.z = dir.z * sp
+			else:
+				velocity.x = move_toward(velocity.x, 0.0, 4.0)
+				velocity.z = move_toward(velocity.z, 0.0, 4.0)
+		else:
+			chase_grace = 0.0  # reached the empty spot — give it up
+			velocity.x = move_toward(velocity.x, 0.0, 4.0)
+			velocity.z = move_toward(velocity.z, 0.0, 4.0)
 	elif state == State.COATED:
 		# Unbothered coats patrol; frogs and toads exist mid-fight
 		# and just settle.
@@ -287,6 +318,31 @@ func _physics_process(delta: float) -> void:
 		step_sound.play()
 	elif not moving and step_sound.playing:
 		step_sound.stop()
+
+
+func _wall_ahead(dir: Vector3) -> bool:
+	# A forward feeler for walls (the floor probe only catches pits). Cast at
+	# mid-body height so it reads the wall, not the floor slab.
+	var from := global_position + Vector3.UP * 0.5
+	var query := PhysicsRayQueryParameters3D.create(
+		from, from + dir * WALL_PROBE, 1, [get_rid()])
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _nav_dir(desired: Vector3) -> Vector3:
+	# Direct chase grinds on doorway jambs. If the heading is blocked, fan out
+	# to nearby angles and take the first open one (clear + floored) — a cheap
+	# slip-around-the-corner. No pathfinding; falls through if boxed in.
+	if not _wall_ahead(desired):
+		return desired
+	for a in [0.6, 1.1, 1.7]:
+		var l := desired.rotated(Vector3.UP, a)
+		if _floor_ahead(l) and not _wall_ahead(l):
+			return l
+		var r := desired.rotated(Vector3.UP, -a)
+		if _floor_ahead(r) and not _wall_ahead(r):
+			return r
+	return desired
 
 
 func _floor_ahead(dir: Vector3) -> bool:

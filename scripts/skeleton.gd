@@ -63,6 +63,13 @@ const RISE_TIME := 1.0
 const RISE_GRACE := 4.0
 const RISEN_HEALTH := 4
 const REVENANT_RISE_DELAY := 1.0  # beat of false calm after a pack drops, then it rises
+# The floor twitches as bones stir — the rattle's redundant channel, for
+# anyone playing quiet. Metres of camera jitter (the 3-3 floor caving is 0.2).
+const RISE_SHAKE := 0.03            # one pile: a tick you feel without naming
+const RISE_SHAKE_TIME := 0.35
+const RISE_SHAKE_PACK := 0.07       # the whole pack standing: turn-around rumble
+const RISE_SHAKE_PACK_TIME := 0.6
+const RISE_SHAKE_RANGE := 10.0      # past this, a kick has no visible cause
 
 const BASE_SPEED := 2.0
 const MAX_SPEED := 3.2
@@ -81,6 +88,11 @@ const ATTACK_COOLDOWN := 1.2
 # so the pack fans around you and closes in from the sides.
 const FLANK_RANGE := 3.5     # a nearby enemy within this bends the approach
 const FLANK_STRENGTH := 1.0  # how hard that push arcs the chase to a flank
+# Chase persistence: after losing sight, keep coming to the last-seen spot for
+# a beat before giving up — smart, but never live-tracks you through walls.
+const CHASE_GRACE_TIME := 2.5  # seconds it pursues the last-seen position
+const CHASE_ARRIVE := 1.0      # metres from that spot that count as "there"
+const WALL_PROBE := 0.9        # how far ahead a wall counts as "blocking the way"
 const MAX_HEALTH := 6
 const KNOCK_TIME := 0.35
 const KNOCK_FRICTION := 30.0
@@ -92,6 +104,8 @@ var attack_timer := 0.0
 var attack_anim := 0.0  # counts down while the lunge frames play
 var noticed := false    # true while it currently perceives the player
 var aggro_timer := 0.0  # counts down through the startle freeze
+var last_seen := Vector3.ZERO  # where the player was last seen (pursuit target)
+var chase_grace := 0.0         # ticks down out of sight; pursue last_seen until 0
 var walk_time := 0.0
 var dead := false
 var restless := false
@@ -140,6 +154,7 @@ func _physics_process(delta: float) -> void:
 					sprite.texture = RISE_TEXTURE
 					# The rattle: bones stirring, heard before seen.
 					Sfx.play_at(REVIVE_SOUND, global_position, -2.0)
+					_rise_shake()
 		return
 	if global_position.y < FALL_Y:
 		_fall_into_dark()
@@ -168,13 +183,20 @@ func _physics_process(delta: float) -> void:
 	var sight := SIGHT_RANGE if t == player else INFIGHT_SIGHT_RANGE
 
 	var seen := _perceives(t, dist, sight)
-	if seen and t == player and not noticed:
-		noticed = true
-		aggro_timer = AGGRO_TIME
-		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
-				global_position, -4.0)
+	if seen and t == player:
+		# Keep a running fix on where you are, and top up the pursuit clock.
+		last_seen = t.global_position
+		chase_grace = CHASE_GRACE_TIME
+		if not noticed:
+			noticed = true
+			aggro_timer = AGGRO_TIME
+			Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+					global_position, -4.0)
 	elif not seen:
-		noticed = false
+		# Lost sight — hold the alert while the pursuit clock still runs.
+		chase_grace = maxf(chase_grace - delta, 0.0)
+		if chase_grace <= 0.0:
+			noticed = false
 	if aggro_timer > 0.0:
 		# The notice beat: freeze and WHEEL to face you — creep up on its
 		# back and it turns through a side view — then it charges. The alarm
@@ -202,6 +224,7 @@ func _physics_process(delta: float) -> void:
 				# Pack flanking: shove off nearby kin so a group arcs around
 				# you and closes in from the sides, not a single-file line.
 				dir = (dir + _flank_push() * FLANK_STRENGTH).normalized()
+			dir = _nav_dir(dir)  # slip around doorway jambs instead of grinding
 			facing = dir
 			if _floor_ahead(dir):
 				velocity.x = dir.x * speed
@@ -218,6 +241,27 @@ func _physics_process(delta: float) -> void:
 				attack_timer = ATTACK_COOLDOWN
 				attack_anim = ATTACK_FRAME_TIME * 2.0
 				t.take_damage(2, to_target.normalized(), self)
+	elif chase_grace > 0.0:
+		# Lost sight but still committed: press on to where you were last
+		# seen (it watched you round the corner). Reach the spot, or the
+		# clock runs out, and it drops back to wandering — it never tracks
+		# you live through the wall, so a change of direction still loses it.
+		var to_last := last_seen - global_position
+		to_last.y = 0.0
+		if to_last.length() > CHASE_ARRIVE:
+			var dir := _nav_dir(to_last.normalized())  # navigate the doorway too
+			facing = dir
+			if _floor_ahead(dir):
+				velocity.x = dir.x * speed
+				velocity.z = dir.z * speed
+			else:
+				velocity.x = 0.0
+				velocity.z = 0.0
+		else:
+			# Reached the empty spot — nothing here. Give it up.
+			chase_grace = 0.0
+			velocity.x = 0.0
+			velocity.z = 0.0
 	else:
 		_wander(delta)
 
@@ -324,6 +368,32 @@ func _floor_ahead(dir: Vector3) -> bool:
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
+func _wall_ahead(dir: Vector3) -> bool:
+	# A forward feeler for walls (the floor probe only catches pits). Cast at
+	# mid-body height so it reads the wall, not the floor slab.
+	var from := global_position + Vector3.UP * 0.5
+	var query := PhysicsRayQueryParameters3D.create(
+		from, from + dir * WALL_PROBE, 1, [get_rid()])
+	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _nav_dir(desired: Vector3) -> Vector3:
+	# Direct chase grinds on doorway jambs — it walks at you through the wall.
+	# If the heading is blocked, fan out to nearby angles and take the first
+	# that's open (clear + floored), so it slips around the corner. No real
+	# pathfinding; falls through to the desired heading if truly boxed in.
+	if not _wall_ahead(desired):
+		return desired
+	for a in [0.6, 1.1, 1.7]:
+		var l := desired.rotated(Vector3.UP, a)
+		if _floor_ahead(l) and not _wall_ahead(l):
+			return l
+		var r := desired.rotated(Vector3.UP, -a)
+		if _floor_ahead(r) and not _wall_ahead(r):
+			return r
+	return desired
+
+
 func _flank_push() -> Vector3:
 	# Separation from nearby enemies, added to the seek so a pack fans out and
 	# surrounds you instead of stacking single-file. Closer = harder push.
@@ -407,6 +477,25 @@ func _rise() -> void:
 	add_to_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", false)
 	sprite.texture = FRONT_FRAMES[0]
+
+
+func _rise_shake() -> void:
+	# Lands on the rattle, not on the stand — the shake IS the warning, so it
+	# has to arrive with the sound it stands in for. Fades out with distance:
+	# a revenant pack can wake a room away, and a kick from nowhere reads as a
+	# bug. Restless singles are always inside RISE_RANGE, so they never fade
+	# far. Packmates all fire the same frame; player.shake takes the max, so
+	# three bones make one rumble, not three.
+	if not is_instance_valid(player):
+		return
+	var dist := global_position.distance_to(player.global_position)
+	if dist > RISE_SHAKE_RANGE:
+		return
+	var falloff := 1.0 - dist / RISE_SHAKE_RANGE
+	if revenant_pending:
+		player.shake(RISE_SHAKE_PACK * falloff, RISE_SHAKE_PACK_TIME)
+	else:
+		player.shake(RISE_SHAKE * falloff, RISE_SHAKE_TIME)
 
 
 func _revenant_check() -> void:

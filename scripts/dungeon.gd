@@ -215,7 +215,11 @@ func _apply_appearance(world: int) -> void:
 
 
 func _ready() -> void:
-	MusicDrift.begin()  # the dungeon owns the drifting ambient; the title stays quiet
+	# The dungeon owns the drifting ambient; the title stays quiet. Passing the
+	# world every floor load keeps the track pool in step with the tile set —
+	# except on a boss floor, where the kind wins and the boss set plays.
+	MusicDrift.begin(RunState.world(RunState.depth),
+			RunState.floor_kind(RunState.depth) == RunState.FloorKind.BOSS)
 	floor_id = grid_map.mesh_library.find_item_by_name("floor")
 	wall_id = grid_map.mesh_library.find_item_by_name("wall")
 	floor_wood_id = grid_map.mesh_library.find_item_by_name("floor_wood")
@@ -1296,6 +1300,7 @@ func _start_boss_fight() -> void:
 	fight_active = true
 	fight_grace = FIGHT_GRACE_TIME
 	_play_stinger(SOUND_DOOR_LOCK)
+	MusicDrift.take_over()  # the plate is consent; the music is the answer
 	for m in arena_mists:
 		if is_instance_valid(m):
 			m.seal()
@@ -1374,7 +1379,10 @@ func _drop_into_assembly() -> void:
 		var p: Vector3 = child.global_position
 		if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
 			corpses.append(child)
-	# Cave the floor: player plunges, tiles tumble, the way back seals.
+	# Cave the floor: player plunges, tiles tumble, the way back seals. The
+	# music steps aside for the boom and swells back as the amalgam rises —
+	# the drop gets its own beat without needing a second boss track.
+	MusicDrift.duck()
 	_drop_boss_floor()
 	# Assemble at the arena centre XZ, just above the chamber floor (the
 	# chamber is solid — no holes, no hatch yet — so the centre is safe).
@@ -1439,6 +1447,7 @@ func _arena_has_living_enemies() -> bool:
 
 func _finish_boss_fight() -> void:
 	fight_active = false
+	MusicDrift.release()  # the fight lets go of the music before the reward lands
 	for m in arena_mists:
 		if is_instance_valid(m):
 			m.dissolve()

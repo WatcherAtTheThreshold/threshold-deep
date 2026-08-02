@@ -81,6 +81,52 @@ already reads, arranged in a line. Feature-sized (a movement model + a
 damage model), so it's Act II/III or mini-boss material, not demo work
 — parked with the rest.
 
+## The throughline: the necromancers you chase (parked, 2026-07-30)
+
+The descent needs a *motive*, not just a downward direction — and the frame
+that ties the whole bestiary together: **you are chasing necromancer-wizards
+into the dungeon.** They have been down here doing strange experiments —
+transforming matter into life — and the slimes, mushes, frogmen, restless
+bones, the amalgam are *the record of what they've made.* This is a frame,
+not new lore: it makes the ecology you already built **intentional**, and it
+IS the transformation principle above — the wizards are the hand doing the
+becoming. You don't clear rooms; you follow a trail deeper as they flee.
+
+The arc maps onto the three ontologies: **Act I** chase them into the worked
+stone; **Act II** follow them into the deep earth, where it turns stranger
+and elemental; **Act III** pursue them past the threshold, where it goes very
+weird. They get further from anything human as they descend — the "who" at
+the bottom that the ending ("arrival, not a dead boss") was reaching for.
+
+**The wizard is the seed and it's free.** It's already in the game — promote
+it from "one enemy type" to the recurring authored threat. A *wizard roster*,
+in escalating effort (park until the art exists; NOT demo work):
+
+- **Cheap:** RNG skin sets + more voice SFX — pure visual/audio variety on the
+  existing wizard, same behavior.
+- **Medium, high value — elemental wizards:** colored robes with different
+  attacks. Blue = the current electro bolt; **red = fireball that inflicts
+  Ember; brown = thrown rock.** CHEAP given what exists: `orb.gd` is already
+  parameterized (frames / impact sounds / damage / splash) and the **Ember
+  Dot already exists** (`Dot.attach(target, self, "Ember")`) — so a fireball
+  is an orb variant + one Dot call; a rock is an orb variant with a heavier
+  arc and no DoT. Not a new system, just config + a "which element" pick. Buys
+  real Pillar-3 readability (learn to read robe colour → incoming threat).
+  Both layers share the base behavior, so they stack.
+
+**Glyphs as the necromancers' magic-language (identity lever).** Jessop has
+years of hand-made archaic pictograms/strange glyphs. Use them as the wizards'
+written magic, everywhere: etched on walls (environmental "they worked here"),
+as cast telegraphs and summon-circles (functional, Pillar-3), and **evolving
+across the acts** (archaic dungeon runes → elemental earth-marks → cosmic
+*wrong* symbols). Maps directly onto the per-act tile-appearance system already
+built — the cheapest way to make three acts read as three *places*, from art
+that already exists.
+
+**Discipline:** keep it light in the demo — a single hint you're chasing
+*someone* is plenty at 3-3; the full necromancer arc is act content. Don't let
+a great story balloon the thing that ships.
+
 ## The guardrail: cosmic horror must not break Pillar 3
 
 **This is the one that will try to sink the act if it's not written
