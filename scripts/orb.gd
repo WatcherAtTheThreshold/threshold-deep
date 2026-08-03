@@ -7,6 +7,11 @@ const WIZARD_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.ogg"),
 ]
+const WIZARD_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight.ogg")
+# The blue wizard's bolt: the values that used to be baked into orb.tscn's
+# Glow and FlightSound nodes. They live here now so a variant can override
+# them like it overrides frames — and so blue keeps behaving exactly as it did.
+const WIZARD_GLOW := Color(0.45, 0.9, 1)
 const SPEED := 6.0
 const SPLASH_RANGE := 2.0
 const LIFETIME := 4.0
@@ -16,6 +21,12 @@ const FRAME_TIME := 0.15
 var frame_a: Texture2D = FRAME_A
 var frame_b: Texture2D = FRAME_B
 var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
+# The light an orb throws is the game's clearest telegraph — in a dungeon lit
+# only by your torch, a coloured glow travelling at you IS the readable threat
+# (Pillar 3: light equals meaning). An elemental variant MUST set this or its
+# fireball will paint the walls blue.
+var glow_color: Color = WIZARD_GLOW
+var flight_sound: AudioStream = WIZARD_FLIGHT
 var damage := 2  # half-heart units: a full heart per orb
 var speed_scale := 1.0  # the Hasty Little Stone quickens player orbs
 var splash := false  # Wide Swing: impacts spread to nearby enemies
@@ -24,10 +35,20 @@ var shooter: PhysicsBody3D = null
 var time := 0.0
 
 @onready var sprite: Sprite3D = $Sprite
+@onready var glow: OmniLight3D = $Glow
+@onready var flight: AudioStreamPlayer3D = $FlightSound
 
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	# Apply the per-shooter look and voice. This runs AFTER the caster has set
+	# its overrides (instantiate → set vars → add_child → _ready), which is why
+	# FlightSound's `autoplay` had to come off the scene: children ready before
+	# their parent, so autoplay would have started the DEFAULT stream a beat
+	# early, and assigning `stream` to a playing player stops it dead.
+	glow.light_color = glow_color
+	flight.stream = flight_sound
+	flight.play()
 
 
 func _physics_process(delta: float) -> void:
@@ -38,8 +59,8 @@ func _physics_process(delta: float) -> void:
 	position += direction * SPEED * speed_scale * delta
 	sprite.texture = frame_a if int(time / FRAME_TIME) % 2 == 0 else frame_b
 	# Keep the flight sizzle going for as long as the orb lives.
-	if not $FlightSound.playing:
-		$FlightSound.play()
+	if not flight.playing:
+		flight.play()
 
 
 func _on_body_entered(body: Node3D) -> void:

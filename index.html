@@ -164,7 +164,7 @@ const SECTIONS = [
     },
     {
       name: 'Wizard Cast', rest: S + 'wizard/wizard_shoot1.png',
-      sounds: [A + 'enemies/projectile-wizard.ogg'],
+      sounds: [A + 'enemies/wizard_orb_flight.ogg'],
       frames: [
         [S + 'wizard/wizard_shoot1.png', 450],
         [S + 'wizard/wizard_shoot2.png', 220],
@@ -324,7 +324,7 @@ const SECTIONS = [
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_front-attack1.png', S + 'frogmen/frogmen-phase1/frogmen_front-attack2.png', 150) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_attack1.png', S + 'frogmen/frogmen-phase1/frogmen_side_attack2.png', 150) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_attack1.png', S + 'frogmen/frogmen-phase1/frogmen_side_attack2.png', 150), flip: true },
-        { frames: [[S + 'frogmen/frogmen-phase1/frogmen_front_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
+        { frames: [[S + 'frogmen/frogmen-phase1/frogmen_front_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro1.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_front_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_front_takehit2.png', 120) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_side_takehit2.png', 120) },
         { frames: walk(S + 'frogmen/frogmen-phase1/frogmen_side_takehit1.png', S + 'frogmen/frogmen-phase1/frogmen_side_takehit2.png', 120), flip: true },
@@ -349,7 +349,7 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'frogmen/frogmen-phase2/frog1.png', S + 'frogmen/frogmen-phase2/frog2.png', 200) },
         { frames: walk(S + 'frogmen/frogmen-phase2/frog_attack1.png', S + 'frogmen/frogmen-phase2/frog_attack2.png', 150) },
-        { frames: [[S + 'frogmen/frogmen-phase2/frog_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
+        { frames: [[S + 'frogmen/frogmen-phase2/frog_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro1.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase2/frog_takehit1.png', S + 'frogmen/frogmen-phase2/frog_takehit2.png', 120) },
       ],
     },
@@ -359,7 +359,7 @@ const SECTIONS = [
       cycle: [
         { frames: walk(S + 'frogmen/frogmen-phase2/toad1.png', S + 'frogmen/frogmen-phase2/toad2.png', 280) },
         { frames: walk(S + 'frogmen/frogmen-phase2/toad_attack1.png', S + 'frogmen/frogmen-phase2/toad_attack2.png', 150) },
-        { frames: [[S + 'frogmen/frogmen-phase2/toad_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
+        { frames: [[S + 'frogmen/frogmen-phase2/toad_aggro1.png', 1000]], sounds: [A + 'enemies/frogmen_aggro1.ogg', A + 'enemies/frogmen_aggro2.ogg', A + 'enemies/frogmen_aggro3.ogg'] },
         { frames: walk(S + 'frogmen/frogmen-phase2/toad_takehit1.png', S + 'frogmen/frogmen-phase2/toad_takehit2.png', 120) },
       ],
     },
@@ -376,7 +376,7 @@ const SECTIONS = [
     },
     {
       name: 'Amalgam Volley', rest: S + 'skeletal-wizard/skeletal_wizard_attack1.png', tall: true,
-      sounds: [A + 'enemies/projectile-wizard.ogg'],
+      sounds: [A + 'enemies/wizard_orb_flight.ogg'],
       frames: [
         [S + 'skeletal-wizard/skeletal_wizard_attack1.png', 550],
         [S + 'skeletal-wizard/skeletal_wizard_attack2.png', 600],

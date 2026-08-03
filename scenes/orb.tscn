@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/orb.gd" id="1_orb"]
 [ext_resource type="Texture2D" path="res://assets/sprites/wizard/wizard_orb1.png" id="2_texture"]
-[ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/projectile-wizard.ogg" id="3_sound"]
+[ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/wizard_orb_flight.ogg" id="3_sound"]
 
 [sub_resource type="SphereShape3D" id="sphere_orb"]
 radius = 0.25
@@ -28,6 +28,5 @@ omni_range = 3.5
 
 [node name="FlightSound" type="AudioStreamPlayer3D" parent="."]
 stream = ExtResource("3_sound")
-autoplay = true
 volume_db = -8.0
 max_distance = 14.0

@@ -48,7 +48,7 @@ const ATTACK_FRAME_TIME := 0.12  # per attack frame; two of them = one lunge
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
 const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
 const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/frogmen_aggro.ogg"),
+	preload("res://assets/audio/sfx/enemies/frogmen_aggro1.ogg"),
 	preload("res://assets/audio/sfx/enemies/frogmen_aggro2.ogg"),
 	preload("res://assets/audio/sfx/enemies/frogmen_aggro3.ogg"),
 ]

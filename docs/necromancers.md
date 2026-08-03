@@ -65,13 +65,19 @@ they are the same silhouette in different dye.
 | Cast (3) | **recolour** | The glow does the elemental work (see below); the arms don't change. |
 | Projectile (2) | **NEW ART** | The single most-looked-at thing they own. A fireball must not be a blue orb in red. |
 | Aggro voice (3) | **NEW** | Cheapest possible character. acts.md's "cheap tier" is exactly this. |
+| Cast / launch (1) | **NEW** | The moment of release. Absent for every variant *including blue* — see the code hooks below. |
 | Orb impact (3) | **NEW** | Fire hisses, rock cracks. The payoff sound of the attack. |
 | Orb flight (1) | **NEW** | Travels toward you for a full second — it's a warning, not a detail. |
 | Take-hit (3) | **SHARE** | They are all people in robes. One set for the roster. |
 | Death (1) | **SHARE** | Same. Vary it later if a variant earns it. |
 
-**Per NEW variant: 2 sprites drawn, 19 recoloured, 7 sounds recorded.**
+**Per NEW variant: 2 sprites drawn, 19 recoloured, 8 sounds recorded.**
 That is the difference between a weekend and a month.
+
+*(Corrected 2026-08-02: this line said 7 and the table above was missing
+the cast/launch row. It's 8 — aggro ×3, cast ×1, orb impact ×3, orb
+flight ×1. Blue also needs its own `wizard_cast1.ogg`, since the launch
+cue is missing across the board.)*
 
 ## Sprite naming
 
@@ -119,17 +125,40 @@ Shared across the whole roster, already recorded, do not duplicate:
 Adding takes 2 and 3 later then costs nothing. (`dash_bump1.ogg` and
 `footsteps_player_dash1.ogg` follow this; several older files don't.)
 
-## Irregularities in the existing names — do NOT copy these
+## Irregularities in the existing names
 
-Real inconsistencies already in the repo. New variants should follow the
-*convention*, not the precedent:
+Audited 2026-08-02. The rule applied: **rename when the bad name will sit
+next to new correct ones and get copied; otherwise leave it alone.** Every
+rename is a chance to break a reference for zero gameplay value.
 
-- `projectile-wizard.ogg` — hyphenated and reversed. Should have been
-  `wizard_orb_flight.ogg`. New variants use the corrected form.
-- `assets/sprites/skeletal-wizard/` — hyphen, while its script is
-  `skeletal_wizard.gd` and every other creature folder is one word.
-- `wizard_death1.ogg` carries a `1` while `skeleton_death.ogg` does not.
-- `frogmen_aggro.ogg` / `2` / `3` — the first take is missing its `1`.
+**Fixed:**
+
+- ~~`projectile-wizard.ogg`~~ → **`wizard_orb_flight.ogg`** (4 refs).
+  Renamed because `wizard_red_orb_flight.ogg` is about to be its
+  neighbour, and the natural move when adding red is to copy the pattern
+  already in the folder.
+- ~~`frogmen_aggro.ogg`~~ → **`frogmen_aggro1.ogg`** (6 refs). Renamed
+  because it was the one visible exception to the "always number a set
+  from 1" rule, in the same folder the necromancer trios will land in. A
+  rule with a counter-example in plain sight stops being a rule.
+
+**Deferred — `assets/sprites/skeletal-wizard/` → `skeletal_wizard/`.**
+Genuinely wrong (hyphen, while its script is `skeletal_wizard.gd` and
+every other creature folder is one word), but **32 references** across
+`index.html` (17), `skeletal_wizard.gd` (14), and its scene. No new asset
+will ever land inside that folder, so it can't propagate. The real cost
+isn't the rename — it's that verifying it means playing all the way to
+3-3 to watch the amalgam assemble. Do it as its own isolated change on a
+day when that's the only thing being tested, not mid-feature.
+
+**Not a defect — `wizard_death1.ogg`.** An earlier draft of this doc
+listed the `1` as the irregularity. It's backwards: by the convention
+above, a numbered singleton is **correct**, and the eight unnumbered
+death sounds (`skeleton_death.ogg`, `slime_death.ogg`, the four mush
+tiers, `frogmen_frog_toad_death.ogg`, `skeletal_wizard_death.ogg`) are
+the ones off-pattern. They stay that way: eight files across six
+creatures, for singletons that will realistically never gain takes 2 and
+3. **The convention binds new sounds, not old ones.**
 
 ## Code hooks — what is already free, and what isn't
 
@@ -146,21 +175,30 @@ works. Red's whole mechanical identity is one call in the orb's hit path.
 report, the kill tally, and the bestiary all say it. See the naming
 decision below.
 
-**NOT free — two things `orb.tscn` hardcodes as scene nodes:**
+**Free as of 2026-08-02 — the orb's look and voice are now parameterized
+too.** `glow_color` and `flight_sound` are plain vars on `orb.gd`,
+defaulting to `WIZARD_GLOW` (`0.45, 0.9, 1`) and `projectile-wizard.ogg`,
+so blue is unchanged and a variant overrides them exactly like `frame_a`:
 
-1. **`Glow` is a blue `OmniLight3D`** (`light_color = (0.45, 0.9, 1)`).
-   In a dungeon lit only by your torch, a red fireball casting blue light
-   onto the walls will read as broken instantly — and worse, it wastes
-   the best telegraph the game has. CLAUDE.md's Pillar 3 is *light equals
-   meaning*; a coloured light travelling toward you through the dark IS
-   the readable threat. Needs a `glow_color` var on `orb.gd`, same
-   pattern as `frame_a`.
-2. **`FlightSound.stream` is hardcoded** to `projectile-wizard.ogg` with
-   `autoplay = true`. Needs a `flight_sound` var, applied in `_ready`
-   before the player starts.
+```gdscript
+orb.frame_a = RED_ORB_A
+orb.frame_b = RED_ORB_B
+orb.glow_color = Color(1.0, 0.45, 0.15)      # firelight, not bolt-blue
+orb.flight_sound = RED_ORB_FLIGHT
+orb.impact_sounds = RED_ORB_IMPACTS
+```
 
-Both are small, and both must land before any variant can look or sound
-like itself.
+`FlightSound`'s `autoplay` came off the scene to make this work — children
+`_ready` before their parent, so autoplay started the *default* stream a
+beat early, and assigning `stream` to a playing player stops it dead.
+`orb.gd` now starts it explicitly in `_ready` after the overrides land.
+
+**Still hardcoded, and it matters for brown:** `light_energy` (1.2) and
+`omni_range` (3.5) are scene values. A thrown rock is not magical and
+probably should not glow at all — that wants `glow_energy` alongside
+`glow_color`, one more var of the same shape. Left undone deliberately;
+add it when brown is actually being built and you can see what a
+non-luminous projectile reads like in a torch-lit corridor.
 
 **Also worth knowing:** `wizard.gd`'s `_fire_orb()` plays no sound of its
 own — the whoosh you hear is the orb's own `FlightSound`, riding along
@@ -186,13 +224,13 @@ stays greppable.
 
 Each step is independently testable and leaves the game shippable.
 
-1. **Parameterize the orb** — `glow_color` + `flight_sound` on `orb.gd`.
-   No art needed; blue keeps its current values as the defaults. This is
-   the gate on everything else looking right.
+1. ~~**Parameterize the orb**~~ — **DONE 2026-08-02.** `glow_color` +
+   `flight_sound` on `orb.gd`, blue's values as the defaults. (`glow_energy`
+   for a non-luminous thrown rock is still open — see above.)
 2. **The launch sound** — `wizard_<v>_cast1.ogg` fired from `_fire_orb`.
    Closes creature-polish.md's outstanding wizard item for blue at the
    same time.
-3. **One variant end to end** — red. 19 recolours, 2 new orb frames, 7
+3. **One variant end to end** — red. 19 recolours, 2 new orb frames, 8
    sounds. Proves the whole pipeline on a single creature before the
    second one multiplies any mistake.
 4. **`kill_label()` → Necromancer**, once there is more than one to name.
