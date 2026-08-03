@@ -123,6 +123,23 @@ across the acts** (archaic dungeon runes → elemental earth-marks → cosmic
 built — the cheapest way to make three acts read as three *places*, from art
 that already exists.
 
+**The asset spec (→ necromancers.md).** What to draw, record, and name for
+the elemental roster lives in **docs/necromancers.md** — including the cost
+lever that makes it affordable (robe colour, projectile, and voice carry the
+identity; the other 17 sprites are recolours) and the two things `orb.tscn`
+hardcodes that must be parameterized first (its blue glow and its flight
+sound).
+
+**The places they work (parked → stations.md).** The necromancers need
+somewhere to have *done* the work: archaic benches, cages, contraptions
+holding the experiments. Full write-up in **docs/stations.md** — walk-around
+props built from five flat face sprites on a box, using the same
+non-billboard `Sprite3D` the hatch already uses, so it needs no new art
+pipeline. It belongs with the throughline because of what it unlocks: a
+wizard spawned *at* a station, idling toward its machine, turns the existing
+aggro startle into someone **interrupted** rather than a monster noticing you
+— authored intent instead of a spawn table. Technique-sized, not demo work.
+
 **Discipline:** keep it light in the demo — a single hint you're chasing
 *someone* is plenty at 3-3; the full necromancer arc is act content. Don't let
 a great story balloon the thing that ships.

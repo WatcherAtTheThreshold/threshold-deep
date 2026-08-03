@@ -14,6 +14,10 @@ const PICKUP_SOUNDS: Array[AudioStream] = [
 
 
 func _ready() -> void:
+	# "drops" = combat spoils lying on the floor. Grouped so the boss-floor
+	# collapse can bring them down with everything else instead of leaving
+	# them hanging over the shaft. Covers the full AND half heart drops.
+	add_to_group("drops")
 	body_entered.connect(_on_body_entered)
 
 

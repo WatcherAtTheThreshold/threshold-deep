@@ -81,11 +81,17 @@ roster gained weight in one sweep.
 ### Wizard — [wizard.gd](../scripts/wizard.gd)
 - **Has:** a real cast telegraph (charge/release/recover frames +
   swelling `cast_glow`), hit flash, hit SFX (×3), dead art.
-- **Needs (signature sound):** **the orb fires with no sound.** `_fire_orb`
-  ([wizard.gd:248](../scripts/wizard.gd#L248)) has no `Sfx.play`; a cast
-  whoosh on release (and optionally a charge hum during `_start_cast_glow`)
-  would give the telegraph teeth. Check whether `orb.tscn` plays its own
-  impact — if not, that's a third cue. (**Death SFX and aggro cue: DONE.**)
+- **Needs (signature sound):** a **launch cue at the caster.** *(Corrected
+  2026-08-02 — the earlier note here overstated this.* The orb is NOT
+  silent: `orb.tscn` carries an autoplay `FlightSound` that travels with
+  the projectile, and `orb.gd` plays `impact_sounds` on hit. Both cues
+  exist.*)* What's genuinely missing is a sound at the moment of release:
+  `_fire_orb` ([wizard.gd:324](../scripts/wizard.gd#L324)) has no
+  `Sfx.play`, so the cast reads as a thing that *arrives* rather than a
+  thing someone *did*. A charge hum during `_start_cast_glow` is still
+  optional on top. See **docs/necromancers.md** — adding it parameterized
+  closes it for the whole elemental roster at once.
+  (**Death SFX and aggro cue: DONE.**)
 
 ### Slime (+ Slime Boss) — [slime.gd](../scripts/slime.gd)
 - **Has:** hit flash, hit SFX (×3), rich state art (spawn puddle,

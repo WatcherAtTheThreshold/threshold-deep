@@ -70,6 +70,10 @@ const WANDER_LEG_MAX := 2.0
 const WANDER_PAUSE_MIN := 2.0
 const WANDER_PAUSE_MAX := 6.0
 
+# The self-despawn net, per body so the boss drop can lower it (same pattern as
+# skeletal_wizard.gd): a wave that rides the caving floor down must not delete
+# itself to "the Dark Below" on the way to a chamber 12m under the old one.
+var fall_y := FALL_Y
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
 var cast_timer := 1.0
@@ -98,7 +102,7 @@ var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 func _physics_process(delta: float) -> void:
 	if dead:
 		return
-	if global_position.y < FALL_Y:
+	if global_position.y < fall_y:
 		_fall_into_dark()
 		return
 	if not is_on_floor():

@@ -141,6 +141,12 @@ var arena_mists: Array[Node3D] = []
 var boss_index := 0
 var fight_active := false
 var fight_grace := 0.0
+# Player Y that counts as "fell through the arena floor". A standing body sits
+# at y ~1.5 and the Dark Below claims it at -1.5, so this is unambiguously a
+# fall with ~1.2m of margin left — several physics frames to catch it before
+# the death plane does.
+const EARLY_DROP_Y := -0.3
+
 var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
 var boss_floor_dropped := false  # the arena floor has caved into the chamber
 var boss_plate: Node3D = null    # the consent plate, so the drop can clear it
@@ -263,7 +269,6 @@ func _ready() -> void:
 			RunState.FloorKind.keys()[kind]])
 
 	_build(map)
-	_dress_upper_walls()
 	if kind == RunState.FloorKind.BOSS:
 		arena_room_idx = _largest_room(rooms)
 		_populate(rooms, arena_room_idx, false)
@@ -276,6 +281,9 @@ func _ready() -> void:
 		_setup_item_room()
 	else:
 		_populate(rooms)
+	# Both of these read arena_room_idx / item_room_idx, so they run AFTER the
+	# special room has been chosen above — not with _build.
+	_dress_upper_walls()
 	_vary_ceilings()
 	if RunState.stage(RunState.depth) != 1:
 		# The sealed doorway you arrived through — bare frame, stone
@@ -334,6 +342,7 @@ func _physics_process(_delta: float) -> void:
 		enemy_cells[eid] = ecell
 
 	if fight_active:
+		_check_early_boss_drop()
 		fight_grace = maxf(fight_grace - _delta, 0.0)
 		if fight_grace == 0.0 and not _arena_has_living_enemies():
 			if boss_index >= 2 and amalgam_stage == 0:
@@ -818,28 +827,35 @@ func _player_inside_room(room: Rect2i) -> bool:
 
 
 func _dress_upper_walls() -> void:
-	# Every stone wall wears a variant band, and the bands come in
-	# neighborhoods: each room rolls a variant, its walls agree, and
-	# corridor walls side with the nearest room — halls carry a
-	# room's masonry outward, so the dungeon reads in zones.
-	var room_variant: Array[int] = []
-	for i in floor_rooms.size():
-		room_variant.append(wall_upper_variants[
-				randi_range(0, wall_upper_variants.size() - 1)])
-	if room_variant.is_empty():
+	# The upper band is a TELL, not decoration. Boss arenas and item rooms wear
+	# the second masonry; every ordinary room and every corridor wears the
+	# first. It reinforces a signal the floor already sends — both room kinds
+	# also take CEILING_GRAND_LAYERS, and a raised ceiling is exactly where you
+	# see MORE of the band, so the special stone shows up where there's most of
+	# it to show. Reads from the doorway, before you see what's inside.
+	# (Was a random variant per room with corridors siding with the nearest one;
+	# that traded a meaningful tell for zoning, and the tell is worth more.)
+	if wall_upper_variants.size() < 2:
 		return
+	var plain: int = wall_upper_variants[0]
+	var special: int = wall_upper_variants[1]
+	# A room's OWN walls are its 1-cell border frame — the same frame
+	# _raise_room fills — so the special band stops at the doorway instead of
+	# bleeding down every corridor that happens to point at the room.
+	var special_frames: Array[Rect2i] = []
+	for i: int in [arena_room_idx, item_room_idx]:
+		if i >= 0 and i < floor_rooms.size():
+			special_frames.append(floor_rooms[i].grow(1))
 	for cell: Vector3i in grid_map.get_used_cells():
 		if grid_map.get_cell_item(cell) != wall_id:
 			continue
-		var p := Vector2(cell.x, cell.z)
-		var best := 0
-		var best_d := INF
-		for i in floor_rooms.size():
-			var d := p.distance_squared_to(Vector2(floor_rooms[i].get_center()))
-			if d < best_d:
-				best_d = d
-				best = i
-		upper_map.set_cell_item(cell, room_variant[best])
+		var band := plain
+		var p := Vector2i(cell.x, cell.z)
+		for frame: Rect2i in special_frames:
+			if frame.has_point(p):
+				band = special
+				break
+		upper_map.set_cell_item(cell, band)
 
 
 func _vary_ceilings() -> void:
@@ -1126,6 +1142,10 @@ func _drop_boss_floor() -> void:
 	if boss_floor_dropped:
 		return
 	boss_floor_dropped = true
+	# The music steps aside for the boom and swells back on the far side. Lives
+	# HERE rather than at the call site so it fires exactly once, on whichever
+	# path actually caves the floor — the wave clearing, or you falling first.
+	MusicDrift.duck()
 	# Drop the death plane below the chamber floor: standing in the chamber
 	# (y ~ -11.5) is now safe, but a fall THROUGH it still ends the run.
 	player.fall_death_y = 0.5 - float(BOSS_DROP_LAYERS) * 4.0 - 2.5
@@ -1159,6 +1179,7 @@ func _drop_boss_floor() -> void:
 			hole_map.set_cell_item(Vector3i(x, 0, z), GridMap.INVALID_CELL_ITEM)
 	_rebuild_hole_rims()  # the arena's rims go now that its hole cells cleared
 	_clear_arena_props(arena)  # splats, creep, any flat aftermath over the pit
+	_drop_arena_pickups(arena)  # the spoils ride down too, still collectable
 	# The cave-in beat: the dedicated floor-fall sound, a curtain of dust
 	# down the shaft, a hard camera kick.
 	Sfx.play_at(SOUND_BOSS_FLOOR_FALL, player.global_position, -1.0)
@@ -1206,6 +1227,32 @@ func _spawn_shaft_dust(arena: Rect2i) -> void:
 	p.global_position = _cell_to_world(arena.get_center(), 0.5)
 	p.emitting = true
 	get_tree().create_timer(p.lifetime + 0.5).timeout.connect(p.queue_free)
+
+
+func _drop_arena_pickups(arena: Rect2i) -> void:
+	# The potions and hearts the wave shed are static Area3Ds — no physics, no
+	# bob — so they'd hang in the air over the open shaft, visible and forever
+	# out of reach. Tween them straight down onto the chamber floor, keeping
+	# their XZ scatter: what the fight upstairs earned you is still there to
+	# collect after the fall, which matters most right before the amalgam.
+	# Runs from _drop_boss_floor, so it covers BOTH the wave-clear drop and an
+	# early fall, exactly once either way.
+	var min_x := arena.position.x * CELL_SIZE - 0.5
+	var max_x := arena.end.x * CELL_SIZE + 0.5
+	var min_z := arena.position.y * CELL_SIZE - 0.5
+	var max_z := arena.end.y * CELL_SIZE + 0.5
+	# Drops sit ~0.1 above the floor surface (a skeleton sheds them at its own
+	# y - 0.9); chamber_top is that surface down in the chamber.
+	var rest_y := 0.5 - float(BOSS_DROP_LAYERS) * 4.0 + 0.1
+	for node: Node3D in get_tree().get_nodes_in_group("drops"):
+		if not is_instance_valid(node):
+			continue
+		var p := node.global_position
+		if p.x < min_x or p.x > max_x or p.z < min_z or p.z > max_z:
+			continue
+		var tw := create_tween()
+		tw.tween_property(node, "global_position", Vector3(p.x, rest_y, p.z), 1.1) \
+				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
 func _clear_arena_props(arena: Rect2i) -> void:
@@ -1357,6 +1404,61 @@ func _spawn_mush_boss() -> void:
 	fight_grace = 1.5
 
 
+func _check_early_boss_drop() -> void:
+	# The floor was ALWAYS going to give way. Fall through an arena plank
+	# mid-wave and it simply happens early — on your mistake instead of on the
+	# wave's end — and the living wave comes down with you. The fight carries
+	# on in the chamber and the amalgam still assembles when they're all
+	# corpses, because the wave-clear test and the corpse sweep both check XZ
+	# only: the chamber sits directly under the arena, so "in the arena" is
+	# still true 12m down. Nothing about the climax needs re-sequencing.
+	if boss_index < 2 or amalgam_stage != 0 or boss_floor_dropped:
+		return
+	if player.global_position.y > EARLY_DROP_Y:
+		return
+	var arena := floor_rooms[arena_room_idx]
+	var p := player.global_position
+	if p.x < arena.position.x * CELL_SIZE - 0.5 \
+			or p.x > arena.end.x * CELL_SIZE + 0.5 \
+			or p.z < arena.position.y * CELL_SIZE - 0.5 \
+			or p.z > arena.end.y * CELL_SIZE + 0.5:
+		return  # fell through a hole somewhere else — that's still the Dark Below
+	_drop_with_the_living(arena)
+
+
+func _drop_with_the_living(arena: Rect2i) -> void:
+	# Everything in the arena rides the collapse down.
+	# LIVING bodies just need their despawn net lowered first — each creature
+	# deletes itself under its own fall_y, and the chamber floor is ~12m below
+	# the normal one — after which gravity does the rest and they land still
+	# fighting. CORPSES have no physics at all (their _physics_process returns
+	# on `dead`), so they would hang in the air over the open shaft: tween them
+	# straight down, keeping their XZ, and the later assembly finds them
+	# exactly where it expects.
+	var min_x := arena.position.x * CELL_SIZE - 0.5
+	var max_x := arena.end.x * CELL_SIZE + 0.5
+	var min_z := arena.position.y * CELL_SIZE - 0.5
+	var max_z := arena.end.y * CELL_SIZE + 0.5
+	var chamber_top := 0.5 - float(BOSS_DROP_LAYERS) * 4.0
+	var net := chamber_top - 5.0
+	for child in get_children():
+		if not child is CharacterBody3D or child == player:
+			continue
+		var p: Vector3 = child.global_position
+		if p.x < min_x or p.x > max_x or p.z < min_z or p.z > max_z:
+			continue
+		if child.get("dead") == true:
+			var tw := create_tween()
+			tw.tween_property(child, "global_position",
+					Vector3(p.x, chamber_top + 0.1, p.z), 1.1) \
+					.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		else:
+			# No-op on a creature without the var (a stray wanderer); it falls
+			# to the Dark Below as it always would.
+			child.set("fall_y", net)
+	_drop_boss_floor()
+
+
 func _drop_into_assembly() -> void:
 	# The 3-3 climax: the arena floor caves in. The player falls by real
 	# physics; every corpse they made — captured first, before the tiles
@@ -1379,10 +1481,9 @@ func _drop_into_assembly() -> void:
 		var p: Vector3 = child.global_position
 		if p.x >= min_x and p.x <= max_x and p.z >= min_z and p.z <= max_z:
 			corpses.append(child)
-	# Cave the floor: player plunges, tiles tumble, the way back seals. The
-	# music steps aside for the boom and swells back as the amalgam rises —
-	# the drop gets its own beat without needing a second boss track.
-	MusicDrift.duck()
+	# Cave the floor: player plunges, tiles tumble, the way back seals. A
+	# no-op if an early fall already dropped it — the corpses below were
+	# brought down then, and everything from here treats them the same.
 	_drop_boss_floor()
 	# Assemble at the arena centre XZ, just above the chamber floor (the
 	# chamber is solid — no holes, no hatch yet — so the centre is safe).

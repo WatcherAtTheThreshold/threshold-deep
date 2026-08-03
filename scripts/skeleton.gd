@@ -99,6 +99,10 @@ const KNOCK_FRICTION := 30.0
 const FALL_Y := -1.5
 
 var speed := BASE_SPEED
+# The self-despawn net, per body so the boss drop can lower it (same pattern as
+# skeletal_wizard.gd): a wave that rides the caving floor down must not delete
+# itself to "the Dark Below" on the way to a chamber 12m under the old one.
+var fall_y := FALL_Y
 var health := MAX_HEALTH
 var attack_timer := 0.0
 var attack_anim := 0.0  # counts down while the lunge frames play
@@ -156,7 +160,7 @@ func _physics_process(delta: float) -> void:
 					Sfx.play_at(REVIVE_SOUND, global_position, -2.0)
 					_rise_shake()
 		return
-	if global_position.y < FALL_Y:
+	if global_position.y < fall_y:
 		_fall_into_dark()
 		return
 	attack_timer = maxf(attack_timer - delta, 0.0)

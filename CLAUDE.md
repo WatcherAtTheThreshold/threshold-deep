@@ -124,6 +124,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   grand. Visual only — the torch can't reach the top, so tall rooms
   dissolve into shadow (the intimidating "Barony" effect). Tuning consts:
   `CEILING_TALL_CHANCE`, `CEILING_CATHEDRAL_CHANCE`, `CEILING_GRAND_LAYERS`.
+- **The upper wall band is a tell.** `_dress_upper_walls` gives boss
+  arenas and item rooms `wall_upper2` (`wall_stone_upper2.png` from the
+  world's tile folder); everything else — ordinary rooms AND corridors —
+  wears `wall_upper1`. A special room's walls are its 1-cell border
+  frame (`Rect2i.grow(1)`, the same frame `_raise_room` fills), so the
+  band stops at the doorway instead of bleeding down the corridor. It
+  must run AFTER `arena_room_idx` / `item_room_idx` are assigned — it
+  sits beside `_vary_ceilings()`, not with `_build()`.
 - `RunState` autoload = everything that must survive scene reloads:
   depth, kills (total + per-creature tally), damage dealt/taken,
   carried health/max health/magic hearts, sword ownership, and the
@@ -211,7 +219,22 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   each self-despawns to "the Dark Below" on landing. `controls_enabled =
   false` during the plunge both locks input AND skips the death check
   (the chamber floor catches the fall; `_watch_boss_landing` restores
-  control). (A temporary debug **G** key that caved the floor on demand
+  control). **The early drop:** falling through an arena plank mid-wave
+  (`_check_early_boss_drop` → `_drop_with_the_living`) caves the floor
+  THEN, with the living wave riding it down to finish the fight in the
+  chamber; the amalgam still assembles on wave-clear. This works because
+  `_arena_has_living_enemies` and the corpse sweep test XZ only and the
+  chamber sits directly below, so "in the arena" stays true 12 m down.
+  Living bodies need `fall_y` lowered first (skeleton/wizard now carry a
+  `var fall_y := FALL_Y` like the amalgam; slime/mush/frogman still use
+  the bare const and would despawn); corpses have no physics and must be
+  tweened down or they hang over the shaft. `MusicDrift.duck()` lives in
+  `_drop_boss_floor` so it fires once on either path. Combat drops
+  (potion/half, magic heart/half) join group **`"drops"`** in their two
+  shared scripts' `_ready`, and `_drop_arena_pickups` tweens them onto
+  the chamber floor with the rest — new floor-level spoils should join
+  that group or they will hang over the shaft.
+  (A temporary debug **G** key that caved the floor on demand
   was removed once the flow was confirmed — re-add a keycode branch in
   `_unhandled_input` calling `_drop_into_assembly` if you need to iterate.)
 - The commoner secret (x-1 floors): the generator grafts a sealed
