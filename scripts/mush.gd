@@ -840,14 +840,16 @@ func _can_see(t: PhysicsBody3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
-func alert() -> void:
-	# Woken by a nearby kin's shout: snap awake, turn on the player, sting.
-	# A grudge stays its own; only an idle cap adopts the player as target.
+func alert(against: PhysicsBody3D = null) -> void:
+	# Woken by a nearby kin's shout: snap awake, sting, and pile in. `against`
+	# is set when the shout came from an INFIGHT — then the neighbours turn on
+	# the AGGRESSOR rather than the player. A grudge stays its own; only an
+	# idle cap adopts a target from the shout.
 	if noticed:
 		return
 	noticed = true
 	if target == null:
-		target = player
+		target = against if is_instance_valid(against) else player
 	aggro_timer = AGGRO_TIME
 	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
 			global_position, -4.0)

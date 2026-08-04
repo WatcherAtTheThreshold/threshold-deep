@@ -39,6 +39,8 @@ var emberstone := false # red rough: wounds burn (fire ticks + chars planks)
 var damage_dealt := 0
 var damage_taken := 0
 var kills_by_type := {}
+var run_seconds := 0.0   # wall-clock for the whole descent; dungeon.gd feeds it
+var secrets_found := 0   # commoner chambers opened — the pale-plank reward
 var killer_name := ""
 var killer_texture: Texture2D = null
 
@@ -84,6 +86,55 @@ func record_damage_taken(amount: int) -> void:
 	damage_taken += amount
 
 
+func record_secret() -> void:
+	secrets_found += 1
+	changed.emit()
+
+
+func time_text() -> String:
+	var t := int(run_seconds)
+	@warning_ignore("integer_division")
+	var mins := t / 60  # discarding the remainder IS the point — it's the seconds
+	return "%d:%02d" % [mins, t % 60]
+
+
+func score() -> int:
+	# A run SUMMARY, not an arcade meter. It rewards what the design already
+	# values — going deep, meeting the whole roster, finding what's hidden,
+	# and not getting hit — and none of it can be farmed by grinding one room.
+	#
+	# TIME IS DELIBERATELY NOT SCORED. These levels reward slowing down and
+	# looking: bone piles that stir when you linger, a secret whose only tell
+	# is a pale plank, item rooms that respect you for leaving empty-handed. A
+	# speed bonus would score the opposite of what the levels are built for.
+	# The clock is shown, never rewarded.
+	#
+	# Kills stay a COMPONENT, not the headline, and they're weighted low on
+	# purpose: the dungeon fights itself constantly (slime creep, infight
+	# rallies), and only player kills count. Leaning on kills would quietly
+	# punish letting the deep do the work — the best thing it does.
+	var s := 100 * depth
+	s += 250 * bosses_defeated
+	s += 10 * kills
+	s += 25 * kills_by_type.size()  # variety: meet the roster, don't grind one
+	s += 150 * secrets_found
+	s += 50 * trophy_count()
+	s -= 5 * damage_taken
+	return maxi(s, 0)
+
+
+func trophy_count() -> int:
+	# Build-defining pickups claimed, counted off the flags that already exist
+	# — no new bookkeeping. Tiered stones count once per tier.
+	var n := armor_tier + fleet_tier + rage_tier + hasty_tier
+	for flag: bool in [lucky, quickstep, twicecut, gapleaper, barrelstone,
+			wideswing, rotstone, emberstone,
+			has_sword, has_staff, has_boomerang, has_halberd]:
+		if flag:
+			n += 1
+	return n
+
+
 func set_killer(label: String, texture: Texture2D) -> void:
 	killer_name = label
 	killer_texture = texture
@@ -98,10 +149,12 @@ func descend(current_health: int, current_max: int, current_magic: int) -> void:
 
 
 func reset() -> void:
-	print("Run over: reached depth %d with %d kills (dealt %d, took %d)." \
-			% [depth, kills, damage_dealt, damage_taken])
+	print("Run over: reached depth %d in %s with %d kills (dealt %d, took %d) — SCORE %d." \
+			% [depth, time_text(), kills, damage_dealt, damage_taken, score()])
 	depth = 1
 	kills = 0
+	run_seconds = 0.0
+	secrets_found = 0
 	bosses_defeated = 0
 	victory_shown = false
 	carried_health = -1

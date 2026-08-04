@@ -7,6 +7,7 @@ signal torch_attacked  # the off-hand torch shove (drives the left-hand viewmode
 signal blocked
 signal died
 signal poisoned(current: int, maximum: int, magic: int)
+signal burned(current: int, maximum: int, magic: int)
 
 const SPEED := 5.0
 const DASH_SPEED := 16.0    # a punchier burst (was 14)
@@ -64,6 +65,12 @@ const INVULN_TIME := 1.0
 const POISON_TICKS := 2           # delayed ticks after a slime touch / creep
 const POISON_TICK_DAMAGE := 1     # half-heart per tick
 const POISON_INTERVAL := 1.2      # seconds between ticks (matches the Rot Dot)
+# Burn is poison's twin, deliberately kept as its own channel: a red
+# necromancer's fireball can land on an already-poisoned player and both should
+# run. Faster than the Rot, matching Dot.gd's 0.8s Ember interval.
+const BURN_TICKS := 3
+const BURN_TICK_DAMAGE := 1
+const BURN_INTERVAL := 0.8
 const CREEP_POISON_RANGE := 0.6   # horizontal metres to count as standing in it
 const CREEP_SCAN_INTERVAL := 0.25 # throttle the creep proximity check
 const LAND_DIP := 0.4       # camera crumple depth at impact (metres)
@@ -129,6 +136,10 @@ var torch_attack_timer := 0.0  # off-hand torch shove cooldown, independent of t
 var invuln_timer := 0.0
 var poison_ticks := 0
 var poison_clock := 0.0
+var burn_ticks := 0
+var burn_clock := 0.0
+var burn_killer := "the Ember"
+var burn_killer_tex: Texture2D = null
 var poison_killer := ""
 var poison_killer_tex: Texture2D = null
 var creep_scan := 0.0
@@ -139,6 +150,19 @@ var dash_dir := Vector3.ZERO
 var barrel_hit := {}  # enemies the current dash has already struck (Barrelstone)
 var dash_bumped := false  # this dash already thudded into a body (once per dash)
 var recoil := Vector3.ZERO  # decaying self-knockback from a landed melee hit
+# True while the cell underfoot is plank (dungeon.gd sets it on every cell
+# change — it owns the tile ids). Drives the creak, which is a WARNING: the
+# boards tell you the ground is temporary before you ever look down.
+var on_wood := false
+# Footstep level by surface. The creak and the steps share a frequency band, so
+# past a point raising the creak just makes the mix louder instead of clearer —
+# the punch comes from CONTRAST. Ducking the steps on planks opens ~8dB of
+# space under the creak (which sits at -6 on $CreakSound), and it's honest
+# besides: wood absorbs a footfall where stone rings.
+# NOTE: these OVERWRITE $StepSound's scene volume every frame — tune here,
+# not in player.tscn.
+const STEP_DB_STONE := -10.0
+const STEP_DB_WOOD := -14.0
 var base_fov := 75.0  # camera's rest FOV, captured in _ready (for the dash kick)
 var fov_tween: Tween  # the dash FOV recovery, killed on a fresh dash
 var _shake_dur := 0.0     # camera-shake countdown (0 = still)
@@ -151,6 +175,7 @@ var gate_pull := false  # a mist gate's tween owns the body; physics stands down
 
 @onready var camera: Camera3D = $Camera3D
 @onready var step_sound: AudioStreamPlayer = $StepSound
+@onready var creak_sound: AudioStreamPlayer = $CreakSound
 
 
 func _ready() -> void:
@@ -485,6 +510,14 @@ func _physics_process(delta: float) -> void:
 			_apply_poison_tick()
 		if poison_ticks == 0:
 			poison_clock = 0.0
+	if burn_ticks > 0:
+		burn_clock += delta
+		if burn_clock >= BURN_INTERVAL:
+			burn_clock -= BURN_INTERVAL
+			burn_ticks -= 1
+			_apply_burn_tick()
+		if burn_ticks == 0:
+			burn_clock = 0.0
 
 	var input_dir := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
 	var direction := (transform.basis * Vector3(input_dir.x, 0.0, input_dir.y)).normalized()
@@ -559,10 +592,19 @@ func _update_step_audio() -> void:
 	# when airborne, still, or dead.
 	var walking := controls_enabled and is_on_floor() \
 			and Vector2(velocity.x, velocity.z).length() > 0.5
+	step_sound.volume_db = STEP_DB_WOOD if on_wood else STEP_DB_STONE
 	if walking and not step_sound.playing:
 		step_sound.play()
 	elif not walking and step_sound.playing:
 		step_sound.stop()
+	# Planks complain under your weight. Layered OVER the footstep loop rather
+	# than replacing it — you still hear yourself walking, the wood just
+	# objects. Same loop-while-moving rule as the steps.
+	var creaking := walking and on_wood
+	if creaking and not creak_sound.playing:
+		creak_sound.play()
+	elif not creaking and creak_sound.playing:
+		creak_sound.stop()
 
 
 func _attack() -> void:
@@ -788,6 +830,36 @@ func _apply_poison_tick() -> void:
 	poisoned.emit(health, max_health, magic_hearts)
 	if health == 0:
 		RunState.set_killer(poison_killer, poison_killer_tex)
+		controls_enabled = false
+		$TorchCrackle.stop()
+		died.emit()
+
+
+func take_burn(source_label := "the Ember", source_tex: Texture2D = null) -> void:
+	# The red necromancer's fireball keeps working after it lands. Runs OUTSIDE
+	# take_damage for the same reason poison does: i-frames would swallow ticks
+	# at random and each tick would fire the hit sound like a fresh blow.
+	# Refresh, never stack — the clock is not reset, so standing in fire keeps
+	# burning rather than postponing the next tick forever.
+	if not controls_enabled or health <= 0:
+		return
+	burn_ticks = BURN_TICKS
+	burn_killer = source_label
+	burn_killer_tex = source_tex
+
+
+func _apply_burn_tick() -> void:
+	# Magic hearts soak the burn first, same as poison and any other damage.
+	# No i-frames granted or checked.
+	var remaining := BURN_TICK_DAMAGE
+	var absorbed := mini(magic_hearts, remaining)
+	magic_hearts -= absorbed
+	remaining -= absorbed
+	health = maxi(health - remaining, 0)
+	RunState.record_damage_taken(BURN_TICK_DAMAGE)
+	burned.emit(health, max_health, magic_hearts)
+	if health == 0:
+		RunState.set_killer(burn_killer, burn_killer_tex)
 		controls_enabled = false
 		$TorchCrackle.stop()
 		died.emit()

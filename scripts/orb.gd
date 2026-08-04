@@ -33,8 +33,8 @@ var glow_color: Color = WIZARD_GLOW
 # says you can always tell what is about to hurt you. Dim it, never kill it.
 var glow_energy := WIZARD_GLOW_ENERGY
 var flight_sound: AudioStream = WIZARD_FLIGHT
-# Non-empty: the impact also attaches this Dot (the red necromancer's "Ember").
-# Creature victims only — see the note in _on_body_entered about the player.
+# Non-empty: the impact keeps working. Creatures get a Dot node; the player
+# gets the matching outside-the-hit-path channel (take_burn / take_poison).
 var dot_kind := ""
 var damage := 2  # half-heart units: a full heart per orb
 var speed_scale := 1.0  # the Hasty Little Stone quickens player orbs
@@ -85,6 +85,20 @@ func _on_body_entered(body: Node3D) -> void:
 	if body is Player:
 		# Credit the caster.
 		body.take_damage(damage, direction, credit)
+		if dot_kind == "Ember":
+			# The fireball keeps working. NOT a Dot node: on the player those
+			# tick through take_damage, where i-frames would eat them at
+			# random. take_burn is the player's own outside-the-hit-path
+			# channel, the twin of take_poison.
+			var label := "the Ember"
+			var tex: Texture2D = null
+			if is_instance_valid(credit):
+				if credit.has_method("kill_label"):
+					label = credit.kill_label()
+				var caster_sprite: Sprite3D = credit.get_node_or_null("Sprite")
+				if caster_sprite != null:
+					tex = caster_sprite.texture
+			body.take_burn(label, tex)
 	elif body.is_in_group("enemies"):
 		# Friendly fire: a stray orb starts an infight. Player orbs
 		# (the staff) count toward damage dealt.
@@ -95,10 +109,8 @@ func _on_body_entered(body: Node3D) -> void:
 		if dot_kind != "" and is_instance_valid(credit):
 			# A red orb burns what it hits, and because Dot ticks credit the
 			# caster, the victim turns on it — the same infighting rule the
-			# slime's caustic touch runs on. Creatures only, deliberately: on
-			# the PLAYER a Dot tick goes through take_damage, where i-frames
-			# would swallow burns at random. That path needs its own
-			# take_burn(), mirroring take_poison. See docs/necromancers.md.
+			# slime's caustic touch runs on. Creatures take the Dot node; the
+			# player takes take_burn instead (see the Player branch above).
 			Dot.attach(body, credit, dot_kind)
 	elif body is GridMap:
 		# Orbs splinter wood — anyone's orbs. Each point of damage

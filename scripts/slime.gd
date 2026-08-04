@@ -504,6 +504,7 @@ func _lay_creep() -> void:
 	var creep := CREEP_SCENE.instantiate()
 	# Sit just above the floor surface, same as the death splat.
 	creep.position = Vector3(here.x, here.y - 0.5 + 0.03, here.z)
+	creep.source = self  # who to credit when the trail rots someone
 	get_parent().add_child.call_deferred(creep)
 
 
@@ -599,7 +600,8 @@ func _spill_death_creep() -> void:
 	# A slime bursts into a pool of fresh, caustic goo — bigger for a bigger
 	# slime — that poisons while wet, then dries (fades) to the harmless
 	# stain the splat leaves underneath. Reuses the trail creep, so it
-	# self-disarms on the same alpha gate; only the player is at risk.
+	# self-disarms on the same alpha gate. A killed slime's pool keeps
+	# rotting whoever wanders into it: the last word of a dying blob.
 	var count := 1
 	if state == State.BOSS:
 		count = 3
@@ -612,6 +614,7 @@ func _spill_death_creep() -> void:
 			off = Vector2(randf_range(-0.55, 0.55), randf_range(-0.55, 0.55))
 		creep.position = Vector3(global_position.x + off.x,
 				global_position.y - 0.5 + 0.03, global_position.z + off.y)
+		creep.source = self
 		get_parent().add_child.call_deferred(creep)
 
 
@@ -782,14 +785,16 @@ func _can_see(t: PhysicsBody3D) -> bool:
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 
-func alert() -> void:
-	# Woken by a nearby kin's shout: snap awake, turn on the player, sting.
-	# A dormant puddle stays dormant; a grudge stays its own.
+func alert(against: PhysicsBody3D = null) -> void:
+	# Woken by a nearby kin's shout: snap awake, sting, and pile in. `against`
+	# is set when the shout came from an INFIGHT — then the neighbours turn on
+	# the AGGRESSOR rather than the player. A dormant puddle stays dormant; a
+	# grudge stays its own.
 	if noticed or state == State.PUDDLE:
 		return
 	noticed = true
 	if target == null:
-		target = player
+		target = against if is_instance_valid(against) else player
 	aggro_timer = AGGRO_TIME
 	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
 			global_position, -4.0)

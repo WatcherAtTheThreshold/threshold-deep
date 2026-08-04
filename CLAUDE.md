@@ -60,7 +60,18 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   `.asd` sidecars are gitignored.
 - Footstep files are walking **loops**, not one-shots: scripts play
   them while the body moves and stop them when still/dead (no import
-  loop flags needed). Own-player sounds are flat `AudioStreamPlayer`;
+  loop flags needed). The player's **plank creak**
+  (`wood_floor_creek.ogg` on `$CreakSound`) follows the same rule and
+  layers OVER the footstep loop, gated on `player.on_wood` — which
+  `dungeon.gd` sets on every player cell change, since it owns the tile
+  ids. It's a Pillar-3 warning: the boards tell you the ground is
+  temporary before you look down. Steps also DUCK on planks
+  (`STEP_DB_WOOD` vs `STEP_DB_STONE`, set from code every frame — tuning
+  `$StepSound`'s scene volume does nothing), because the punch comes from
+  contrast, not gain. **Creatures creak too**: `dungeon.gd`'s
+  `_update_enemy_creak` makes a positional `Creak` player on demand,
+  gated on the creature's own `StepSound.playing` — so it needs no
+  creature-script change and never sounds from a corpse or a still body. Own-player sounds are flat `AudioStreamPlayer`;
   world sounds are positional `AudioStreamPlayer3D` (max_distance 18).
 - One-shots that outlive their emitter (e.g. potion pickup): spawn a
   self-freeing `AudioStreamPlayer3D` into the world.
@@ -134,16 +145,35 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   sits beside `_vary_ceilings()`, not with `_build()`.
 - `RunState` autoload = everything that must survive scene reloads:
   depth, kills (total + per-creature tally), damage dealt/taken,
-  carried health/max health/magic hearts, sword ownership, and the
-  killer's name + sprite for the death report. Descent keeps it,
-  death resets it. New persistent run state belongs there.
+  carried health/max health/magic hearts, sword ownership, `run_seconds`,
+  `secrets_found`, and the killer's name + sprite for the death report.
+  Descent keeps it, death resets it. New persistent run state belongs there.
+- **Score, not kills, is the headline** (`RunState.score()`). The HUD's
+  `RunInfo` reads `floor · clock · score`; the death/victory report leads
+  with SCORE and keeps kills as a line. Score = depth ×100, bosses ×250,
+  kills ×10, distinct creature types ×25, secrets ×150, `trophy_count()`
+  ×50 (derived from the existing relic/weapon flags — no new bookkeeping),
+  minus damage taken ×5, floored at 0. **Two deliberate omissions:**
+  TIME IS NEVER SCORED (these levels reward lingering — restless piles,
+  pale-plank secrets, item rooms you may leave empty-handed — so a speed
+  bonus would score against the level design; the clock is shown only),
+  and kills are weighted LOW because the dungeon fights itself constantly
+  (creep, infight rallies) while only player kills count — leaning on
+  kills would punish letting the deep do the work.
 - Health and damage are in **half-heart units**: 2 units = one HUD
   heart (full/half/empty states). Start 6 units (3 hearts), cap 16;
   magic cap 12; containers add 2, filled. Torch deals 2, all other
   weapons 4; enemy touch attacks 2 (bosses 4). When adding numbers,
   think in units, not hearts. Magic hearts absorb damage before red
   and can't be healed by potions; half potions/half heart drops
-  grant 1 unit.
+  grant 1 unit. **Damage-over-time on the PLAYER never goes through
+  `take_damage`** — i-frames would swallow ticks at random and each one
+  would read as a fresh blow. There are two parallel channels instead,
+  both outside the hit path, both soaked by magic hearts first, and both
+  able to run at once: `take_poison` (Rot/creep, 1.2s, green HUD pulse
+  via `poisoned`) and `take_burn` (red necromancer's Ember, 0.8s, orange
+  pulse via `burned`). CREATURES take the `Dot` node instead; only the
+  player uses these channels.
 - Relics (flags/tiers in RunState, pedestal pool in item rooms).
   Crystals follow docs/item-plan.md (hue = family, cut = shape,
   tier = same hue bigger cut; art in assets/items/crystals/ as
@@ -155,7 +185,16 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   Rotstone / Emberstone (Pillar-4: every player hit attaches a
   ticking Dot node — scripts/dot.gd, `Dot.attach(target, self,
   "Rot"/"Ember")` — 3 ticks of 1 unit, refresh not stack, tints
-  the victim and stains the corpse as residue; burns also char the
+  the victim and stains the corpse as residue. **Two visual channels
+  read together:** the host's own sprite is TINTED, and `dot.gd` builds
+  a 5-phase overlay billboard on the host (catch → 2-frame loop → out →
+  residue; art in `assets/sprites/dot/dot_<kind>_<phase>N.png`, named
+  after the `kind` string so a new element needs only files). The
+  overlay is parented to the HOST so it follows the body and outlives
+  the Dot for its fade, scales off the host sprite's height, and sits
+  one `render_priority` step up (coplanar billboards z-fight; do NOT
+  nudge it forward in space). Ember also emits a dim `OmniLight3D` —
+  a burning body is visible in the dark; burns also char the
   plank underfoot 1 unit per tick; ticks never stagger). Armor
   (Turning Stone) in two tiers — leather (25% chance a blow is
   fully turned) then steel (40%), offered as an upgrade only after
@@ -291,6 +330,16 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   scales with push_dir's length (torch passes a long vector). Damage from
   another enemy switches aggro to the attacker (Doom-style
   infighting) until that grudge target dies; only player kills count.
+  **Rallies (dungeon.gd's per-frame poll) come in two flavours,** both
+  one-hop and both routed through `_alert_around` → each creature's
+  `alert(against = null)`: (1) the rising edge of `noticed` (it saw YOU)
+  shouts and neighbours turn on the player; (2) the frame a creature's
+  `target` becomes a NEW *creature* (`grudge_seen`), it shouts and idle
+  neighbours pile onto the AGGRESSOR. `noticed` means "sees the player"
+  only, which is why the infight rally has to watch the grudge instead.
+  A creature never rallies against its own script (kin stay on one side),
+  already-aware creatures are skipped, and a creature's own grudge is
+  never overwritten by a shout.
   Every enemy implements `kill_label()` (state-aware display name)
   and passes it to `RunState.record_kill()`; the fatal blow against
   the player records the attacker's label + current sprite for the
@@ -331,9 +380,13 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   sound; magic hearts soak it first) and pulses the HUD **green** via the
   `poisoned` signal. Leaves a fading **creep trail** (`slime_creep.tscn` +
   `slime_creep.gd`, distance-based drops via `_lay_creep`, group `"creep"`)
-  that is an **active hazard while wet** — the player's throttled
-  `_check_creep` sweep re-poisons on any patch with `modulate.a > 0.3`, so
-  dried trails go inert and only the just-laid path bites. A dying slime —
+  that is an **active hazard while wet** — for BOTH sides, by two paths
+  sharing one `modulate.a > 0.3` wetness gate. The player's throttled
+  `_check_creep` sweep re-poisons; each creep patch runs its own throttled
+  (desynced) sweep in `slime_creep.gd` attaching a Rot `Dot` to any
+  non-slime creature standing in it, credited to `creep.source` (the
+  laying slime, set in `_lay_creep`/`_spill_death_creep`) so the victim
+  turns on it. Dried trails go inert and only the just-laid path bites. A dying slime —
   and a splitting one, scaled by the tier that burst via `_spill_death_creep`
   (small 1 / large 2 / boss 3 patches) — spills that same creep as a fresh
   **death pool**, so corpses are hazards only while wet, then dry to the

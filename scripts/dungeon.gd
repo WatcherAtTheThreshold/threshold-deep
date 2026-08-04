@@ -42,6 +42,12 @@ const SOUND_FLOOR_ITEM := preload("res://assets/audio/sfx/environment/item_floor
 const SOUND_DOOR_LOCK := preload("res://assets/audio/sfx/environment/boss_room_door_lock.ogg")
 const SOUND_WALL_BREAK := preload("res://assets/audio/sfx/environment/broken_wall1.ogg")
 const SOUND_WALL_PARTIAL := preload("res://assets/audio/sfx/environment/broken_partial_wall.ogg")
+# The planks complain under ANYONE. Same loop the player wears, played
+# positionally from whatever creature is crossing the boards — so "something
+# heavy is on the wood over there" is a thing you hear before you see it,
+# the same way a restless skeleton rattles first.
+const SOUND_CREAK := preload("res://assets/audio/sfx/player/wood_floor_creek.ogg")
+const ENEMY_CREAK_DB := -10.0  # under the player's own -6: it's over there, not underfoot
 const SOUND_SECRET_GRIND := preload("res://assets/audio/sfx/environment/secretroom_wallslidegrind1.ogg")
 const SOUND_FLOOR_BREAK := preload("res://assets/audio/sfx/environment/broken_floor1.ogg")
 const SOUND_BOSS_FLOOR_FALL := preload("res://assets/audio/sfx/environment/boss_floor_fall.ogg")
@@ -131,7 +137,9 @@ var wall_damage := {}
 var hole_rims_root: Node3D  # container for the torn-lip sprites around holes
 var last_player_cell := Vector3i(-9999, 0, -9999)
 var enemy_cells := {}  # instance id -> last grid cell, for enemy-worn planks
+var enemy_wood := {}   # instance id -> is the cell underfoot plank, for the creak
 var alert_seen := {}   # instance id -> was-noticed last frame, for alert propagation
+var grudge_seen := {}  # instance id -> id of the creature it was feuding with, for infight rallies
 var floor_rooms: Array[Rect2i] = []
 var kind: int = RunState.FloorKind.REGULAR
 
@@ -316,12 +324,22 @@ func _ready() -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	# The run clock. Fed from here rather than RunState's own _process so it
+	# only ticks while a dungeon exists — the title screen and the death fade
+	# aren't part of your time.
+	RunState.run_seconds += _delta
 	# Wooden floors give way behind any walker — the player, or any
 	# enemy heavy enough to be in the enemies group.
 	var cell := _player_cell()
 	if cell != last_player_cell:
 		_try_collapse(last_player_cell)
 		last_player_cell = cell
+		# Tell the player what it's standing on, for the creak. Only on a cell
+		# CHANGE — the tile underfoot can't change while you're still on it
+		# (a collapse takes the cell out from under you anyway). Pale wood
+		# counts: it's wood in every other plank check too.
+		var under := grid_map.get_cell_item(Vector3i(cell.x, 0, cell.z))
+		player.on_wood = under == floor_wood_id or under == floor_wood_pale_id
 	for e: Node3D in get_tree().get_nodes_in_group("enemies"):
 		if not is_instance_valid(e):
 			continue
@@ -334,12 +352,36 @@ func _physics_process(_delta: float) -> void:
 			if aware and not alert_seen.get(eid, false):
 				_alert_around(e.global_position, ALERT_RADIUS, e)
 			alert_seen[eid] = aware
+			# Infight rally: a creature struck by ANOTHER CREATURE takes a
+			# grudge but never sets `noticed` (that flag means "sees the
+			# player"), so the shout above would never fire for a brawl. Watch
+			# the grudge instead — the frame it turns to a NEW creature, the
+			# victim calls for help and idle neighbours pile onto whoever
+			# started it. One shout per new aggressor, so a scrap escalates
+			# once rather than ringing back and forth.
+			var grudge: PhysicsBody3D = null
+			var t: Variant = e.get("target")
+			# VALIDITY FIRST: a creature holds its grudge target until that
+			# target dies, so `t` is routinely a freed instance — and `is` on
+			# a freed instance is an error, not a false. Order matters here.
+			if is_instance_valid(t) and t is PhysicsBody3D and t != player:
+				grudge = t
+			var gid := grudge.get_instance_id() if grudge != null else 0
+			if gid != 0 and grudge_seen.get(eid, 0) != gid:
+				_alert_around(e.global_position, ALERT_RADIUS, e, grudge)
+			grudge_seen[eid] = gid
 		var ecell := grid_map.local_to_map(grid_map.to_local(e.global_position))
 		ecell.y = 0
 		var prev: Variant = enemy_cells.get(eid)
 		if prev != null and prev != ecell:
 			_try_collapse(prev)
+		if prev == null or prev != ecell:
+			# Same rule as the player's creak, and just as cheap: the tile
+			# underfoot only needs re-reading when the body changes cell.
+			var under := grid_map.get_cell_item(ecell)
+			enemy_wood[eid] = under == floor_wood_id or under == floor_wood_pale_id
 		enemy_cells[eid] = ecell
+		_update_enemy_creak(e, eid)
 
 	if fight_active:
 		_check_early_boss_drop()
@@ -679,6 +721,7 @@ func _open_secret_room() -> void:
 	if secret_opened or secret_door == Vector2i(-1, -1):
 		return
 	secret_opened = true
+	RunState.record_secret()  # noticing the pale plank is worth scoring
 	var door := Vector3i(secret_door.x, 0, secret_door.y)
 	# Grab the upper-band id before we clear the maps — the slide needs a
 	# copy of the exact stone that was standing here.
@@ -1026,18 +1069,54 @@ func _spawn_skeleton_pack(room: Rect2i, origin: Vector2i, origin_skel: Node3D) -
 			s.set("revenant", true)
 
 
-func _alert_around(origin: Vector3, radius: float, source: Node) -> void:
+func _update_enemy_creak(e: Node3D, eid: int) -> void:
+	# A creature crossing planks makes them complain, exactly as you do.
+	# Gated on the creature's OWN StepSound — every creature already toggles
+	# that as "am I walking", stopping it when still or dead — so this needs
+	# no change to any creature script and can never creak from a corpse or
+	# something standing still. The player is in group "player", not
+	# "enemies", so it never double-plays over its own.
+	var walking := false
+	var steps := e.get_node_or_null("StepSound")
+	if steps is AudioStreamPlayer3D:
+		walking = (steps as AudioStreamPlayer3D).playing
+	var want: bool = walking and enemy_wood.get(eid, false)
+	var creak := e.get_node_or_null("Creak") as AudioStreamPlayer3D
+	if want:
+		if creak == null:
+			# Made on demand and parented to the creature, so it follows the
+			# body and dies with it. Most creatures never touch a plank.
+			creak = AudioStreamPlayer3D.new()
+			creak.name = "Creak"
+			creak.stream = SOUND_CREAK
+			creak.volume_db = ENEMY_CREAK_DB
+			creak.max_distance = 18.0
+			e.add_child(creak)
+		if not creak.playing:
+			creak.play()
+	elif creak != null and creak.playing:
+		creak.stop()
+
+
+func _alert_around(origin: Vector3, radius: float, source: Node,
+		against: PhysicsBody3D = null) -> void:
 	# The shout: every enemy within radius that isn't already aware snaps
 	# awake and turns on the player (each plays its own "sees-you" sting via
 	# alert()). Pre-mark the woken ones so the per-frame poll doesn't treat
 	# their fresh noticed=true as a NEW shout — that keeps it one hop.
+	# `against` set = this was an INFIGHT shout: the neighbours pile onto the
+	# aggressor instead, and its OWN kind stays out of it (a slime never
+	# rallies against a slime — same script, same side).
 	for e in get_tree().get_nodes_in_group("enemies"):
-		if e == source or not is_instance_valid(e) or not e.has_method("alert"):
+		if e == source or e == against or not is_instance_valid(e) \
+				or not e.has_method("alert"):
 			continue
 		if e.get("noticed") == true:
 			continue  # already awake; don't re-sting or re-count it
+		if against != null and e.get_script() == against.get_script():
+			continue  # kin don't turn on their own
 		if e.global_position.distance_to(origin) <= radius:
-			e.alert()
+			e.alert(against)
 			alert_seen[e.get_instance_id()] = true
 
 

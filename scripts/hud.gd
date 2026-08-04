@@ -1,5 +1,6 @@
 extends CanvasLayer
 
+const TALLY_PER_ROW := 3  # creature entries per line of the death-report tally
 const HEART_FULL := preload("res://assets/ui/heart_full.png")
 const HEART_HALF := preload("res://assets/ui/heart_half.png")
 const HEART_EMPTY := preload("res://assets/ui/heart_empty.png")
@@ -45,6 +46,8 @@ var last_total := 0
 @onready var item_strip: HFlowContainer = $ItemStrip
 @onready var hurt_flash: ColorRect = $HurtFlash
 @onready var run_info: Label = $RunInfo
+
+var _shown_second := -1  # last whole second painted into run_info
 @onready var screen_fade: ColorRect = $ScreenFade
 @onready var level_mist: TextureRect = $LevelMist
 @onready var level_label: Label = $LevelLabel
@@ -65,6 +68,7 @@ func _ready() -> void:
 	player.blocked.connect(_on_blocked)
 	player.died.connect(_on_player_died)
 	player.poisoned.connect(_on_poisoned)
+	player.burned.connect(_on_burned)
 	last_total = player.health + player.magic_hearts
 	_rebuild_hearts(player.health, player.max_health, player.magic_hearts)
 	_rebuild_items()
@@ -195,24 +199,42 @@ func _killer_phrase() -> String:
 	var who := RunState.killer_name
 	if who == "" or who == "the Dungeon":
 		return "the Dungeon"
-	return "a %s" % who
+	# A name that already carries its own article takes no second one: the
+	# fall records "the Dark Below", and "a the Dark Below" is not a sentence.
+	if who.begins_with("the ") or who.begins_with("The "):
+		return who
+	# "an Amalgam", not "a Amalgam".
+	return "%s %s" % ["an" if who[0] in "AEIOUaeiou" else "a", who]
 
 
 func _build_death_stats() -> String:
 	var lines: Array[String] = [
-		"Level %s   ·   %d kills" % [RunState.floor_label(RunState.depth), RunState.kills],
-		"Damage dealt %d   ·   taken %d" \
-				% [RunState.damage_dealt, RunState.damage_taken],
+		"SCORE %d" % RunState.score(),
+		"Level %s   ·   %s   ·   %d kills" % [
+			RunState.floor_label(RunState.depth), RunState.time_text(), RunState.kills],
+		"Damage dealt %d   ·   taken %d   ·   %d relics" \
+				% [RunState.damage_dealt, RunState.damage_taken, RunState.trophy_count()],
 	]
+	if RunState.secrets_found > 0:
+		# Only shown when earned — a line reading "0 secrets" would advertise
+		# the commoner chamber to someone who never found the pale plank.
+		lines.append("Secrets found %d" % RunState.secrets_found)
 	var by_type := RunState.kills_by_type
 	if by_type.size() > 0:
 		var labels := by_type.keys()
 		labels.sort_custom(func(a: String, b: String) -> bool:
 			return by_type[a] > by_type[b])
-		var tally: Array[String] = []
+		# Chunked into short rows rather than one line. The roster keeps
+		# growing — three necromancer variants, four mush tiers, three slime
+		# sizes — and a single joined line outran the screen entirely.
+		var row: Array[String] = []
 		for label: String in labels:
-			tally.append("%s ×%d" % [label, by_type[label]])
-		lines.append("   ".join(tally))
+			row.append("%s ×%d" % [label, by_type[label]])
+			if row.size() == TALLY_PER_ROW:
+				lines.append("   ".join(row))
+				row.clear()
+		if row.size() > 0:
+			lines.append("   ".join(row))
 	return "\n".join(lines)
 
 
@@ -248,6 +270,20 @@ func _on_poisoned(current: int, maximum: int, magic: int) -> void:
 	# to the red base for the next real blow. Keeps last_total in sync so
 	# the next genuine hit still reads its own drop.
 	hurt_flash.color = Color(0.35, 0.75, 0.3, 0.4)
+	var tween := create_tween()
+	tween.tween_property(hurt_flash, "color:a", 0.0, 0.5)
+	tween.tween_callback(func() -> void:
+		hurt_flash.color = Color(0.7, 0.08, 0.08, 0.0))
+	last_total = current + magic
+	_rebuild_hearts(current, maximum, magic)
+
+
+func _on_burned(current: int, maximum: int, magic: int) -> void:
+	# Burn pulses ORANGE — its own colour, so a fireball's afterburn is never
+	# mistaken for the slime's green rot or the red hit-flash. Same reset to
+	# the red base afterward, and last_total stays in sync so the next genuine
+	# blow still reads its own drop.
+	hurt_flash.color = Color(1.0, 0.5, 0.15, 0.4)
 	var tween := create_tween()
 	tween.tween_property(hurt_flash, "color:a", 0.0, 0.5)
 	tween.tween_callback(func() -> void:
@@ -344,5 +380,23 @@ func _rebuild_items() -> void:
 		item_strip.add_child(_make_item_icon(ICON_TURNING[RunState.armor_tier]))
 
 
+func _process(_delta: float) -> void:
+	# The clock has to tick on its own — RunState.changed only fires on real
+	# events. Refresh only when the displayed second actually rolls over, so
+	# this isn't rebuilding a string 60 times a second.
+	var secs := int(RunState.run_seconds)
+	if secs != _shown_second:
+		_shown_second = secs
+		_update_run_info()
+
+
 func _update_run_info() -> void:
-	run_info.text = "%s   Kills %d" % [RunState.floor_label(RunState.depth), RunState.kills]
+	# Floor · clock · score. Score replaces the raw kill count: kills reward
+	# clearing rooms, and the design is explicitly "you don't clear rooms, you
+	# follow a trail deeper" (docs/acts.md). Kills survive as a component of
+	# the score and in full on the death report.
+	run_info.text = "%s   ·   %s   ·   Score %d" % [
+		RunState.floor_label(RunState.depth),
+		RunState.time_text(),
+		RunState.score(),
+	]

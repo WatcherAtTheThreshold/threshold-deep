@@ -273,19 +273,25 @@ Each step is independently testable and leaves the game shippable.
 4. ~~**`kill_label()` → Necromancer**~~ — **DONE 2026-08-02.** Returns
    "Necromancer" / "Red Necromancer"; the code family stays `wizard`.
 
-### Open decision: Ember on the PLAYER
+### Ember on the PLAYER — DONE 2026-08-02
 
-Red's orb attaches an Ember `Dot` to **creature** victims (which also makes
-them turn on the caster, via the normal infighting rule). It deliberately
-does **not** dot the player: `Dot` ticks through `host.take_damage`, and on
-the player that path has i-frames, knock and the hit sound — burns would be
-swallowed at random and each tick would read as a fresh hit.
+Red's burn now works on both sides of the fight, by two different routes,
+and the split is deliberate:
 
-The player already has the right shape for this in `take_poison` (ticks
-outside `take_damage`, no i-frames, magic hearts soak first, HUD pulses
-green via the `poisoned` signal). Player-facing Ember wants a `take_burn`
-mirroring it — same plumbing, orange pulse. It's a small feature and a feel
-decision, so it's parked here rather than guessed at.
+- **Creatures** get an Ember `Dot` node (`orb.gd`'s `dot_kind`). Ticks
+  credit the caster, so the victim turns on it — the same infighting rule
+  the slime's caustic touch runs on.
+- **The player** gets `player.take_burn()`, the twin of `take_poison`:
+  its own tick channel outside `take_damage`, `BURN_TICKS` 3 at
+  `BURN_INTERVAL` 0.8s (matching `Dot.gd`'s Ember rate), magic hearts
+  soaking first, and an **orange** HUD pulse via the new `burned` signal
+  — distinct from poison's green and the red hit-flash.
+
+**Why not just Dot the player:** `Dot` ticks via `host.take_damage`, which
+on the player runs i-frames, knockback and the hit sound. Burns would have
+been swallowed at random and each surviving tick would have read as a fresh
+blow. Burn and poison are kept as separate channels so a player can be
+poisoned and burning at once.
 5. **Brown** — **wired 2026-08-02** (15 of 19 sprites, all 8 sounds, dim
    amber orb, no DoT). Outstanding: the 4 undrawn frames and the
    ballistic arc — see the roster notes above.
