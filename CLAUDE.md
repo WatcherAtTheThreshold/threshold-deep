@@ -310,7 +310,10 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   `RED_CHANCE` BEFORE `add_child`, so it only sets the flag; all node
   work happens in `_ready`. Red = own aggro trio/cast/impacts/flight,
   orange orb + charge glow, and an Ember `Dot` on creature victims
-  (NOT the player — see docs/necromancers.md). Variant art nests under
+  (NOT the player — see docs/necromancers.md). Brown = the rock-thrower,
+  no Dot, dim amber orb via `orb.gd`'s `glow_energy` (dim, NEVER dark —
+  a projectile that throws no light can't be seen coming in a
+  torch-lit dungeon; its ballistic arc is still unimplemented). Variant art nests under
   the family folder — `sprites/wizard/wizard_red/wizard_red_*.png` —
   while blue stays loose in `sprites/wizard/`.
   `kill_label()` returns "Necromancer"/"Red Necromancer" — the code

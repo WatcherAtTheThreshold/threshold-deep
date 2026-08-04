@@ -18,9 +18,24 @@ Legend: **✓** exists · **—** needed · **~** partial / shared
 
 | Variant | Robe | Attack | On hit | Status |
 |---|---|---|---|:--|
-| **Blue** | blue | electro bolt | — | ✓ ships today (the current wizard) |
-| **Red** | red | fireball | Ember `Dot` | — |
-| **Brown** | brown | thrown rock | — (heavier arc, no DoT) | — |
+| **Blue** | blue | electro bolt | — | ✓ |
+| **Red** | red | fireball | Ember `Dot` (creatures only) | ✓ complete |
+| **Brown** | brown | thrown rock | — | ~ wired; 4 frames + the arc outstanding |
+
+**Brown's two open items:**
+
+- **4 sprites not drawn** — `wizard_brown_front2.png` and the three
+  `wizard_brown_shoot1/2/3.png`. They alias brown's OWN `front1` (marked
+  `TODO` in `wizard.gd`), so the front walk holds still and the cast
+  shows a neutral pose. Colour identity is intact, which is what
+  matters; repoint the four lines when the art lands.
+- **The heavier arc is NOT implemented.** Orbs fly dead straight
+  (`position += direction * SPEED`). A real ballistic throw means gravity
+  on the orb *and* the caster leading its aim upward to compensate —
+  otherwise brown simply undershoots at range and stops being a threat.
+  That's a gameplay feature with its own playtest, not a wiring job, so
+  it was deliberately left out. Until it exists, brown is a distinct
+  *look, voice and payload* firing on the same flat trajectory as blue.
 
 Blue is not a new variant — it is the existing wizard, renamed into the
 roster. Everything red and brown need is measured against it.
@@ -207,12 +222,16 @@ orb.impact_sounds = RED_ORB_IMPACTS
 beat early, and assigning `stream` to a playing player stops it dead.
 `orb.gd` now starts it explicitly in `_ready` after the overrides land.
 
-**Still hardcoded, and it matters for brown:** `light_energy` (1.2) and
-`omni_range` (3.5) are scene values. A thrown rock is not magical and
-probably should not glow at all — that wants `glow_energy` alongside
-`glow_color`, one more var of the same shape. Left undone deliberately;
-add it when brown is actually being built and you can see what a
-non-luminous projectile reads like in a torch-lit corridor.
+**`glow_energy` — added 2026-08-02, when brown arrived.** Default 1.2
+(orb.tscn's value); brown runs 0.6 with a dusty-amber colour.
+
+The judgement call worth recording: a thrown rock arguably shouldn't glow
+*at all*, and it doesn't get that. The dungeon is lit by your torch and
+nothing else, so a projectile throwing no light is a projectile you
+cannot see coming — and Pillar 3 says you can always tell what is about
+to hurt you. Realism loses to readability here. **Dim it, never kill
+it.** `omni_range` (3.5) is still a scene value; nothing has needed it
+per-element yet.
 
 **Also worth knowing:** `wizard.gd`'s `_fire_orb()` plays no sound of its
 own — the whoosh you hear is the orb's own `FlightSound`, riding along
@@ -267,7 +286,9 @@ outside `take_damage`, no i-frames, magic hearts soak first, HUD pulses
 green via the `poisoned` signal). Player-facing Ember wants a `take_burn`
 mirroring it — same plumbing, orange pulse. It's a small feature and a feel
 decision, so it's parked here rather than guessed at.
-5. **Brown** — repeat step 3 with the arc/no-DoT differences.
+5. **Brown** — **wired 2026-08-02** (15 of 19 sprites, all 8 sounds, dim
+   amber orb, no DoT). Outstanding: the 4 undrawn frames and the
+   ballistic arc — see the roster notes above.
 6. **Stations** (docs/stations.md) — only once necromancers exist to
    stand at them.
 

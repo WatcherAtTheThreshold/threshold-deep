@@ -12,6 +12,7 @@ const WIZARD_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight
 # Glow and FlightSound nodes. They live here now so a variant can override
 # them like it overrides frames — and so blue keeps behaving exactly as it did.
 const WIZARD_GLOW := Color(0.45, 0.9, 1)
+const WIZARD_GLOW_ENERGY := 1.2  # orb.tscn's Glow value; a magic bolt burns bright
 const SPEED := 6.0
 const SPLASH_RANGE := 2.0
 const LIFETIME := 4.0
@@ -26,6 +27,11 @@ var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
 # (Pillar 3: light equals meaning). An elemental variant MUST set this or its
 # fireball will paint the walls blue.
 var glow_color: Color = WIZARD_GLOW
+# How hard it burns. A thrown rock is not magical and wants far less than a
+# bolt — but NOT zero: the dungeon is lit by your torch alone, so a projectile
+# that throws no light is a projectile you cannot see coming, and Pillar 3
+# says you can always tell what is about to hurt you. Dim it, never kill it.
+var glow_energy := WIZARD_GLOW_ENERGY
 var flight_sound: AudioStream = WIZARD_FLIGHT
 # Non-empty: the impact also attaches this Dot (the red necromancer's "Ember").
 # Creature victims only — see the note in _on_body_entered about the player.
@@ -50,6 +56,7 @@ func _ready() -> void:
 	# their parent, so autoplay would have started the DEFAULT stream a beat
 	# early, and assigning `stream` to a playing player stops it dead.
 	glow.light_color = glow_color
+	glow.light_energy = glow_energy
 	flight.stream = flight_sound
 	flight.play()
 

@@ -103,7 +103,8 @@
 // animations cycled per click, e.g. the skeleton's four views).
 const S = 'assets/sprites/';
 const A = 'assets/audio/sfx/';
-const R = S + 'wizard/wizard_red/';  // red necromancer lives in a subfolder
+const R = S + 'wizard/wizard_red/';    // necromancer variants live in subfolders
+const N = S + 'wizard/wizard_brown/';
 
 const hitTrio = (base) => [1, 2, 3].map(n => A + base + n + '.ogg');
 // Crystal voices: the A-minor scale, one note per stone, tiers ascend.
@@ -205,6 +206,39 @@ const SECTIONS = [
     { name: 'Red Orb Impact', rest: R + 'wizard_red_orb2.png',
       sounds: hitTrio('enemies/wizard_red_orb_hit') },
     { name: 'Red Fallen', rest: R + 'wizard_red_dead.png',
+      sounds: [A + 'enemies/wizard_death1.ogg'] },
+    { br: true },
+    // The brown necromancer — conjures an orb of debris.
+    {
+      name: 'Brown Necromancer', rest: N + 'wizard_brown_front1.png',
+      sounds: hitTrio('enemies/wizard_take_hit'),
+      cycle: [
+        { frames: walk(N + 'wizard_brown_front1.png', N + 'wizard_brown_front2.png') },
+        { frames: walk(N + 'wizard_brown_side1.png', N + 'wizard_brown_side2.png') },
+        { frames: walk(N + 'wizard_brown_side1.png', N + 'wizard_brown_side2.png'), flip: true },
+        { frames: walk(N + 'wizard_brown_back1.png', N + 'wizard_brown_back2.png') },
+        { frames: [[N + 'wizard_brown_front_aggro1.png', 1000]], sounds: hitTrio('enemies/wizard_brown_aggro') },
+        { frames: walk(N + 'wizard_brown_front_takehit1.png', N + 'wizard_brown_front_takehit2.png', 120) },
+        { frames: walk(N + 'wizard_brown_side_takehit1.png', N + 'wizard_brown_side_takehit2.png', 120) },
+        { frames: walk(N + 'wizard_brown_back_takehit1.png', N + 'wizard_brown_back_takehit2.png', 120) },
+      ],
+    },
+    {
+      name: 'Brown Cast', rest: N + 'wizard_brown_shoot1.png',
+      sounds: [A + 'enemies/wizard_brown_cast1.ogg'],
+      frames: [
+        [N + 'wizard_brown_shoot1.png', 450],
+        [N + 'wizard_brown_shoot2.png', 220],
+        [N + 'wizard_brown_shoot3.png', 320],
+        [N + 'wizard_brown_front1.png', 10],
+      ],
+    },
+    { name: 'Brown Rock', rest: N + 'wizard_brown_orb1.png',
+      sounds: [A + 'enemies/wizard_brown_orb_flight1.ogg'],
+      frames: walk(N + 'wizard_brown_orb1.png', N + 'wizard_brown_orb2.png', 150) },
+    { name: 'Brown Rock Impact', rest: N + 'wizard_brown_orb2.png',
+      sounds: hitTrio('enemies/wizard_brown_orb_hit') },
+    { name: 'Brown Fallen', rest: N + 'wizard_brown_dead.png',
       sounds: [A + 'enemies/wizard_death1.ogg'] },
     {
       name: 'Slime', rest: S + 'slime/slime-large/slime_large_front1.png',

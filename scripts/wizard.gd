@@ -6,7 +6,7 @@ extends CharacterBody3D
 # keep-your-distance chase, same telegraphed cast, same startle. What changes
 # is the look, the voice, and what the orb leaves behind. Adding brown means
 # adding a const block and a `match` arm, nothing else.
-enum Element { BLUE, RED }
+enum Element { BLUE, RED, BROWN }
 
 # BLUE — the original bolt-thrower.
 const BLUE_FRONT: Array[Texture2D] = [
@@ -53,6 +53,7 @@ const BLUE_ORB_IMPACTS: Array[AudioStream] = [
 ]
 const BLUE_ORB_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight1.ogg")
 const BLUE_GLOW := Color(0.45, 0.9, 1)
+const BLUE_GLOW_ENERGY := 1.2  # matches orb.tscn's Glow; the roster's brightest
 
 # RED — the fireball caster, fully its own now (art landed 2026-08-02).
 # Note the nested path: red lives in wizard/wizard_red/, a subfolder rather
@@ -103,9 +104,61 @@ const RED_ORB_IMPACTS: Array[AudioStream] = [
 ]
 const RED_ORB_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_red_orb_flight1.ogg")
 const RED_GLOW := Color(1.0, 0.45, 0.15)  # firelight, not bolt-blue
-# How often a spawned wizard is red. Set to 1.0 to make every wizard red
-# while testing; 0.0 restores a blue-only dungeon.
-const RED_CHANCE := 0.4
+const RED_GLOW_ENERGY := BLUE_GLOW_ENERGY  # fire burns as bright as the bolt
+
+# BROWN — conjures an orb of debris: earth and rubble pulled together and
+# thrown. No Dot, and the dimmest orb on the roster.
+const BROWN_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_front1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_front2.png"),
+]
+const BROWN_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_side1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_side2.png"),
+]
+const BROWN_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_back1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_back2.png"),
+]
+const BROWN_DEAD := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_dead.png")
+const BROWN_SHOOT_1 := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_shoot1.png")
+const BROWN_SHOOT_2 := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_shoot2.png")
+const BROWN_SHOOT_3 := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_shoot3.png")
+const BROWN_AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_front_aggro1.png")
+const BROWN_FRONT_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_front_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_front_takehit2.png"),
+]
+const BROWN_SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_side_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_side_takehit2.png"),
+]
+const BROWN_BACK_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_back_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_back_takehit2.png"),
+]
+const BROWN_ORB_A := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_orb1.png")
+const BROWN_ORB_B := preload("res://assets/sprites/wizard/wizard_brown/wizard_brown_orb2.png")
+const BROWN_AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_brown_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_brown_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_brown_aggro3.ogg"),
+]
+const BROWN_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_brown_cast1.ogg")
+const BROWN_ORB_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_brown_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_brown_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_brown_orb_hit3.ogg"),
+]
+const BROWN_ORB_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_brown_orb_flight1.ogg")
+const BROWN_GLOW := Color(0.72, 0.5, 0.28)  # dusty amber — earth, not spellwork
+const BROWN_GLOW_ENERGY := 0.6  # dim, but never dark: see orb.gd's glow_energy
+
+# Which necromancer a spawn turns out to be — cumulative thresholds, the same
+# shape dungeon.gd rolls enemy types with. What's left over stays blue. Set one
+# to 1.0 to make every wizard that element while testing.
+const RED_CHANCE := 0.3
+const BROWN_CHANCE := 0.3
 
 # SHARED across the whole roster — they are all people in robes, and one set
 # of pain is enough (docs/necromancers.md, the shared/per-variant table).
@@ -171,6 +224,7 @@ var cast_sound: AudioStream = BLUE_CAST_SOUND
 var orb_impacts: Array[AudioStream] = BLUE_ORB_IMPACTS
 var orb_flight: AudioStream = BLUE_ORB_FLIGHT
 var element_glow: Color = BLUE_GLOW
+var element_glow_energy := BLUE_GLOW_ENERGY
 var ember := false  # red's signature: its orb leaves a burn on what it hits
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
@@ -224,7 +278,29 @@ func _apply_element() -> void:
 			orb_impacts = RED_ORB_IMPACTS
 			orb_flight = RED_ORB_FLIGHT
 			element_glow = RED_GLOW
+			element_glow_energy = RED_GLOW_ENERGY
 			ember = true
+		Element.BROWN:
+			front_frames = BROWN_FRONT
+			side_frames = BROWN_SIDE
+			back_frames = BROWN_BACK
+			dead_texture = BROWN_DEAD
+			tex_shoot_1 = BROWN_SHOOT_1
+			tex_shoot_2 = BROWN_SHOOT_2
+			tex_shoot_3 = BROWN_SHOOT_3
+			aggro_tex = BROWN_AGGRO_TEX
+			front_takehit = BROWN_FRONT_TAKEHIT
+			side_takehit = BROWN_SIDE_TAKEHIT
+			back_takehit = BROWN_BACK_TAKEHIT
+			orb_frame_a = BROWN_ORB_A
+			orb_frame_b = BROWN_ORB_B
+			aggro_sounds = BROWN_AGGRO_SOUNDS
+			cast_sound = BROWN_CAST_SOUND
+			orb_impacts = BROWN_ORB_IMPACTS
+			orb_flight = BROWN_ORB_FLIGHT
+			element_glow = BROWN_GLOW
+			element_glow_energy = BROWN_GLOW_ENERGY
+			# No ember: the rock is just a rock.
 	# The charge telegraph wears the element's colour — a red caster winding up
 	# under a blue light would break the read the robe is supposed to give you.
 	cast_glow.light_color = element_glow
@@ -353,14 +429,22 @@ func setup(depth: int) -> void:
 	cast_cooldown = maxf(BASE_CAST_COOLDOWN - 0.08 * (depth - 1), 1.4)
 	# Which necromancer showed up. Rolled HERE because setup() runs before
 	# add_child — only the flag is set; _ready() does the node work.
-	if randf() < RED_CHANCE:
+	var roll := randf()
+	if roll < RED_CHANCE:
 		element = Element.RED
+	elif roll < RED_CHANCE + BROWN_CHANCE:
+		element = Element.BROWN
 
 
 func kill_label() -> String:
 	# The fiction name. The code family stays `wizard` (it's load-bearing
 	# across scripts, scenes and assets); the player only ever sees this.
-	return "Red Necromancer" if element == Element.RED else "Necromancer"
+	match element:
+		Element.RED:
+			return "Red Necromancer"
+		Element.BROWN:
+			return "Brown Necromancer"
+	return "Necromancer"
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -468,6 +552,7 @@ func _fire_orb(t: PhysicsBody3D) -> void:
 	orb.frame_a = orb_frame_a
 	orb.frame_b = orb_frame_b
 	orb.glow_color = element_glow
+	orb.glow_energy = element_glow_energy
 	orb.flight_sound = orb_flight
 	orb.impact_sounds = orb_impacts
 	if ember:
