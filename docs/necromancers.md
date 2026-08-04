@@ -81,17 +81,23 @@ cue is missing across the board.)*
 
 ## Sprite naming
 
-Convention in this repo: **the folder name is the file prefix.** Keep it.
+**The file prefix is the variant key**, and variants live in a subfolder
+of `wizard/` — the `frogmen/frogmen-phase1/` shape. Blue's frames stay
+loose in `wizard/` itself:
 
 ```
-assets/sprites/wizard/            wizard_front1.png        (blue, exists)
-assets/sprites/wizard_red/        wizard_red_front1.png
-assets/sprites/wizard_brown/      wizard_brown_front1.png
+assets/sprites/wizard/                 wizard_front1.png       (blue)
+assets/sprites/wizard/wizard_red/      wizard_red_front1.png
+assets/sprites/wizard/wizard_brown/    wizard_brown_front1.png
 ```
 
-This sorts the whole family together in a listing, and it means a preload
-path is derivable from the variant key alone. Full checklist per new
-variant — all 19, same names, new prefix:
+Nesting keeps the whole necromancer family under one directory. The one
+asymmetry to know about: blue is loose alongside the subfolders rather
+than in a `wizard_blue/` of its own. Moving it would mean 19 preloads,
+the scene, and the gallery — worth doing only if the roster grows enough
+that the mixed layout actually bites.
+
+Full checklist per new variant — all 19, same names, new prefix:
 
 ```
 wizard_<v>_front1.png     wizard_<v>_front2.png
@@ -115,8 +121,14 @@ LEFT (code flips for right). Same as every creature.
 assets/audio/sfx/enemies/wizard_<v>_aggro1.ogg      2, 3
 assets/audio/sfx/enemies/wizard_<v>_cast1.ogg       (launch — see below)
 assets/audio/sfx/enemies/wizard_<v>_orb_hit1.ogg    2, 3
-assets/audio/sfx/enemies/wizard_<v>_orb_flight.ogg
+assets/audio/sfx/enemies/wizard_<v>_orb_flight1.ogg
 ```
+
+The flight sound carries a `1` like every other set even though `orb.gd`
+takes a single `flight_sound: AudioStream`, not an array. That's
+deliberate future-proofing: if it ever wants variety per orb, the rename
+is already done and the only change is `flight_sound` becoming an
+`Array[AudioStream]` with a random pick, exactly like `impact_sounds`.
 
 Shared across the whole roster, already recorded, do not duplicate:
 `wizard_take_hit1/2/3.ogg`, `wizard_death1.ogg`.
@@ -133,10 +145,12 @@ rename is a chance to break a reference for zero gameplay value.
 
 **Fixed:**
 
-- ~~`projectile-wizard.ogg`~~ → **`wizard_orb_flight.ogg`** (4 refs).
-  Renamed because `wizard_red_orb_flight.ogg` is about to be its
+- ~~`projectile-wizard.ogg`~~ → **`wizard_orb_flight1.ogg`** (4 refs).
+  Renamed because `wizard_red_orb_flight1.ogg` is about to be its
   neighbour, and the natural move when adding red is to copy the pattern
-  already in the folder.
+  already in the folder. (Took its `1` in a second pass, to match — a
+  numbered singleton next to an unnumbered one is the same defect this
+  audit exists to remove.)
 - ~~`frogmen_aggro.ogg`~~ → **`frogmen_aggro1.ogg`** (6 refs). Renamed
   because it was the one visible exception to the "always number a set
   from 1" rule, in the same folder the necromancer trios will land in. A
@@ -227,13 +241,32 @@ Each step is independently testable and leaves the game shippable.
 1. ~~**Parameterize the orb**~~ — **DONE 2026-08-02.** `glow_color` +
    `flight_sound` on `orb.gd`, blue's values as the defaults. (`glow_energy`
    for a non-luminous thrown rock is still open — see above.)
-2. **The launch sound** — `wizard_<v>_cast1.ogg` fired from `_fire_orb`.
-   Closes creature-polish.md's outstanding wizard item for blue at the
-   same time.
-3. **One variant end to end** — red. 19 recolours, 2 new orb frames, 8
-   sounds. Proves the whole pipeline on a single creature before the
-   second one multiplies any mistake.
-4. **`kill_label()` → Necromancer**, once there is more than one to name.
+2. ~~**The launch sound**~~ — **DONE 2026-08-02.** `cast_sound` fires from
+   `_fire_orb` for every element; blue's `wizard_cast1.ogg` closes
+   creature-polish.md's outstanding wizard item.
+3. ~~**One variant end to end** — red.~~ **DONE 2026-08-02, art and all.**
+   `wizard.gd` is element-driven (`enum Element`, per-element const
+   blocks, `_apply_element()` in `_ready`); red rolls at `RED_CHANCE` in
+   `setup()`; its 19 sprites, voice, cast, impacts, flight, orb glow and
+   Ember are all its own. The aliasing scheme paid off exactly as
+   intended — landing the art was repointing 13 const lines, with no
+   other change to the script.
+4. ~~**`kill_label()` → Necromancer**~~ — **DONE 2026-08-02.** Returns
+   "Necromancer" / "Red Necromancer"; the code family stays `wizard`.
+
+### Open decision: Ember on the PLAYER
+
+Red's orb attaches an Ember `Dot` to **creature** victims (which also makes
+them turn on the caster, via the normal infighting rule). It deliberately
+does **not** dot the player: `Dot` ticks through `host.take_damage`, and on
+the player that path has i-frames, knock and the hit sound — burns would be
+swallowed at random and each tick would read as a fresh hit.
+
+The player already has the right shape for this in `take_poison` (ticks
+outside `take_damage`, no i-frames, magic hearts soak first, HUD pulses
+green via the `poisoned` signal). Player-facing Ember wants a `take_burn`
+mirroring it — same plumbing, orange pulse. It's a small feature and a feel
+decision, so it's parked here rather than guessed at.
 5. **Brown** — repeat step 3 with the arc/no-DoT differences.
 6. **Stations** (docs/stations.md) — only once necromancers exist to
    stand at them.

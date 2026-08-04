@@ -103,6 +103,7 @@
 // animations cycled per click, e.g. the skeleton's four views).
 const S = 'assets/sprites/';
 const A = 'assets/audio/sfx/';
+const R = S + 'wizard/wizard_red/';  // red necromancer lives in a subfolder
 
 const hitTrio = (base) => [1, 2, 3].map(n => A + base + n + '.ogg');
 // Crystal voices: the A-minor scale, one note per stone, tiers ascend.
@@ -164,7 +165,7 @@ const SECTIONS = [
     },
     {
       name: 'Wizard Cast', rest: S + 'wizard/wizard_shoot1.png',
-      sounds: [A + 'enemies/wizard_orb_flight.ogg'],
+      sounds: [A + 'enemies/wizard_cast1.ogg'],
       frames: [
         [S + 'wizard/wizard_shoot1.png', 450],
         [S + 'wizard/wizard_shoot2.png', 220],
@@ -172,6 +173,39 @@ const SECTIONS = [
         [S + 'wizard/wizard_front1.png', 10],
       ],
     },
+    { br: true },
+    // The red necromancer — its own art and its own voice. Nested folder.
+    {
+      name: 'Red Necromancer', rest: R + 'wizard_red_front1.png',
+      sounds: hitTrio('enemies/wizard_take_hit'),
+      cycle: [
+        { frames: walk(R + 'wizard_red_front1.png', R + 'wizard_red_front2.png') },
+        { frames: walk(R + 'wizard_red_side1.png', R + 'wizard_red_side2.png') },
+        { frames: walk(R + 'wizard_red_side1.png', R + 'wizard_red_side2.png'), flip: true },
+        { frames: walk(R + 'wizard_red_back1.png', R + 'wizard_red_back2.png') },
+        { frames: [[R + 'wizard_red_front_aggro1.png', 1000]], sounds: hitTrio('enemies/wizard_red_aggro') },
+        { frames: walk(R + 'wizard_red_front_takehit1.png', R + 'wizard_red_front_takehit2.png', 120) },
+        { frames: walk(R + 'wizard_red_side_takehit1.png', R + 'wizard_red_side_takehit2.png', 120) },
+        { frames: walk(R + 'wizard_red_back_takehit1.png', R + 'wizard_red_back_takehit2.png', 120) },
+      ],
+    },
+    {
+      name: 'Red Cast', rest: R + 'wizard_red_shoot1.png',
+      sounds: [A + 'enemies/wizard_red_cast1.ogg'],
+      frames: [
+        [R + 'wizard_red_shoot1.png', 450],
+        [R + 'wizard_red_shoot2.png', 220],
+        [R + 'wizard_red_shoot3.png', 320],
+        [R + 'wizard_red_front1.png', 10],
+      ],
+    },
+    { name: 'Red Orb', rest: R + 'wizard_red_orb1.png',
+      sounds: [A + 'enemies/wizard_red_orb_flight1.ogg'],
+      frames: walk(R + 'wizard_red_orb1.png', R + 'wizard_red_orb2.png', 150) },
+    { name: 'Red Orb Impact', rest: R + 'wizard_red_orb2.png',
+      sounds: hitTrio('enemies/wizard_red_orb_hit') },
+    { name: 'Red Fallen', rest: R + 'wizard_red_dead.png',
+      sounds: [A + 'enemies/wizard_death1.ogg'] },
     {
       name: 'Slime', rest: S + 'slime/slime-large/slime_large_front1.png',
       sounds: hitTrio('enemies/slime_taking_hits'),
@@ -376,7 +410,7 @@ const SECTIONS = [
     },
     {
       name: 'Amalgam Volley', rest: S + 'skeletal-wizard/skeletal_wizard_attack1.png', tall: true,
-      sounds: [A + 'enemies/wizard_orb_flight.ogg'],
+      sounds: [A + 'enemies/wizard_orb_flight1.ogg'],
       frames: [
         [S + 'skeletal-wizard/skeletal_wizard_attack1.png', 550],
         [S + 'skeletal-wizard/skeletal_wizard_attack2.png', 600],

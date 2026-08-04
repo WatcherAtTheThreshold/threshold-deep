@@ -7,7 +7,7 @@ const WIZARD_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.ogg"),
 ]
-const WIZARD_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight.ogg")
+const WIZARD_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight1.ogg")
 # The blue wizard's bolt: the values that used to be baked into orb.tscn's
 # Glow and FlightSound nodes. They live here now so a variant can override
 # them like it overrides frames — and so blue keeps behaving exactly as it did.
@@ -27,6 +27,9 @@ var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
 # fireball will paint the walls blue.
 var glow_color: Color = WIZARD_GLOW
 var flight_sound: AudioStream = WIZARD_FLIGHT
+# Non-empty: the impact also attaches this Dot (the red necromancer's "Ember").
+# Creature victims only — see the note in _on_body_entered about the player.
+var dot_kind := ""
 var damage := 2  # half-heart units: a full heart per orb
 var speed_scale := 1.0  # the Hasty Little Stone quickens player orbs
 var splash := false  # Wide Swing: impacts spread to nearby enemies
@@ -82,6 +85,14 @@ func _on_body_entered(body: Node3D) -> void:
 		if credit is Player:
 			RunState.record_damage_dealt(damage)
 			credit.apply_dots(body)
+		if dot_kind != "" and is_instance_valid(credit):
+			# A red orb burns what it hits, and because Dot ticks credit the
+			# caster, the victim turns on it — the same infighting rule the
+			# slime's caustic touch runs on. Creatures only, deliberately: on
+			# the PLAYER a Dot tick goes through take_damage, where i-frames
+			# would swallow burns at random. That path needs its own
+			# take_burn(), mirroring take_poison. See docs/necromancers.md.
+			Dot.attach(body, credit, dot_kind)
 	elif body is GridMap:
 		# Orbs splinter wood — anyone's orbs. Each point of damage
 		# counts as a hit against the wall.

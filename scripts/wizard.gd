@@ -1,27 +1,122 @@
 extends CharacterBody3D
 
-const FRONT_FRAMES: Array[Texture2D] = [
+# --- The necromancer roster (docs/necromancers.md) -------------------------
+# ONE script, many necromancers — the mush.gd / slime.gd pattern (one script,
+# a state var, per-state assets). Behaviour is IDENTICAL across elements: same
+# keep-your-distance chase, same telegraphed cast, same startle. What changes
+# is the look, the voice, and what the orb leaves behind. Adding brown means
+# adding a const block and a `match` arm, nothing else.
+enum Element { BLUE, RED }
+
+# BLUE — the original bolt-thrower.
+const BLUE_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/wizard/wizard_front1.png"),
 	preload("res://assets/sprites/wizard/wizard_front2.png"),
 ]
-const SIDE_FRAMES: Array[Texture2D] = [  # drawn facing left; flipped for right
+const BLUE_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
 	preload("res://assets/sprites/wizard/wizard_side1.png"),
 	preload("res://assets/sprites/wizard/wizard_side2.png"),
 ]
-const BACK_FRAMES: Array[Texture2D] = [
+const BLUE_BACK: Array[Texture2D] = [
 	preload("res://assets/sprites/wizard/wizard_back1.png"),
 	preload("res://assets/sprites/wizard/wizard_back2.png"),
 ]
-const DEAD_TEXTURE := preload("res://assets/sprites/wizard/wizard_dead.png")
-const TEX_SHOOT_1 := preload("res://assets/sprites/wizard/wizard_shoot1.png")
-const TEX_SHOOT_2 := preload("res://assets/sprites/wizard/wizard_shoot2.png")
-const TEX_SHOOT_3 := preload("res://assets/sprites/wizard/wizard_shoot3.png")
-const ORB_SCENE := preload("res://scenes/orb.tscn")
+const BLUE_DEAD := preload("res://assets/sprites/wizard/wizard_dead.png")
+const BLUE_SHOOT_1 := preload("res://assets/sprites/wizard/wizard_shoot1.png")
+const BLUE_SHOOT_2 := preload("res://assets/sprites/wizard/wizard_shoot2.png")
+const BLUE_SHOOT_3 := preload("res://assets/sprites/wizard/wizard_shoot3.png")
+const BLUE_AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_front_aggro1.png")
+const BLUE_FRONT_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_front_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_front_takehit2.png"),
+]
+const BLUE_SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left
+	preload("res://assets/sprites/wizard/wizard_side_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_side_takehit2.png"),
+]
+const BLUE_BACK_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_back_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_back_takehit2.png"),
+]
+const BLUE_ORB_A := preload("res://assets/sprites/wizard/wizard_orb1.png")
+const BLUE_ORB_B := preload("res://assets/sprites/wizard/wizard_orb2.png")
+const BLUE_AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_aggro3.ogg"),
+]
+const BLUE_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_cast1.ogg")
+const BLUE_ORB_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_orb_hit3.ogg"),
+]
+const BLUE_ORB_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_orb_flight1.ogg")
+const BLUE_GLOW := Color(0.45, 0.9, 1)
+
+# RED — the fireball caster, fully its own now (art landed 2026-08-02).
+# Note the nested path: red lives in wizard/wizard_red/, a subfolder rather
+# than a sibling of wizard/ (the frogmen phase-folder shape). Blue's frames
+# stay loose in wizard/.
+const RED_FRONT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_front1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_front2.png"),
+]
+const RED_SIDE: Array[Texture2D] = [  # drawn facing left; flipped for right
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_side1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_side2.png"),
+]
+const RED_BACK: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_back1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_back2.png"),
+]
+const RED_DEAD := preload("res://assets/sprites/wizard/wizard_red/wizard_red_dead.png")
+const RED_SHOOT_1 := preload("res://assets/sprites/wizard/wizard_red/wizard_red_shoot1.png")
+const RED_SHOOT_2 := preload("res://assets/sprites/wizard/wizard_red/wizard_red_shoot2.png")
+const RED_SHOOT_3 := preload("res://assets/sprites/wizard/wizard_red/wizard_red_shoot3.png")
+const RED_AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_red/wizard_red_front_aggro1.png")
+const RED_FRONT_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_front_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_front_takehit2.png"),
+]
+const RED_SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_side_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_side_takehit2.png"),
+]
+const RED_BACK_TAKEHIT: Array[Texture2D] = [
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_back_takehit1.png"),
+	preload("res://assets/sprites/wizard/wizard_red/wizard_red_back_takehit2.png"),
+]
+const RED_ORB_A := preload("res://assets/sprites/wizard/wizard_red/wizard_red_orb1.png")
+const RED_ORB_B := preload("res://assets/sprites/wizard/wizard_red/wizard_red_orb2.png")
+# Red's own voice.
+const RED_AGGRO_SOUNDS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_red_aggro1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_red_aggro2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_red_aggro3.ogg"),
+]
+const RED_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_red_cast1.ogg")
+const RED_ORB_IMPACTS: Array[AudioStream] = [
+	preload("res://assets/audio/sfx/enemies/wizard_red_orb_hit1.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_red_orb_hit2.ogg"),
+	preload("res://assets/audio/sfx/enemies/wizard_red_orb_hit3.ogg"),
+]
+const RED_ORB_FLIGHT := preload("res://assets/audio/sfx/enemies/wizard_red_orb_flight1.ogg")
+const RED_GLOW := Color(1.0, 0.45, 0.15)  # firelight, not bolt-blue
+# How often a spawned wizard is red. Set to 1.0 to make every wizard red
+# while testing; 0.0 restores a blue-only dungeon.
+const RED_CHANCE := 0.4
+
+# SHARED across the whole roster — they are all people in robes, and one set
+# of pain is enough (docs/necromancers.md, the shared/per-variant table).
 const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_take_hit1.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_take_hit2.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_take_hit3.ogg"),
 ]
+const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/wizard_death1.ogg")
+
+const ORB_SCENE := preload("res://scenes/orb.tscn")
 const POTION_SCENE := preload("res://scenes/potion.tscn")
 const HALF_POTION_SCENE := preload("res://scenes/half_potion.tscn")
 const HEART_DROP_SCENE := preload("res://scenes/magic_heart_drop.tscn")
@@ -29,25 +124,6 @@ const HALF_HEART_DROP_SCENE := preload("res://scenes/half_magic_heart_drop.tscn"
 const WALK_FRAME_TIME := 0.3
 const AGGRO_TIME := 0.35  # startle freeze the first beat it notices you
 const AGGRO_TURN_SPEED := 14.0  # rad/s it wheels around when caught from behind
-const AGGRO_TEX := preload("res://assets/sprites/wizard/wizard_front_aggro1.png")
-const AGGRO_SOUNDS: Array[AudioStream] = [
-	preload("res://assets/audio/sfx/enemies/wizard_aggro1.ogg"),
-	preload("res://assets/audio/sfx/enemies/wizard_aggro2.ogg"),
-	preload("res://assets/audio/sfx/enemies/wizard_aggro3.ogg"),
-]
-const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/wizard_death1.ogg")
-const FRONT_TAKEHIT: Array[Texture2D] = [
-	preload("res://assets/sprites/wizard/wizard_front_takehit1.png"),
-	preload("res://assets/sprites/wizard/wizard_front_takehit2.png"),
-]
-const SIDE_TAKEHIT: Array[Texture2D] = [  # drawn facing left; flipped for right
-	preload("res://assets/sprites/wizard/wizard_side_takehit1.png"),
-	preload("res://assets/sprites/wizard/wizard_side_takehit2.png"),
-]
-const BACK_TAKEHIT: Array[Texture2D] = [
-	preload("res://assets/sprites/wizard/wizard_back_takehit1.png"),
-	preload("res://assets/sprites/wizard/wizard_back_takehit2.png"),
-]
 
 const SPEED := 1.6
 const RETREAT_RANGE := 4.0
@@ -74,6 +150,28 @@ const WANDER_PAUSE_MAX := 6.0
 # skeletal_wizard.gd): a wave that rides the caving floor down must not delete
 # itself to "the Dark Below" on the way to a chamber 12m under the old one.
 var fall_y := FALL_Y
+# Which necromancer this one is. Rolled in setup() (before add_child, so no
+# node touching there) and APPLIED in _ready(), once @onready nodes exist.
+var element := Element.BLUE
+var front_frames: Array[Texture2D] = BLUE_FRONT
+var side_frames: Array[Texture2D] = BLUE_SIDE
+var back_frames: Array[Texture2D] = BLUE_BACK
+var dead_texture: Texture2D = BLUE_DEAD
+var tex_shoot_1: Texture2D = BLUE_SHOOT_1
+var tex_shoot_2: Texture2D = BLUE_SHOOT_2
+var tex_shoot_3: Texture2D = BLUE_SHOOT_3
+var aggro_tex: Texture2D = BLUE_AGGRO_TEX
+var front_takehit: Array[Texture2D] = BLUE_FRONT_TAKEHIT
+var side_takehit: Array[Texture2D] = BLUE_SIDE_TAKEHIT
+var back_takehit: Array[Texture2D] = BLUE_BACK_TAKEHIT
+var orb_frame_a: Texture2D = BLUE_ORB_A
+var orb_frame_b: Texture2D = BLUE_ORB_B
+var aggro_sounds: Array[AudioStream] = BLUE_AGGRO_SOUNDS
+var cast_sound: AudioStream = BLUE_CAST_SOUND
+var orb_impacts: Array[AudioStream] = BLUE_ORB_IMPACTS
+var orb_flight: AudioStream = BLUE_ORB_FLIGHT
+var element_glow: Color = BLUE_GLOW
+var ember := false  # red's signature: its orb leaves a burn on what it hits
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
 var cast_timer := 1.0
@@ -97,6 +195,40 @@ var wander_wait := randf_range(0.0, WANDER_PAUSE_MAX)  # desynced from birth
 @onready var sprite: Sprite3D = $Sprite
 @onready var step_sound: AudioStreamPlayer3D = $StepSound
 @onready var player: Player = get_tree().get_first_node_in_group("player")
+
+
+func _ready() -> void:
+	_apply_element()
+
+
+func _apply_element() -> void:
+	# Blue's values are already the defaults, so only a non-blue element needs
+	# a arm here. Runs after add_child, so the nodes are real.
+	match element:
+		Element.RED:
+			front_frames = RED_FRONT
+			side_frames = RED_SIDE
+			back_frames = RED_BACK
+			dead_texture = RED_DEAD
+			tex_shoot_1 = RED_SHOOT_1
+			tex_shoot_2 = RED_SHOOT_2
+			tex_shoot_3 = RED_SHOOT_3
+			aggro_tex = RED_AGGRO_TEX
+			front_takehit = RED_FRONT_TAKEHIT
+			side_takehit = RED_SIDE_TAKEHIT
+			back_takehit = RED_BACK_TAKEHIT
+			orb_frame_a = RED_ORB_A
+			orb_frame_b = RED_ORB_B
+			aggro_sounds = RED_AGGRO_SOUNDS
+			cast_sound = RED_CAST_SOUND
+			orb_impacts = RED_ORB_IMPACTS
+			orb_flight = RED_ORB_FLIGHT
+			element_glow = RED_GLOW
+			ember = true
+	# The charge telegraph wears the element's colour — a red caster winding up
+	# under a blue light would break the read the robe is supposed to give you.
+	cast_glow.light_color = element_glow
+	sprite.texture = front_frames[0]
 
 
 func _physics_process(delta: float) -> void:
@@ -130,7 +262,7 @@ func _physics_process(delta: float) -> void:
 	if sees_target and t == player and not noticed:
 		noticed = true
 		aggro_timer = AGGRO_TIME
-		Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+		Sfx.play_at(aggro_sounds[randi_range(0, aggro_sounds.size() - 1)],
 				global_position, -4.0)
 	elif not sees_target:
 		noticed = false
@@ -153,7 +285,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		if facing.dot(want) > 0.85:
 			sprite.flip_h = false
-			sprite.texture = AGGRO_TEX
+			sprite.texture = aggro_tex
 		else:
 			_update_view(0)
 		if step_sound.playing:
@@ -200,11 +332,11 @@ func _physics_process(delta: float) -> void:
 	var moving := Vector2(velocity.x, velocity.z).length() > 0.3
 	if charging:
 		# Anticipation: the orb drawn to the chest.
-		sprite.texture = TEX_SHOOT_1
+		sprite.texture = tex_shoot_1
 	elif recovery_timer > 0.0:
 		# Release, then follow-through.
 		recovery_timer -= delta
-		sprite.texture = TEX_SHOOT_2 if recovery_timer > RECOVERY_TIME * 0.5 else TEX_SHOOT_3
+		sprite.texture = tex_shoot_2 if recovery_timer > RECOVERY_TIME * 0.5 else tex_shoot_3
 	elif moving:
 		walk_time += delta
 		_update_view(int(walk_time / WALK_FRAME_TIME) % 2)
@@ -219,10 +351,16 @@ func _physics_process(delta: float) -> void:
 func setup(depth: int) -> void:
 	# Deeper wizards cast a little more often.
 	cast_cooldown = maxf(BASE_CAST_COOLDOWN - 0.08 * (depth - 1), 1.4)
+	# Which necromancer showed up. Rolled HERE because setup() runs before
+	# add_child — only the flag is set; _ready() does the node work.
+	if randf() < RED_CHANCE:
+		element = Element.RED
 
 
 func kill_label() -> String:
-	return "Wizard"
+	# The fiction name. The code family stays `wizard` (it's load-bearing
+	# across scripts, scenes and assets); the player only ever sees this.
+	return "Red Necromancer" if element == Element.RED else "Necromancer"
 
 
 func _floor_ahead(dir: Vector3) -> bool:
@@ -267,10 +405,10 @@ func _update_view(frame: int) -> void:
 	var side := facing.dot(cam.global_transform.basis.x)
 	if absf(depth) >= absf(side):
 		sprite.flip_h = false
-		sprite.texture = (BACK_FRAMES if depth > 0.0 else FRONT_FRAMES)[frame]
+		sprite.texture = (back_frames if depth > 0.0 else front_frames)[frame]
 	else:
 		sprite.flip_h = side > 0.0
-		sprite.texture = SIDE_FRAMES[frame]
+		sprite.texture = side_frames[frame]
 
 
 func _hit_view(frame: int) -> void:
@@ -283,10 +421,10 @@ func _hit_view(frame: int) -> void:
 	var side := facing.dot(cam.global_transform.basis.x)
 	if absf(depth) >= absf(side):
 		sprite.flip_h = false
-		sprite.texture = (BACK_TAKEHIT if depth > 0.0 else FRONT_TAKEHIT)[frame]
+		sprite.texture = (back_takehit if depth > 0.0 else front_takehit)[frame]
 	else:
 		sprite.flip_h = side > 0.0
-		sprite.texture = SIDE_TAKEHIT[frame]
+		sprite.texture = side_takehit[frame]
 
 
 func _fall_into_dark() -> void:
@@ -325,9 +463,21 @@ func _fire_orb(t: PhysicsBody3D) -> void:
 	var from := global_position + Vector3.UP * 0.3
 	var orb := ORB_SCENE.instantiate()
 	orb.shooter = self
+	# The orb wears the element: frames, the light it throws down the corridor
+	# (the clearest telegraph the game has), its flight voice and its impact.
+	orb.frame_a = orb_frame_a
+	orb.frame_b = orb_frame_b
+	orb.glow_color = element_glow
+	orb.flight_sound = orb_flight
+	orb.impact_sounds = orb_impacts
+	if ember:
+		orb.dot_kind = "Ember"
 	orb.direction = (t.global_position - from).normalized()
 	orb.position = from + orb.direction * 0.8
 	get_parent().add_child.call_deferred(orb)
+	# The launch. Without it the cast reads as a thing that ARRIVED rather than
+	# a thing someone DID (creature-polish.md's outstanding wizard item).
+	Sfx.play_at(cast_sound, global_position, -4.0)
 
 
 func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
@@ -365,7 +515,7 @@ func alert() -> void:
 	if target == null:
 		target = player
 	aggro_timer = AGGRO_TIME
-	Sfx.play_at(AGGRO_SOUNDS[randi_range(0, AGGRO_SOUNDS.size() - 1)],
+	Sfx.play_at(aggro_sounds[randi_range(0, aggro_sounds.size() - 1)],
 			global_position, -4.0)
 
 
@@ -400,7 +550,7 @@ func _die(by_player: bool) -> void:
 	remove_from_group("enemies")
 	$CollisionShape3D.set_deferred("disabled", true)
 	sprite.flip_h = false
-	sprite.texture = DEAD_TEXTURE
+	sprite.texture = dead_texture
 	sprite.modulate = Color.WHITE
 	velocity = Vector3.ZERO
 	# Roll drops off the corpse so the sprites never share a depth

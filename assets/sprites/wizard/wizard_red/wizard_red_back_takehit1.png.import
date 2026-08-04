@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://fqls4762snt3"
-path="res://.godot/imported/wizard_red_front1.png-42b79e70b66b43789b5e623ea58fc6dd.ctex"
+uid="uid://cy8ltc8rgtr3v"
+path="res://.godot/imported/wizard_red_back_takehit1.png-66ce0e63d85728df85ae32b13cf224f7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/wizard/wizard_red_front1.png"
-dest_files=["res://.godot/imported/wizard_red_front1.png-42b79e70b66b43789b5e623ea58fc6dd.ctex"]
+source_file="res://assets/sprites/wizard/wizard_red/wizard_red_back_takehit1.png"
+dest_files=["res://.godot/imported/wizard_red_back_takehit1.png-66ce0e63d85728df85ae32b13cf224f7.ctex"]
 
 [params]
 

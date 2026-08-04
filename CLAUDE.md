@@ -303,7 +303,18 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   restless — they stir when the player comes within 3.5 m after a
   4 s grace, take 1 s to rise at 2 HP, and one hit mid-rise scatters
   them for good), **wizard** (keeps
-  distance, telegraphed dodgeable orb, 2 HP), **slime** (puddle with random
+  distance, telegraphed dodgeable orb, 2 HP; **element-driven** —
+  `wizard.gd` is ONE script for the whole necromancer roster via
+  `enum Element` + per-element const blocks + `_apply_element()` in
+  `_ready`, the mush/slime pattern. `setup()` rolls the element at
+  `RED_CHANCE` BEFORE `add_child`, so it only sets the flag; all node
+  work happens in `_ready`. Red = own aggro trio/cast/impacts/flight,
+  orange orb + charge glow, and an Ember `Dot` on creature victims
+  (NOT the player — see docs/necromancers.md). Variant art nests under
+  the family folder — `sprites/wizard/wizard_red/wizard_red_*.png` —
+  while blue stays loose in `sprites/wizard/`.
+  `kill_label()` returns "Necromancer"/"Red Necromancer" — the code
+  family stays `wizard`), **slime** (puddle with random
   1–10 s incubation → large 6 HP → splits at ≤3 HP into two smalls
   that re-merge on contact unless the player is within 5 m; in group
   `"slimes"`, dissolves potions; **caustic touch** — a throttled
