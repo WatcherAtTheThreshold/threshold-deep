@@ -6,9 +6,9 @@ extends Area3D
 ## twice. Wall hits splinter wood like orbs do.
 
 const FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/boomerang_shot1.png"),
-	preload("res://assets/sprites/boomerang_shot2.png"),
-	preload("res://assets/sprites/boomerang_shot3.png"),
+	preload("res://assets/sprites/boomerang/boomerang_shot1.png"),
+	preload("res://assets/sprites/boomerang/boomerang_shot2.png"),
+	preload("res://assets/sprites/boomerang/boomerang_shot3.png"),
 ]
 const HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/boomerang_hit1.ogg"),

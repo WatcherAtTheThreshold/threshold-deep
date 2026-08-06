@@ -171,14 +171,18 @@ rename is a chance to break a reference for zero gameplay value.
   from 1" rule, in the same folder the necromancer trios will land in. A
   rule with a counter-example in plain sight stops being a rule.
 
-**Deferred — `assets/sprites/skeletal-wizard/` → `skeletal_wizard/`.**
-Genuinely wrong (hyphen, while its script is `skeletal_wizard.gd` and
-every other creature folder is one word), but **32 references** across
-`index.html` (17), `skeletal_wizard.gd` (14), and its scene. No new asset
-will ever land inside that folder, so it can't propagate. The real cost
-isn't the rename — it's that verifying it means playing all the way to
-3-3 to watch the amalgam assemble. Do it as its own isolated change on a
-day when that's the only thing being tested, not mid-feature.
+**~~Deferred~~ — DONE 2026-08-06. `assets/sprites/skeletal-wizard/` →
+`skeletal_wizard/`.** The hyphen was genuinely wrong (its script is
+`skeletal_wizard.gd` and every other creature folder is one word), and it
+was deferred over **32 references** across `index.html`, its script and
+its scene. Done as its own isolated change on a naming-sweep day, in the
+same pass that gave the weapon viewmodels one contract. The lone
+hyphenated FILE went too: `skeletal-wizard-dead.png` →
+`skeletal_wizard_dead.png`, so the whole folder is now one convention.
+**Still needs the verification the original note called for:** every path
+was checked to resolve on disk, but the only way to prove the amalgam
+still assembles is to play to 3-3 and watch it. Do that before trusting
+this one.
 
 **Not a defect — `wizard_death1.ogg`.** An earlier draft of this doc
 listed the `1` as the irregularity. It's backwards: by the convention

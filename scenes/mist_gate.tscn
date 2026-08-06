@@ -1,7 +1,8 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=11 format=3]
 
 [ext_resource type="Script" path="res://scripts/mist_gate.gd" id="1_gate"]
 [ext_resource type="Texture2D" path="res://assets/tiles/gate_doorframe.png" id="2_frame"]
+[ext_resource type="Texture2D" path="res://assets/tiles/dry/wall_wooden.png" id="3_jamb"]
 
 [sub_resource type="BoxShape3D" id="box_gate"]
 size = Vector3(2, 3.6, 1.2)
@@ -12,7 +13,26 @@ albedo_color = Color(0, 0, 0, 1)
 
 [sub_resource type="QuadMesh" id="quad_depth"]
 material = SubResource("mat_depth")
-size = Vector2(1.9, 3.3)
+size = Vector2(1.05, 2.9)
+
+[sub_resource type="StandardMaterial3D" id="mat_jamb"]
+albedo_texture = ExtResource("3_jamb")
+roughness = 0.85
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
+[sub_resource type="BoxMesh" id="mesh_jamb_l"]
+material = SubResource("mat_jamb")
+size = Vector3(0.53125, 2.8125, 0.1)
+
+[sub_resource type="BoxMesh" id="mesh_jamb_r"]
+material = SubResource("mat_jamb")
+size = Vector3(0.5, 2.8125, 0.1)
+
+[sub_resource type="BoxMesh" id="mesh_lintel"]
+material = SubResource("mat_jamb")
+size = Vector3(2, 1.1875, 0.1)
 
 [node name="MistGate" type="Area3D"]
 
@@ -23,14 +43,26 @@ position = Vector3(0, 1.8, 0)
 shape = SubResource("box_gate")
 
 [node name="Depth" type="MeshInstance3D" parent="."]
-position = Vector3(0, 1.7, -0.015)
+position = Vector3(0.015625, 1.40625, -0.025)
 mesh = SubResource("quad_depth")
 
 [node name="Visual" type="MeshInstance3D" parent="."]
 position = Vector3(0, 1.7, 0)
 
+[node name="JambL" type="MeshInstance3D" parent="."]
+position = Vector3(-0.734375, 1.40625, 0.02)
+mesh = SubResource("mesh_jamb_l")
+
+[node name="JambR" type="MeshInstance3D" parent="."]
+position = Vector3(0.75, 1.40625, 0.02)
+mesh = SubResource("mesh_jamb_r")
+
+[node name="Lintel" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.40625, 0.02)
+mesh = SubResource("mesh_lintel")
+
 [node name="Frame" type="Sprite3D" parent="."]
-position = Vector3(0, 2, 0.02)
+position = Vector3(0, 2, 0.08)
 pixel_size = 0.03125
 shaded = true
 alpha_cut = 1
@@ -38,7 +70,7 @@ texture_filter = 0
 texture = ExtResource("2_frame")
 
 [node name="Glow" type="OmniLight3D" parent="."]
-position = Vector3(0, 1.6, 0)
+position = Vector3(0.015625, 1.4, -0.01)
 light_color = Color(0.85, 0.9, 1, 1)
 light_energy = 0.8
-omni_range = 3.6
+omni_range = 2.8

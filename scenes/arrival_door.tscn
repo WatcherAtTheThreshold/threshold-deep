@@ -1,11 +1,43 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Texture2D" path="res://assets/tiles/gate_doorframe.png" id="1_frame"]
+[ext_resource type="Texture2D" path="res://assets/tiles/dry/wall_wooden.png" id="2_jamb"]
+
+[sub_resource type="StandardMaterial3D" id="mat_jamb"]
+albedo_texture = ExtResource("2_jamb")
+roughness = 0.85
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+texture_filter = 0
+
+[sub_resource type="BoxMesh" id="mesh_jamb_l"]
+material = SubResource("mat_jamb")
+size = Vector3(0.53125, 2.8125, 0.1)
+
+[sub_resource type="BoxMesh" id="mesh_jamb_r"]
+material = SubResource("mat_jamb")
+size = Vector3(0.5, 2.8125, 0.1)
+
+[sub_resource type="BoxMesh" id="mesh_lintel"]
+material = SubResource("mat_jamb")
+size = Vector3(2, 1.1875, 0.1)
 
 [node name="ArrivalDoor" type="Node3D"]
 
+[node name="JambL" type="MeshInstance3D" parent="."]
+position = Vector3(-0.734375, 1.40625, 0.02)
+mesh = SubResource("mesh_jamb_l")
+
+[node name="JambR" type="MeshInstance3D" parent="."]
+position = Vector3(0.75, 1.40625, 0.02)
+mesh = SubResource("mesh_jamb_r")
+
+[node name="Lintel" type="MeshInstance3D" parent="."]
+position = Vector3(0, 3.40625, 0.02)
+mesh = SubResource("mesh_lintel")
+
 [node name="Frame" type="Sprite3D" parent="."]
-position = Vector3(0, 2, 0.02)
+position = Vector3(0, 2, 0.08)
 pixel_size = 0.03125
 shaded = true
 alpha_cut = 1

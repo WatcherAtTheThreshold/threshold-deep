@@ -1,41 +1,67 @@
 extends TextureRect
 
+# Viewmodel art follows one contract: assets/sprites/<weapon>/<weapon>_idle1..N
+# and <weapon>_attack1..N, 256x128. The folder is the only thing that differs —
+# same rule as the creature turnarounds and the tile appearance folders, so a
+# new weapon is a folder of PNGs and nothing to name. Frame COUNTS may differ.
 const TORCH_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/torch/hand-torch1.png"),
-	preload("res://assets/sprites/torch/hand-torch2.png"),
-	preload("res://assets/sprites/torch/hand-torch3.png"),
+	preload("res://assets/sprites/torch/torch_idle1.png"),
+	preload("res://assets/sprites/torch/torch_idle2.png"),
+	preload("res://assets/sprites/torch/torch_idle3.png"),
 ]
-const TORCH_SWING := preload("res://assets/sprites/torch/hand-torch_swing.png")
 const TORCH_SWING_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/torch/hand-torch_swing1.png"),
-	preload("res://assets/sprites/torch/hand-torch_swing2.png"),
-	preload("res://assets/sprites/torch/hand-torch_swing3.png"),
+	preload("res://assets/sprites/torch/torch_attack1.png"),
+	preload("res://assets/sprites/torch/torch_attack2.png"),
+	preload("res://assets/sprites/torch/torch_attack3.png"),
 ]
 # Windup / extended strike (embers fly here) / follow-through.
 const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
 const SWORD_IDLE_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/sword/sword_walk1.png"),
-	preload("res://assets/sprites/sword/sword_walk2.png"),
+	preload("res://assets/sprites/sword/sword_idle1.png"),
+	preload("res://assets/sprites/sword/sword_idle2.png"),
 ]
 const SWORD_SWING_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/sword/sword_swing1.png"),
-	preload("res://assets/sprites/sword/sword_swing2.png"),
-	preload("res://assets/sprites/sword/sword_swing3.png"),
+	preload("res://assets/sprites/sword/sword_attack1.png"),
+	preload("res://assets/sprites/sword/sword_attack2.png"),
+	preload("res://assets/sprites/sword/sword_attack3.png"),
 ]
 # Windup / strike / follow-through.
 const SWORD_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]
-const STAFF_IDLE := preload("res://assets/sprites/magic_staff.png")
-const STAFF_SWING := preload("res://assets/sprites/magic_staff_swing.png")
-const BOOMERANG_IDLE := preload("res://assets/sprites/hand-boomerang.png")
-const BOOMERANG_SWING := preload("res://assets/sprites/hand-boomerang-swing.png")
+const STAFF_IDLE_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/magic_staff/magic_staff_idle1.png"),
+	preload("res://assets/sprites/magic_staff/magic_staff_idle2.png"),
+]
+const STAFF_ATTACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/magic_staff/magic_staff_attack1.png"),
+	preload("res://assets/sprites/magic_staff/magic_staff_attack2.png"),
+	preload("res://assets/sprites/magic_staff/magic_staff_attack3.png"),
+]
+# Gather / cast / recover. Fits inside ATTACK_COOLDOWN's 0.5 s, which ranged
+# weapons keep flat (no Hasty scaling), so the cast never clips itself.
+const STAFF_SWING_TIMES: Array[float] = [0.06, 0.10, 0.09]
+const BOOMERANG_IDLE_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/boomerang/boomerang_idle1.png"),
+	preload("res://assets/sprites/boomerang/boomerang_idle2.png"),
+	preload("res://assets/sprites/boomerang/boomerang_idle3.png"),
+]
+const BOOMERANG_ATTACK_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/boomerang/boomerang_attack1.png"),
+	preload("res://assets/sprites/boomerang/boomerang_attack2.png"),
+	preload("res://assets/sprites/boomerang/boomerang_attack3.png"),
+]
+# Deliberately the fastest arc in the game: the projectile leaves the player's
+# hand the instant `attacked` fires, so every frame spent still drawing a
+# boomerang in-hand is a frame it exists twice. 0.16 s total, then the throw
+# tween drops the hand out and `visible` hides it until the catch.
+const BOOMERANG_SWING_TIMES: Array[float] = [0.05, 0.06, 0.05]
 const HALBERD_IDLE_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/halberd/hand_halberd1.png"),
-	preload("res://assets/sprites/halberd/hand_halberd2.png"),
+	preload("res://assets/sprites/halberd/halberd_idle1.png"),
+	preload("res://assets/sprites/halberd/halberd_idle2.png"),
 ]
 const HALBERD_ATTACK_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/halberd/hand_halberd_attack1.png"),
-	preload("res://assets/sprites/halberd/hand_halberd_attack2.png"),
-	preload("res://assets/sprites/halberd/hand_halberd_attack3.png"),
+	preload("res://assets/sprites/halberd/halberd_attack1.png"),
+	preload("res://assets/sprites/halberd/halberd_attack2.png"),
+	preload("res://assets/sprites/halberd/halberd_attack3.png"),
 ]
 # Windup / extended strike / follow-through — same three-beat shape
 # as the torch, tuned a touch slower for a heavier weapon.
@@ -46,7 +72,6 @@ const FLICKER_TIME := 0.16
 @onready var player: Player = get_tree().get_first_node_in_group("player")
 
 var idle_frames: Array[Texture2D] = TORCH_FRAMES
-var swing_texture: Texture2D = TORCH_SWING
 var weapon := "torch"
 var swinging := false
 var was_out := false
@@ -77,20 +102,15 @@ func set_weapon(new_weapon: String) -> void:
 	weapon = new_weapon
 	match weapon:
 		"boomerang":
-			idle_frames = [BOOMERANG_IDLE]
-			swing_texture = BOOMERANG_SWING
+			idle_frames = BOOMERANG_IDLE_FRAMES
 		"staff":
-			idle_frames = [STAFF_IDLE]
-			swing_texture = STAFF_SWING
+			idle_frames = STAFF_IDLE_FRAMES
 		"sword":
 			idle_frames = SWORD_IDLE_FRAMES
-			swing_texture = SWORD_SWING_FRAMES[1]
 		"halberd":
 			idle_frames = HALBERD_IDLE_FRAMES
-			swing_texture = HALBERD_ATTACK_FRAMES[1]
 		_:
 			idle_frames = TORCH_FRAMES
-			swing_texture = TORCH_SWING
 	texture = idle_frames[0]
 
 
@@ -136,77 +156,54 @@ func _process(delta: float) -> void:
 
 
 func _on_attacked() -> void:
+	# Every weapon now swings on a drawn three-beat arc — Jessop's frames carry
+	# the strike, code only times them. The old code-driven "jab" that the staff
+	# and boomerang used is gone: once art exists, moving the sprite around to
+	# fake a motion just fights the drawing.
 	swinging = true
+	var arc_frames: Array[Texture2D]
+	var arc_times: Array[float]
+	match weapon:
+		"sword":
+			arc_frames = SWORD_SWING_FRAMES
+			arc_times = SWORD_SWING_TIMES
+		"halberd":
+			arc_frames = HALBERD_ATTACK_FRAMES
+			arc_times = HALBERD_SWING_TIMES
+		"staff":
+			arc_frames = STAFF_ATTACK_FRAMES
+			arc_times = STAFF_SWING_TIMES
+		"boomerang":
+			arc_frames = BOOMERANG_ATTACK_FRAMES
+			arc_times = BOOMERANG_SWING_TIMES
+		_:
+			arc_frames = TORCH_SWING_FRAMES
+			arc_times = TORCH_SWING_TIMES
 	if weapon == "boomerang":
-		# The throw: yank down and release. The hand exits the bottom
-		# of the frame and stays gone — the boomerang is out there
-		# now. The catch brings it back.
+		# The throw keeps its motion ON TOP of the arc: the hand drops out of
+		# frame and `visible` holds it gone until the catch, because the weapon
+		# is genuinely out there. Runs parallel so the drawn release still plays.
 		var throw_tween := create_tween().set_parallel(true)
 		throw_tween.tween_property(self, "swing_offset", Vector2(10.0, 110.0), 0.09) \
 				.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		throw_tween.tween_property(self, "rotation", 0.05, 0.09)
 		throw_tween.chain().tween_callback(func() -> void:
-			swinging = false
 			swing_offset = Vector2.ZERO
-			rotation = 0.0
-			texture = idle_frames[0])
-		return
-	if weapon == "torch":
-		# The drawn arc: Jessop's frames carry the strike, code only
-		# times them. Embers burst on the extended frame — the hit.
-		if swing_tween != null and swing_tween.is_valid():
-			swing_tween.kill()
-		texture = TORCH_SWING_FRAMES[0]
-		swing_tween = create_tween()
-		swing_tween.tween_interval(TORCH_SWING_TIMES[0])
-		swing_tween.tween_callback(func() -> void:
-			texture = TORCH_SWING_FRAMES[1]
+			rotation = 0.0)
+	if swing_tween != null and swing_tween.is_valid():
+		swing_tween.kill()
+	texture = arc_frames[0]
+	swing_tween = create_tween()
+	swing_tween.tween_interval(arc_times[0])
+	swing_tween.tween_callback(func() -> void:
+		texture = arc_frames[1]
+		# Embers burst on the extended frame — the hit. Flames only.
+		if weapon == "torch":
 			embers.restart())
-		swing_tween.tween_interval(TORCH_SWING_TIMES[1])
-		swing_tween.tween_callback(func() -> void:
-			texture = TORCH_SWING_FRAMES[2])
-		swing_tween.tween_interval(TORCH_SWING_TIMES[2])
-		swing_tween.tween_callback(func() -> void:
-			texture = idle_frames[0]
-			swinging = false)
-		return
-	if weapon == "halberd" or weapon == "sword":
-		# Same drawn-arc shape as the torch, no embers — these are
-		# blades, not flames.
-		var arc_frames := HALBERD_ATTACK_FRAMES if weapon == "halberd" \
-				else SWORD_SWING_FRAMES
-		var arc_times := HALBERD_SWING_TIMES if weapon == "halberd" \
-				else SWORD_SWING_TIMES
-		if swing_tween != null and swing_tween.is_valid():
-			swing_tween.kill()
-		texture = arc_frames[0]
-		swing_tween = create_tween()
-		swing_tween.tween_interval(arc_times[0])
-		swing_tween.tween_callback(func() -> void:
-			texture = arc_frames[1])
-		swing_tween.tween_interval(arc_times[1])
-		swing_tween.tween_callback(func() -> void:
-			texture = arc_frames[2])
-		swing_tween.tween_interval(arc_times[2])
-		swing_tween.tween_callback(func() -> void:
-			texture = idle_frames[0]
-			swinging = false)
-		return
-	# The jab, same for sword: yank the weapon down toward
-	# off-screen, then piston it back up past rest with only a slight
-	# arc, then settle. Stabby, not sweepy.
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(self, "swing_offset", Vector2(10.0, 110.0), 0.07) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "rotation", 0.05, 0.07) \
-			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_callback(func() -> void: texture = swing_texture)
-	tween.chain().tween_property(self, "swing_offset", Vector2(-14.0, -10.0), 0.07) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(self, "rotation", -0.1, 0.07) \
-			.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-	tween.chain().tween_property(self, "swing_offset", Vector2.ZERO, 0.18)
-	tween.parallel().tween_property(self, "rotation", 0.0, 0.18)
-	tween.chain().tween_callback(func() -> void:
+	swing_tween.tween_interval(arc_times[1])
+	swing_tween.tween_callback(func() -> void:
+		texture = arc_frames[2])
+	swing_tween.tween_interval(arc_times[2])
+	swing_tween.tween_callback(func() -> void:
 		texture = idle_frames[0]
 		swinging = false)

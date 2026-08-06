@@ -8,14 +8,14 @@ extends TextureRect
 # same structure — flip_h off, new textures, nothing else changes.
 
 const TORCH_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/torch/hand-torch1.png"),
-	preload("res://assets/sprites/torch/hand-torch2.png"),
-	preload("res://assets/sprites/torch/hand-torch3.png"),
+	preload("res://assets/sprites/torch/torch_idle1.png"),
+	preload("res://assets/sprites/torch/torch_idle2.png"),
+	preload("res://assets/sprites/torch/torch_idle3.png"),
 ]
 const TORCH_SWING_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/torch/hand-torch_swing1.png"),
-	preload("res://assets/sprites/torch/hand-torch_swing2.png"),
-	preload("res://assets/sprites/torch/hand-torch_swing3.png"),
+	preload("res://assets/sprites/torch/torch_attack1.png"),
+	preload("res://assets/sprites/torch/torch_attack2.png"),
+	preload("res://assets/sprites/torch/torch_attack3.png"),
 ]
 # Windup / extended strike / follow-through — same three beats as the right hand.
 const TORCH_SWING_TIMES: Array[float] = [0.06, 0.11, 0.10]

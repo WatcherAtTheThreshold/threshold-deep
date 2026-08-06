@@ -21,6 +21,10 @@ const FRAME_TIME := 0.15
 # Overridable per shooter (the Skeletal Wizard fires its own frames).
 var frame_a: Texture2D = FRAME_A
 var frame_b: Texture2D = FRAME_B
+## An N-frame loop for shooters whose orb isn't a two-beat — the player's staff
+## runs three. Left empty, the frame_a/frame_b pair above still drives it, so
+## the whole necromancer roster is untouched.
+var frames: Array[Texture2D] = []
 var impact_sounds: Array[AudioStream] = WIZARD_IMPACTS
 # The light an orb throws is the game's clearest telegraph — in a dungeon lit
 # only by your torch, a coloured glow travelling at you IS the readable threat
@@ -67,7 +71,10 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 		return
 	position += direction * SPEED * speed_scale * delta
-	sprite.texture = frame_a if int(time / FRAME_TIME) % 2 == 0 else frame_b
+	if frames.is_empty():
+		sprite.texture = frame_a if int(time / FRAME_TIME) % 2 == 0 else frame_b
+	else:
+		sprite.texture = frames[int(time / FRAME_TIME) % frames.size()]
 	# Keep the flight sizzle going for as long as the orb lives.
 	if not flight.playing:
 		flight.play()

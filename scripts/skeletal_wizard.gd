@@ -5,25 +5,25 @@ extends CharacterBody3D
 ## telegraphed volley — alternating so no single rhythm works.
 
 const FRONT_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front1.png"),
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front2.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_front1.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_front2.png"),
 ]
 const SIDE_FRAMES: Array[Texture2D] = [  # drawn facing left; flipped for right
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_side1.png"),
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_side2.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_side1.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_side2.png"),
 ]
 const BACK_FRAMES: Array[Texture2D] = [
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back1.png"),
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_back2.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_back1.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_back2.png"),
 ]
 const ATTACK_FRAMES: Array[Texture2D] = [  # windup (charge), release (recover)
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_attack1.png"),
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_attack2.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_attack1.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_attack2.png"),
 ]
-const DEAD_TEXTURE := preload("res://assets/sprites/skeletal-wizard/skeletal-wizard-dead.png")
+const DEAD_TEXTURE := preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_dead.png")
 const ORB_SCENE := preload("res://scenes/orb.tscn")
-const ORB_FRAME_1 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb1.png")
-const ORB_FRAME_2 := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_orb2.png")
+const ORB_FRAME_1 := preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_orb1.png")
+const ORB_FRAME_2 := preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_orb2.png")
 const ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit1.ogg"),
 	preload("res://assets/audio/sfx/enemies/Skeletal_wizard_orb_hit2.ogg"),
@@ -37,12 +37,12 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 const WALK_FRAME_TIME := 0.28
 const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_death.ogg")
 const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.ogg")
-const ROAR_TEX := preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_roar1.png")
+const ROAR_TEX := preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_roar1.png")
 const ROAR_TIME := 1.0  # the rise: reared up and bellowing before the hunt
 const RISE_HEIGHT := 1.6  # how far it heaves up out of the pile during the roar
 const FRONT_TAKEHIT: Array[Texture2D] = [  # front-only; it always faces you
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit1.png"),
-	preload("res://assets/sprites/skeletal-wizard/skeletal_wizard_front_takehit2.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_front_takehit1.png"),
+	preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_front_takehit2.png"),
 ]
 const HIT_FRAME_TIME := 0.12  # per take-hit frame; two = one flinch
 

@@ -1,7 +1,7 @@
 [gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/boomerang.gd" id="1_boomerang"]
-[ext_resource type="Texture2D" path="res://assets/sprites/boomerang_shot1.png" id="2_texture"]
+[ext_resource type="Texture2D" path="res://assets/sprites/boomerang/boomerang_shot1.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/player/boomerang_flight_whirr.ogg" id="3_whirr"]
 
 [sub_resource type="SphereShape3D" id="sphere_boomerang"]

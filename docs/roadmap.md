@@ -152,6 +152,14 @@ fills up.
 
 ## Parking lot (ideas, not commitments)
 
+*Scope test for the last three entries (added 2026-08-06): they are
+deliberately **adjustments to systems that already exist** — more of the
+item pool, more draws from it, more variation inside the wizard roster —
+not new systems. That is the argument for why they could fit the polish
+phase at all: "adding to or taking away from an existing system, like
+more items, is fitting at this stage." Weigh them against that test, not
+against whether they're good ideas.*
+
 - Fall-in hole state (pits/lava/spikes — collision plumbing ready)
 - Doors, keys, locked treasure rooms
 - Minimap from the ASCII grid
@@ -176,3 +184,85 @@ fills up.
   (ember damage? bigger shove? fire spread?) keeping the torch
   could become a real build choice instead of a phase — the
   starting weapon as a keeper is classic roguelike depth.
+- **More relics** — Knockback Stone (push 'em harder), a charm crystal
+  (turn a creature to your side), Heart Stone (health over time).
+  **Check the pool math before adding any:** `_relic_pool()` starts at 18
+  entries and a run claims about 6 (three item rooms × one pedestal, plus
+  three boss drops), so flat additions *dilute* — every existing relic
+  gets rarer while the take stays 6. Tiered relics are the counter; they
+  let a run double down instead of spreading thin. Per idea:
+  - *Knockback* — best fit. The knock-skid window has no steering, so
+    shoves already feed the shafts, and a creature that goes down takes
+    its body AND its drops with it — the relic self-balances with no
+    tuning. Scaling `MELEE_RECOIL` alongside buys real risk near your own
+    rims. Does nothing to the amalgam (no skid, cannot fall).
+  - *Charm* — mechanically the cheapest, because Doom-style infighting is
+    already built: `take_damage(…, attacker)` flips aggro, grudges hold
+    until the target dies, `alert(against)` rallies neighbours. Build it
+    as a conversion-on-hit in the Rot/Ember shape — a `dot.gd`-style node
+    that tints the host and runs the 5-phase overlay — not as a pet. It
+    costs score for free (only player kills count), and expiry turning
+    the creature back on you is the aftermath beat.
+  - *Heart Stone* — **not as a flat trickle.** Time is never scored on
+    purpose, because these levels reward lingering; passive regen on top
+    of zero time pressure makes standing still optimal and guts potions
+    and half-hearts. **Settled 2026-08-06 as the GoldenHeart Stone:** it
+    raises the half-golden-heart drop chance instead of regenerating.
+    No camping incentive, doesn't touch the red-heart economy (potions
+    can't heal magic hearts anyway), and it feeds the trial's "golden
+    hearts protect red hearts" synergy — the reason to take it is
+    keeping the trial findable, not raw sustain. Two watch items: it
+    overlaps Lucky Luck Stone (drop rolls ×0.6 already includes magic
+    hearts), so it must be clearly stronger on that one axis or it reads
+    as a worse Lucky Luck — and decide whether the two stack. And
+    drop-rate relics are low-feel by nature; if it doesn't land in
+    playtest, the felt version is a half golden heart granted on each
+    floor load, which is equally camp-proof and actually noticeable.
+- **More ways to earn a draw** — the real lever, since draws and not pool
+  size are what deepen a build. Two ideas: a second hidden room under a
+  different plank, and a lever/plate room that seals and spawns a wave
+  for an item (cages). **The wave room is already designed — it's "the
+  trial"** in the Secret rooms entry above: fight + item, gated on no red
+  damage taken this floor, with the commoner's golden hearts keeping it
+  findable. That gate beats a lever, because it makes the whole floor
+  tense retroactively. Cheap, too: it recombines built parts —
+  `arena_mists` + `seal()`, the consent plate, the wave spawn from
+  `_start_boss_fight` — and mist grammar already says gold = bargain,
+  cold = fight, so a gold door that seals cold is a new sentence in a
+  language the game speaks. Ship on the mist seal; cages are the second
+  pass (retune rule). For the second hidden room, make it a **variant**
+  of the commoner — one type rolled per x-1, never both on one floor.
+  The tell is the mechanic, and two secrets a floor turns finding one
+  from an event into a chore.
+- **Elemental amalgams** — the 3-3 fight isn't hard enough (playtest,
+  2026-08-06), and this answers difficulty and lore in one move: fight
+  all three necromancer colours through the act, then the corpses
+  assemble into three amalgams wearing the blue/red/brown hats and capes.
+  Lore that tells itself, and it makes the wizard variants matter beyond
+  variety. `_drop_into_assembly` already captures the arena corpses, so
+  reading *which* colours died out of that capture is the natural hook.
+  - **Stage the rises; don't spawn three at once.** Bosses hit 4 units
+    against a 16 cap and the amalgam has no knock, so three simultaneous
+    is a burst wall, not a harder fight. Blue first, red at two-thirds,
+    brown at a third, so escalation reads as the fight getting worse.
+    Cheaper cousin if three bodies fight the code: ONE amalgam that swaps
+    hat and cape as it loses health.
+  - **The behaviour half is the good part.** `wizard.gd`'s
+    `_apply_element()` is **presentation-only today** — sprites, orb art,
+    impacts, glow, the `ember` flag — while `SPEED`, `CAST_RANGE`, and
+    `BASE_CAST_COOLDOWN` stay flat consts for every colour. Making brown
+    slower and harder-hitting, red faster and more frequent, means moving
+    those into per-element blocks; the switch to hang them on exists and
+    already runs before movement. Do it on the **wizards first** — that
+    dynamises every wizard fight, not just the boss — then hand the
+    amalgams the same patterns.
+  - "Add a charge attack" is already there: `skeletal_wizard.gd` cycles
+    `RUSH (4 s @ 3.0) → CHARGE (0.55 s wind-up) → RECOVER`, and those
+    consts are exactly the per-element knobs.
+  - **Widening drop chamber:** a true frustum is real generator work —
+    `_build_boss_chamber` fills a 1-cell border frame matching the arena
+    footprint, and the "fill stops one layer short under a solid arena
+    wall" rule is tuned to that assumption. Cheap 80%: keep the shaft at
+    arena width and build the CHAMBER as a larger `Rect2i`, so the walls
+    fall away as you land — the moment you actually perceive. Three
+    amalgams means three `fall_y` values to lower below the chamber.

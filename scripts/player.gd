@@ -85,7 +85,11 @@ const QUICKSTEP_MULT := 1.5  # Quickstep: dash lasts/reaches this much further
 const GAPLEAP_MULT := 1.7    # Gapleaper: a longer LEAP (stacks with Quickstep)
 const ARMOR_BLOCK_CHANCES: Array[float] = [0.0, 0.25, 0.4]
 const ORB_SCENE := preload("res://scenes/orb.tscn")
-const STAFF_ORB_TEXTURE := preload("res://assets/sprites/magic_staff_orb1.png")
+const STAFF_ORB_FRAMES: Array[Texture2D] = [
+	preload("res://assets/sprites/magic_staff/magic_staff_orb1.png"),
+	preload("res://assets/sprites/magic_staff/magic_staff_orb2.png"),
+	preload("res://assets/sprites/magic_staff/magic_staff_orb3.png"),
+]
 const BOOMERANG_SCENE := preload("res://scenes/boomerang.tscn")
 const TORCH_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/torch_hit1.ogg"),
@@ -383,6 +387,13 @@ func pickup_emberstone() -> bool:
 
 func apply_dots(target: Node) -> void:
 	# Every player-dealt hit carries the held afflictions.
+	if RunState.weapon == "torch":
+		# The torch is a flame, so it burns without a relic — but Cinder is a
+		# lesser kind than Ember: one tick, no light, no plank charring, no
+		# residue. It layers WITH Emberstone rather than being replaced by it,
+		# so the relic is what turns the torch into a build. Main hand only;
+		# the off-hand shove stays a control tool (see _torch_attack).
+		Dot.attach(target, self, "Cinder")
 	if RunState.rotstone:
 		Dot.attach(target, self, "Rot")
 	if RunState.emberstone:
@@ -649,8 +660,9 @@ func _attack() -> void:
 		var aim := -camera.global_transform.basis.z
 		var orb := ORB_SCENE.instantiate()
 		orb.shooter = self
-		orb.frame_a = STAFF_ORB_TEXTURE
-		orb.frame_b = STAFF_ORB_TEXTURE
+		# Three frames, not the necromancers' two-beat — orb.gd's `frames`
+		# array takes over when it's non-empty.
+		orb.frames = STAFF_ORB_FRAMES
 		orb.impact_sounds = STAFF_ORB_IMPACTS
 		orb.damage = attack_damage
 		orb.speed_scale = HASTY_MULTS[RunState.hasty_tier]
@@ -715,9 +727,20 @@ func _torch_attack() -> void:
 	# The torch as a shield: a shove that barely scratches (base torch
 	# damage) but keeps its full knockback — spacing, interrupts, and
 	# pit-work while the main weapon does the killing. Its own cooldown, so
-	# it weaves freely with the weapon; deliberately NO crystals or dots — a
-	# control tool, not a second weapon. It DOES break wooden walls, same as
+	# it weaves freely with the weapon. It DOES break wooden walls, same as
 	# the main-hand torch (two shoves), so the off-hand can open a way in.
+	#
+	# The dividing line is INTRINSIC vs ACQUIRED, not main hand vs off. No
+	# crystals and no relic dots here — Rot and Ember are earned, and letting
+	# a free second attack carry them is how weapon choice stops mattering.
+	# Cinder is different: it isn't a relic, it's what a torch IS, and a
+	# burning brand that stops setting things alight in your other hand is
+	# the odd rule. It also teaches the shove exists — before Cinder the
+	# off-hand gave no feedback a bump didn't. That's why this doesn't call
+	# apply_dots (which would drag the relics along) and attaches directly.
+	# Any FUTURE torch upgrades stay main-hand: the off-hand gets the taste,
+	# the main hand is where fire scales — hence the shorter tick count here
+	# than a held torch lays (Dot's fire ladder: shove 1, hold 2, Ember 3).
 	if torch_attack_timer > 0.0:
 		return
 	torch_attack_timer = TORCH_OFFHAND_COOLDOWN
@@ -732,6 +755,7 @@ func _torch_attack() -> void:
 				and forward.angle_to(to.normalized()) <= deg_to_rad(ATTACK_ARC_DEG):
 			enemy.take_damage(
 					TORCH_OFFHAND_DAMAGE, to.normalized() * TORCH_KNOCKBACK, self)
+			Dot.attach(enemy, self, "Cinder", Dot.CINDER_OFFHAND_TICKS)
 			RunState.record_damage_dealt(TORCH_OFFHAND_DAMAGE)
 	# The shove also smacks whatever wall you're facing — breaks a wooden
 	# wall in two, matching the main torch's bite (damage_wall counts each
