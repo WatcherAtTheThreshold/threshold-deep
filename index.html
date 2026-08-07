@@ -277,6 +277,26 @@ const SECTIONS = [
       ],
     },
     {
+      name: 'Slime Splits', rest: S + 'slime/slime-large/slime_large_front1.png',
+      sounds: [A + 'enemies/slime_split1.ogg'],
+      frames: [
+        [S + 'slime/slime-large/slime_large_front1.png', 300],
+        [S + 'slime/slime_dead.png', 500],
+        [S + 'slime/slime-small/slime_small_front1.png', 500],
+        [S + 'slime/slime-large/slime_large_front1.png', 10],
+      ],
+    },
+    {
+      name: 'Slimes Merge', rest: S + 'slime/slime-small/slime_small_front1.png',
+      sounds: [A + 'enemies/slime_merge1.ogg'],
+      frames: [
+        [S + 'slime/slime-small/slime_small_front1.png', 300],
+        [S + 'slime/slime-mid-spawn.png', 300],
+        [S + 'slime/slime-large/slime_large_front1.png', 500],
+        [S + 'slime/slime-small/slime_small_front1.png', 10],
+      ],
+    },
+    {
       name: 'Slime Rises', rest: S + 'slime/slime-spawn.png',
       sounds: [A + 'enemies/footsteps_slimes.ogg'],
       frames: [

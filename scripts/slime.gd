@@ -76,6 +76,20 @@ const AGGRO_LARGE := preload("res://assets/sprites/slime/slime-large/slime_large
 const AGGRO_SMALL := preload("res://assets/sprites/slime/slime-small/slime_small_front_aggro1.png")
 const AGGRO_BOSS := preload("res://assets/sprites/slime/slime-boss/slime-boss-front_aggro1.png")
 const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/slime_death.ogg")
+# The two signature mechanics, finally audible (docs/creature-polish.md). Both
+# go through Sfx.play_at rather than a node on the body: a split frees nothing
+# but a merge DOES free `partner`, and a one-shot parented to a body that's
+# about to vanish gets cut off mid-squelch.
+const SPLIT_SOUND := preload("res://assets/audio/sfx/enemies/slime_split1.ogg")
+const MERGE_SOUND := preload("res://assets/audio/sfx/enemies/slime_merge1.ogg")
+# Levelled against slime_death, NOT guessed. That file averages -26 dB and
+# plays at -3, so it lands near -29 effective; these two average -13.6 and
+# -16.8, so matching gains would have put a split 12 dB over a slime dying.
+# These sit ~3 dB ABOVE the death instead — present, because a split is a
+# signature beat, without shouting over the rest of the mix. Boss cascades can
+# fire two of these at once, which is the case to listen to.
+const SPLIT_DB := -12.0
+const MERGE_DB := -9.0
 const LARGE_TAKEHIT_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit1.png"),
 	preload("res://assets/sprites/slime/slime-large/slime_large_front_takehit2.png"),
@@ -548,6 +562,9 @@ func _respawn() -> void:
 
 
 func _merge() -> void:
+	# Fired before the partner is freed, so it sounds from where the two
+	# actually met rather than from whichever one happened to survive.
+	Sfx.play_at(MERGE_SOUND, global_position, MERGE_DB)
 	health = clampi(health + partner.health, 1, LARGE_MAX_HEALTH)
 	partner.queue_free()
 	partner = null
@@ -561,6 +578,9 @@ func _split(child_state: State) -> void:
 	@warning_ignore("integer_division")
 	var h2 := maxi(health / 2, 1)
 	var h1 := maxi(health - h2, 1)
+	# The rupture, on the parent's position — the split happens HERE, before
+	# the two halves shove apart.
+	Sfx.play_at(SPLIT_SOUND, global_position, SPLIT_DB)
 	_drop_splat()
 	# The rupture spills fresh goo, scaled to the tier that burst (state is
 	# still the parent here, before it becomes the child below).

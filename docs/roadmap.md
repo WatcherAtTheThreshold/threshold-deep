@@ -234,7 +234,22 @@ against whether they're good ideas.*
   of the commoner — one type rolled per x-1, never both on one floor.
   The tell is the mechanic, and two secrets a floor turns finding one
   from an event into a chore.
-- **Elemental amalgams** — the 3-3 fight isn't hard enough (playtest,
+- ~~**Elemental amalgams**~~ — **BUILT 2026-08-06**, both halves. The
+  necromancers got per-element fight styles first (`wizard.gd`'s
+  `_apply_element` now carries speed, fire rate, wind-up, reach and orb
+  weight, not just art), then `skeletal_wizard.gd` got the same enum +
+  const-block + `_apply_element` shape and the dungeon rises **three**
+  amalgams instead of one — blue, then red, then brown, each heaving up
+  when the previous drops past `AMALGAM_RISE_AT` (half). Each takes
+  `AMALGAM_SHARE` (0.45) of the corpse-scaled pool, so the trio is ~1.35x
+  the old single boss rather than 3x — the difficulty is three patterns,
+  not a longer health bar. Red and brown wear **cloned placeholder art**
+  under `skeletal_wizard_red/` and `skeletal_wizard_brown/`, awaiting
+  recolour. Watch item it taught: the wave-clear branch had to learn to
+  rise the next colour, or a fast player who killed one before it reached
+  the half-health cue would end the climax one boss in with the reward
+  already dropped. Original entry follows.
+  - the 3-3 fight isn't hard enough (playtest,
   2026-08-06), and this answers difficulty and lore in one move: fight
   all three necromancer colours through the act, then the corpses
   assemble into three amalgams wearing the blue/red/brown hats and capes.

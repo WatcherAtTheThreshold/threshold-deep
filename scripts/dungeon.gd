@@ -156,6 +156,19 @@ var fight_grace := 0.0
 const EARLY_DROP_Y := -0.3
 
 var amalgam_stage := 0  # 0 = wave, 1 = assembling, 2 = amalgam active
+# The three-colour climax. They rise one at a time, each as the previous drops
+# past AMALGAM_RISE_AT of its health, so the fight escalates instead of opening
+# at full weight. AMALGAM_SHARE is each one's cut of the corpse-scaled pool —
+# 0.45 makes the trio ~1.35x the old single boss's HP, which is "harder"
+# without being three times as long.
+const AMALGAM_SHARE := 0.45
+const AMALGAM_RISE_AT := 0.5
+## Array[Node], not Array[Node3D]: instantiate() is statically a Node, and only
+## get()/is_instance_valid() are ever called on these.
+var amalgams: Array[Node] = []
+var amalgam_risen := 0
+var amalgam_pool := 0
+var amalgam_centre := Vector3.ZERO
 var boss_floor_dropped := false  # the arena floor has caved into the chamber
 var boss_plate: Node3D = null    # the consent plate, so the drop can clear it
 var mush_stage := 0  # world 2: 0 = slime fake-out, 1 = the real boss
@@ -385,6 +398,7 @@ func _physics_process(_delta: float) -> void:
 
 	if fight_active:
 		_check_early_boss_drop()
+		_check_amalgam_rise()
 		fight_grace = maxf(fight_grace - _delta, 0.0)
 		if fight_grace == 0.0 and not _arena_has_living_enemies():
 			if boss_index >= 2 and amalgam_stage == 0:
@@ -399,6 +413,13 @@ func _physics_process(_delta: float) -> void:
 				# hungry for the corpses phase one just made.
 				mush_stage = 1
 				_spawn_mush_boss()
+			elif amalgam_stage == 2 and amalgam_risen < 3:
+				# All risen amalgams are down but the trio isn't spent — a fast
+				# player can kill one before it ever falls to the rise
+				# threshold. Without this the climax would end one boss in,
+				# with two colours never seen and the reward already dropped.
+				_rise_next_amalgam()
+				fight_grace = 1.5
 			elif amalgam_stage != 1:
 				_finish_boss_fight()
 
@@ -1591,19 +1612,62 @@ func _spawn_amalgam(corpses: Array, center: Vector3, body_count: int) -> void:
 	for c: Node3D in corpses:
 		if is_instance_valid(c):
 			c.queue_free()
+	# The pile held three necromancers' worth of dead, so three rise — but
+	# STAGGERED, never together. Three at once is a burst wall, not a harder
+	# fight: the amalgam has no stagger, so you can't buy space from it. Rising
+	# one at a time as the last one is halfway down reads as the fight getting
+	# worse, and keeps every arrival legible.
+	amalgam_centre = center
+	amalgam_pool = clampi(20 + body_count * 4, 28, 68)
+	amalgam_risen = 0
+	_rise_next_amalgam()
+	amalgam_stage = 2
+	fight_grace = 1.5
+
+
+func _rise_next_amalgam() -> void:
+	if amalgam_risen >= 3:
+		return
 	var boss := SKELETAL_WIZARD_SCENE.instantiate()
-	boss.position = center + Vector3(0, 0.7, 0)
-	# When it assembles in the chamber it stands far below the normal fall
-	# plane — drop its self-despawn net below the chamber floor, or it
-	# deletes itself the frame after the roar.
+	# Blue, then red, then brown — the order the act taught them to you, which
+	# is also skeletal_wizard.gd's Element order, so the counter IS the element.
+	# Element must be set BEFORE add_child: _ready() applies it, and the roar
+	# fires from there already wearing the colour's art.
+	boss.element = amalgam_risen
+	# Spread them so a later arrival never rises inside the one you're fighting.
+	var ring := float(amalgam_risen) * TAU / 3.0
+	boss.position = amalgam_centre + Vector3(cos(ring) * 1.6, 0.7, sin(ring) * 1.6)
+	# When they assemble in the chamber they stand far below the normal fall
+	# plane — drop the self-despawn net below the chamber floor, or they
+	# delete themselves the frame after the roar.
 	if boss_floor_dropped:
 		boss.fall_y = 0.5 - float(BOSS_DROP_LAYERS) * 4.0 - 5.0
 	add_child(boss)
-	# The player built this boss: HP scales with the bodies, capped —
-	# panic must cost, but never spiral. (Half-heart units.)
-	boss.health = clampi(20 + body_count * 4, 28, 68)
-	amalgam_stage = 2
-	fight_grace = 1.5
+	# The player built these: HP scales with the bodies, capped — panic must
+	# cost, but never spiral. Each takes a SHARE of that pool rather than the
+	# whole thing, so three bosses is a harder fight, not a three-times-longer
+	# one. The difficulty is in the three patterns, not the health bar.
+	var share := int(round(float(amalgam_pool) * AMALGAM_SHARE))
+	boss.health = share
+	boss.max_health = share
+	amalgam_risen += 1
+	amalgams.append(boss)
+
+
+func _check_amalgam_rise() -> void:
+	# The next colour heaves up when the current one is halfway down. Watching
+	# the LAST risen body (not the whole trio) is what staggers them: each
+	# arrival is triggered by the one before it, so they can never stack up
+	# all at once no matter how fast you fight.
+	if amalgam_stage != 2 or amalgam_risen == 0 or amalgam_risen >= 3:
+		return
+	var last: Node = amalgams[amalgam_risen - 1]
+	if not is_instance_valid(last) or last.get("dead"):
+		return  # a dead leader is handled by the wave-clear branch instead
+	var hp: int = last.get("health")
+	var cap: int = last.get("max_health")
+	if cap > 0 and float(hp) / float(cap) <= AMALGAM_RISE_AT:
+		_rise_next_amalgam()
 
 
 func _arena_has_living_enemies() -> bool:

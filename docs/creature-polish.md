@@ -99,9 +99,18 @@ roster gained weight in one sweep.
 - **Also has:** a **directional attack lunge** (front/side via
   `_attack_view`; boss front-only), the **caustic touch** + **creep
   trail** poison system, and fading **death pools**.
-- **Needs (signature sounds):** *split & merge* sounds — `_split` /
-  `_merge` are visually juicy but silent. (**Death SFX and aggro cue:
-  DONE.**)
+- **~~Needs (signature sounds)~~ — DONE 2026-08-07:** `slime_split1.ogg`
+  fires in `_split` (on the parent's position, before the halves shove
+  apart) and `slime_merge1.ogg` in `_merge` (before `partner` is freed,
+  so it sounds from where the two actually met). Both go through
+  `Sfx.play_at` rather than a node on the body — a merge frees one of
+  them, and a one-shot parented to a body that's about to vanish gets cut
+  off mid-squelch. **Levels were measured, not guessed:** the two files
+  average -13.6 and -16.8 dB against `slime_death`'s -26.1, so matching
+  gains would have put a split ~12 dB over a slime dying; they play at
+  -12 and -9 to sit ~3 dB above the death. Boss cascades can fire two
+  splits at once — that's the case to listen to.
+  (**Death SFX and aggro cue: DONE.**)
 - Boss: a distinct heavier death stinger when the whole cascade ends.
 
 ### Mush family (+ Mush Boss) — [mush.gd](../scripts/mush.gd)
