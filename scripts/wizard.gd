@@ -2,10 +2,12 @@ extends CharacterBody3D
 
 # --- The necromancer roster (docs/necromancers.md) -------------------------
 # ONE script, many necromancers — the mush.gd / slime.gd pattern (one script,
-# a state var, per-state assets). Behaviour is IDENTICAL across elements: same
-# keep-your-distance chase, same telegraphed cast, same startle. What changes
-# is the look, the voice, and what the orb leaves behind. Adding brown means
-# adding a const block and a `match` arm, nothing else.
+# a state var, per-state assets). The SHAPE of the fight is shared: every
+# element keeps its distance, telegraphs its cast, and startles the first beat
+# it sees you. What differs is the look, the voice, what the orb leaves behind,
+# and — since 2026-08-06 — the NUMBERS: speed, fire rate, wind-up, reach and
+# weight (see "Per-element FIGHT STYLE" below). Adding an element is still a
+# const block and a `match` arm, nothing else.
 enum Element { BLUE, RED, BROWN }
 
 # BLUE — the original bolt-thrower.
@@ -198,6 +200,37 @@ const WANDER_LEG_MIN := 0.8
 const WANDER_LEG_MAX := 2.0
 const WANDER_PAUSE_MIN := 2.0
 const WANDER_PAUSE_MAX := 6.0
+const ORB_DAMAGE := 2  # half-heart units; orb.gd's own default, named here
+
+# --- Per-element FIGHT STYLE ----------------------------------------------
+# The roster differs in HOW IT FIGHTS, not only how it looks. Blue is the
+# baseline — the consts above are its values, so only red and brown need an arm
+# in _apply_element(), exactly like the art.
+#
+# The rule that keeps this fair is Pillar 3, readable danger: THE HARDER IT
+# HITS, THE LONGER IT WINDS UP. Brown throws for 3 units (half again a blue
+# bolt) so it telegraphs nearly twice as long and lobs the rock slowly — you're
+# meant to watch it coming and step off the line. It also has to walk closer to
+# throw. Red buys tempo instead of power: the same 2-unit bolt, but it moves,
+# fires and recovers faster, and its real bite is the Ember it leaves behind.
+const RED_SPEED := 2.2
+const RED_WANDER_SPEED := 1.1
+const RED_CAST_BASE := 1.5
+const RED_CHARGE := 0.3
+const RED_ORB_SPEED := 1.25
+const BROWN_SPEED := 1.0
+const BROWN_WANDER_SPEED := 0.5
+const BROWN_CAST_BASE := 3.2
+const BROWN_CHARGE := 0.7
+const BROWN_CAST_RANGE := 8.0  # a thrown rock, not a bolt down the corridor
+const BROWN_ORB_DAMAGE := 3
+const BROWN_ORB_SPEED := 0.8
+# Deeper necromancers cast a little more often. The floor is a FRACTION of each
+# element's own base, not one flat number — a flat 1.4s would have let brown
+# ramp into blue's territory while barely touching red. Blue lands on 2.2 ×
+# 0.65 = 1.43, which is where the hand-tuned 1.4 used to sit.
+const CAST_DEPTH_STEP := 0.08
+const CAST_FLOOR_FRAC := 0.65
 
 # The self-despawn net, per body so the boss drop can lower it (same pattern as
 # skeletal_wizard.gd): a wave that rides the caving floor down must not delete
@@ -226,6 +259,18 @@ var orb_flight: AudioStream = BLUE_ORB_FLIGHT
 var element_glow: Color = BLUE_GLOW
 var element_glow_energy := BLUE_GLOW_ENERGY
 var ember := false  # red's signature: its orb leaves a burn on what it hits
+# Fight style — blue's numbers by default, overridden per element in _ready().
+var speed := SPEED
+var wander_speed := WANDER_SPEED
+var cast_base := BASE_CAST_COOLDOWN
+var charge_time := CHARGE_TIME
+var cast_range := CAST_RANGE
+var orb_damage := ORB_DAMAGE
+var orb_speed_scale := 1.0
+# Kept from setup() so _apply_element can fold the depth ramp into whichever
+# element's base cooldown it lands on. setup() runs BEFORE add_child, _ready
+# after — so the roll happens first and the numbers are applied second.
+var spawn_depth := 1
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
 var cast_timer := 1.0
@@ -280,6 +325,12 @@ func _apply_element() -> void:
 			element_glow = RED_GLOW
 			element_glow_energy = RED_GLOW_ENERGY
 			ember = true
+			# Tempo, not power: closes faster, fires sooner, winds up shorter.
+			speed = RED_SPEED
+			wander_speed = RED_WANDER_SPEED
+			cast_base = RED_CAST_BASE
+			charge_time = RED_CHARGE
+			orb_speed_scale = RED_ORB_SPEED
 		Element.BROWN:
 			front_frames = BROWN_FRONT
 			side_frames = BROWN_SIDE
@@ -301,9 +352,22 @@ func _apply_element() -> void:
 			element_glow = BROWN_GLOW
 			element_glow_energy = BROWN_GLOW_ENERGY
 			# No ember: the rock is just a rock.
+			# Power, not tempo: hits for half again a bolt, so it walks slower,
+			# throws slower, winds up nearly twice as long, and has to get
+			# closer to throw at all. The long telegraph IS the fairness.
+			speed = BROWN_SPEED
+			wander_speed = BROWN_WANDER_SPEED
+			cast_base = BROWN_CAST_BASE
+			charge_time = BROWN_CHARGE
+			cast_range = BROWN_CAST_RANGE
+			orb_damage = BROWN_ORB_DAMAGE
+			orb_speed_scale = BROWN_ORB_SPEED
 	# The charge telegraph wears the element's colour — a red caster winding up
 	# under a blue light would break the read the robe is supposed to give you.
 	cast_glow.light_color = element_glow
+	# Depth ramp last, on top of whichever base the element just chose.
+	cast_cooldown = maxf(cast_base - CAST_DEPTH_STEP * (spawn_depth - 1),
+			cast_base * CAST_FLOOR_FRAC)
 	sprite.texture = front_frames[0]
 
 
@@ -386,19 +450,19 @@ func _physics_process(delta: float) -> void:
 		if dist < RETREAT_RANGE:
 			var away := -to_target.normalized()
 			if _floor_ahead(away):
-				velocity.x = away.x * SPEED
-				velocity.z = away.z * SPEED
+				velocity.x = away.x * speed
+				velocity.z = away.z * speed
 			else:
 				# A rim at its back: nowhere left to give, so it holds.
 				velocity.x = 0.0
 				velocity.z = 0.0
 		else:
-			velocity.x = move_toward(velocity.x, 0.0, SPEED)
-			velocity.z = move_toward(velocity.z, 0.0, SPEED)
+			velocity.x = move_toward(velocity.x, 0.0, speed)
+			velocity.z = move_toward(velocity.z, 0.0, speed)
 		cast_timer -= delta
-		if cast_timer <= 0.0 and dist <= CAST_RANGE:
+		if cast_timer <= 0.0 and dist <= cast_range:
 			charging = true
-			charge_timer = CHARGE_TIME
+			charge_timer = charge_time
 			_start_cast_glow()
 	else:
 		_wander(delta)
@@ -425,8 +489,10 @@ func _physics_process(delta: float) -> void:
 
 
 func setup(depth: int) -> void:
-	# Deeper wizards cast a little more often.
-	cast_cooldown = maxf(BASE_CAST_COOLDOWN - 0.08 * (depth - 1), 1.4)
+	# Deeper wizards cast a little more often — but the ramp is applied in
+	# _apply_element(), once we know WHICH element's base it's ramping from.
+	# Only the flag and the depth are set here.
+	spawn_depth = depth
 	# Which necromancer showed up. Rolled HERE because setup() runs before
 	# add_child — only the flag is set; _ready() does the node work.
 	var roll := randf()
@@ -465,13 +531,13 @@ func _wander(delta: float) -> void:
 		if is_on_wall() or not _floor_ahead(wander_dir):
 			wander_timer = 0.0
 		facing = wander_dir
-		velocity.x = wander_dir.x * WANDER_SPEED
-		velocity.z = wander_dir.z * WANDER_SPEED
+		velocity.x = wander_dir.x * wander_speed
+		velocity.z = wander_dir.z * wander_speed
 		if wander_timer <= 0.0:
 			wander_wait = randf_range(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
 	else:
-		velocity.x = move_toward(velocity.x, 0.0, SPEED)
-		velocity.z = move_toward(velocity.z, 0.0, SPEED)
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
 		wander_wait -= delta
 		if wander_wait <= 0.0:
 			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
@@ -533,7 +599,7 @@ func _start_cast_glow() -> void:
 		glow_tween.kill()
 	cast_glow.light_energy = 0.25
 	glow_tween = create_tween()
-	glow_tween.tween_property(cast_glow, "light_energy", 1.5, CHARGE_TIME)
+	glow_tween.tween_property(cast_glow, "light_energy", 1.5, charge_time)
 
 
 func _stop_cast_glow() -> void:
@@ -555,6 +621,10 @@ func _fire_orb(t: PhysicsBody3D) -> void:
 	orb.glow_energy = element_glow_energy
 	orb.flight_sound = orb_flight
 	orb.impact_sounds = orb_impacts
+	# ...and the element's weight. Brown's rock hits for 3 and travels slow
+	# enough to sidestep; red's bolt is lighter but arrives sooner.
+	orb.damage = orb_damage
+	orb.speed_scale = orb_speed_scale
 	if ember:
 		orb.dot_kind = "Ember"
 	orb.direction = (t.global_position - from).normalized()
