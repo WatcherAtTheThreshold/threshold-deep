@@ -116,6 +116,16 @@ fills up.
 
 ### Finish work
 
+- **UI — see [docs/ui-language.md](ui-language.md)** (drafted
+  2026-08-07). The rule is that UI is drawn art in torchlight, not text
+  on a surface; the reason the in-game UI reads as characterless is that
+  the HUD is seven typeset Labels while the only finished pieces are
+  drawn plates. Demo-scoped order: **pause menu + Options** (checks the
+  web-demo checklist's unticked "controls surfaced in-game", and is the
+  cheapest place to solve what UI looks like OVER gameplay), then the
+  death/victory pass, then the `click to descend` frame, then the HUD.
+  Meta UI stays out — the title is already the hub, so meta adds a
+  screen rather than rewiring the flow.
 - One pass on the death report and victory screen — a demo lives
   or dies on its endings.
 - A fresh full-run balance pass once the item wave is in (the

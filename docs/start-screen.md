@@ -126,10 +126,13 @@ keeps pre-game and post-3-3 content from tangling later.
 
 Three plates: **START**, **OPTIONS**, **QUIT**.
 
+*Superseded by what shipped — see [ui-language.md](ui-language.md) for
+the live spec. The drafted numbers are kept below for the reasoning.*
+
 | Spec | Value |
 |---|---|
-| Canvas | 128×32 per plate (larger if carving needs it) |
-| Display | 3× nearest, as with all UI |
+| Canvas | ~~128×32 per plate~~ → **300×93 as built** (the carving needed it) |
+| Display | ~~3× nearest~~ → **1:1 nearest**, drawn at final size |
 | Font | Press Start 2P, **drawn into the plate art**, not a Label on top |
 | States | 2 minimum — resting, hovered |
 | Base | Draw ONE plate, vary the text — same discipline as the crystal cuts |
