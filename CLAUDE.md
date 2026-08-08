@@ -98,15 +98,56 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   floor load; the world updates before the started-guard, so descending
   swaps the pool at the next surfacing without interrupting what's
   playing. `music/` root holds only the title track (title.tscn owns it).
+- **Three buses** (`default_bus_layout.tres`): Master, Music, SFX, so Options
+  can move one without the others. Everything `Sfx` spawns rides SFX; the
+  `MusicDrift` player and the title's Music node ride Music; every
+  scene-embedded player sets its own bus in its `.tscn`. **If a sound ignores
+  the slider, grep `bus = ` — it was never given one.** `Sfx` is
+  `PROCESS_MODE_ALWAYS`, which is the only reason a menu click is audible from
+  the pause screen: every sound it spawns is its child, and a paused parent
+  means paused children.
+- **UI clicks wire themselves.** `Sfx.wire_buttons(self)` in a menu's `_ready`
+  connects every `BaseButton` beneath it, so a new plate gets its click free
+  and the tenth one can't be forgotten. Sliders are `Range`s, not
+  `BaseButton`s, so dragging volume stays silent.
+
+## UI (docs/ui-language.md is the full spec)
+
+- **The rule: UI is drawn art in torchlight, not text on a surface.** Menu
+  words are drawn INTO the plate art, never a Label on top. Plates are
+  **300×93**, nearest, drawn at final size, three states (rest/hover/pressed);
+  the full-width `click_to_descend` prompt is 600×93.
+- **Hover is light, never colour** — the letters wake, the plate doesn't tint.
+- **A plate means "this is pressable."** Never put non-interactive text on one;
+  it teaches a lie and players click it. That's why the OPTIONS heading is a
+  Label and not a plate.
+- Plates are pixel art at 1:1, so **never scale them non-integer** — that
+  shreds the pixels. A smaller button means drawing a smaller plate, which is
+  why headings get resized instead of plates.
+- Font Press Start 2P, sizes in multiples of 8 (16/24/40/48 are the set).
+- **Ticks on a slider mark a DEFAULT you can return to, not a recommendation.**
+  Only MOUSE has them (1.0 is the tuned baseline, unfindable otherwise);
+  volume has no correct value and your ears are the readout.
+- `MetaState` owns settings AND persists them to `user://settings.cfg` —
+  IndexedDB on web, so it survives a browser reload. Volumes are stored linear
+  0–1 (what a slider should be) and converted to dB on write.
+- **The title is the hub.** A run is minted at the title (`title.gd` →
+  `RunState.reset()` → dungeon) and death returns there (`hud.gd`). Meta
+  progression will ADD a screen to that hub, not rewire the flow.
+- Pause (`pause_menu.tscn`) is the only UI that sits over live gameplay; the
+  scrim is what makes plates read on an arbitrary dungeon frame. It carries the
+  control list, and Options is one shared scene instanced by both it and the
+  title so the two can't drift.
 
 ## Layout
 
-- `scenes/` — `dungeon.tscn` (the game, startup scene), `main.tscn`
+- `scenes/` — `title.tscn` (the startup scene / hub), `dungeon.tscn` (the
+  game), `main.tscn`
   (CSG test room), `player.tscn`, creatures (`skeleton.tscn`,
   `wizard.tscn`, `slime.tscn`, `mush.tscn`, `frogman.tscn`),
   `orb.tscn` (wizard
   projectile), pickups (`potion.tscn`, `sword_pickup.tscn`),
-  `hatch.tscn`
+  `hatch.tscn`, UI (`pause_menu.tscn`, `options_panel.tscn`)
 - `scripts/` — one script per scene/system; `dungeon_generator.gd` is a
   static `class_name DungeonGenerator`
 - `resources/dungeon_tiles.tres` — hand-written MeshLibrary (BoxMesh +
@@ -352,12 +393,35 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   restless — they stir when the player comes within 3.5 m after a
   4 s grace, take 1 s to rise at 2 HP, and one hit mid-rise scatters
   them for good), **wizard** (keeps
-  distance, telegraphed dodgeable orb, 2 HP; **element-driven** —
+  distance, telegraphed dodgeable orb, 4 HP; **element-driven** —
   `wizard.gd` is ONE script for the whole necromancer roster via
   `enum Element` + per-element const blocks + `_apply_element()` in
   `_ready`, the mush/slime pattern. `setup()` rolls the element at
   `RED_CHANCE` BEFORE `add_child`, so it only sets the flag; all node
-  work happens in `_ready`. Red = own aggro trio/cast/impacts/flight,
+  work happens in `_ready`.
+  **Movement is three bands and the identity is the middle one** — it is
+  NOT a skeleton, it closes to its OWN preferred distance and no further:
+  beyond `cast_range` it advances, inside `RETREAT_RANGE` it gives ground,
+  and between the two it CIRCLES (`_strafe`, 65% speed, randomised 0.9–2.2s
+  flips so a knot never orbits in lockstep). The far band was missing until
+  2026-08-08 — sight reaches 14 m and the orb only 11, so a wizard that saw
+  you across a room had no instruction to move and simply stood there.
+  Strafing never runs during a cast: the `charging` branch returns first and
+  zeroes velocity, and that rooted glow is the Pillar-3 telegraph. Every band
+  is `_floor_ahead`-gated, including the strafe — a caster that kites itself
+  into a shaft is a free kill.
+  **Covens** (`_spawn_wizard_coven`, `WIZARD_COVEN_CHANCE`): 2–3 arrive
+  together and DELIBERATELY one colour each, never a re-roll per body —
+  three blues fire in lockstep every 2.2 s and land as a volley wall, while
+  one of each fires at 2.2/1.5/3.2 behind 0.45/0.30/0.85 wind-ups so the
+  threat rolls in. The per-element fight styles are what make a gang
+  survivable at all. The origin keeps its own roll (its `_ready` already
+  consumed it); the others take the colours it didn't.
+  **Per-element FIGHT STYLE, not just art:** blue is the baseline, red trades
+  power for tempo (faster, sooner, shorter wind-up), brown trades tempo for
+  weight (3-damage orb, ~2× wind-up, shorter reach). The rule holding it
+  together is Pillar 3 — the harder it hits, the longer it winds up.
+  Red = own aggro trio/cast/impacts/flight,
   orange orb + charge glow, and an Ember `Dot` on creature victims
   (NOT the player — see docs/necromancers.md). Brown = the rock-thrower,
   no Dot, dim amber orb via `orb.gd`'s `glow_energy` (dim, NEVER dark —

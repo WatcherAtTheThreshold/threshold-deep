@@ -64,6 +64,7 @@ var owned := false  # true while a boss fight has claimed the track
 
 func _ready() -> void:
 	player.volume_db = -60.0
+	player.bus = &"Music"  # so Options can move music without touching SFX
 	add_child(player)
 	# Boss tracks loop — a fight runs as long as it runs, and the music can't
 	# be allowed to simply end mid-amalgam. Safe to set on the shared imported

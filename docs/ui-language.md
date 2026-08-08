@@ -144,32 +144,62 @@ Things that need an answer, all of them visual calls:
 
 Ordered by leverage, not by appearance in play.
 
-### 1. Pause menu — **demo gate**
+### 1. Pause menu — **BUILT 2026-08-08**
 
-The web-demo checklist's *"Controls surfaced somewhere in-game"* is
-still unchecked, and this is what checks it. `ui_cancel` currently only
-toggles mouse capture ([player.gd:447](../scripts/player.gd)) — the
-hook is already where the menu belongs.
+`scenes/pause_menu.tscn`. **RESUME · OPTIONS · QUIT TO TITLE** over a 0.6
+scrim, plus the control list — which checks the web-demo checklist's
+*"Controls surfaced somewhere in-game."*
 
-Contents: **RESUME · OPTIONS · QUIT TO TITLE**, plus the control list
-(move / dash / attack / Esc). Reuses the title plates.
+The list is a 4-column grid, keyboard on the left and mouse on the right,
+so the layout carries information. **RIGHT CLICK / shove is on it** — the
+off-hand torch is the mechanic nobody discovers unaided, and omitting it
+guaranteed they wouldn't. `R` is deliberately absent: the checklist itself
+says it's debug-only and to hide it for the public build.
 
-Quitting to title is free — `hud.gd` already does exactly that on death.
+Traps this hit, all worth remembering: quit-to-title must **unpause before
+changing scene** or the title loads frozen; the menu is parented to the
+scene, not the player, or it dies with the body; and it's blocked while
+`controls_enabled` is false so nobody can pause on top of their own death
+report.
 
-### 2. Options — needed more than usual for a web build
+### 2. Options — **BUILT 2026-08-08**
 
-Specced in start-screen.md, unbuilt. Master / music / SFX volume, mouse
-sensitivity, fullscreen. **Hide QUIT on web** (`OS.has_feature("web")`)
-— there's nothing to quit to in a browser tab.
+`scenes/options_panel.tscn`, one scene instanced by both the title and the
+pause menu so they can't drift. Master / Music / SFX volume, mouse
+sensitivity, fullscreen (hidden on web — the browser owns the viewport).
+QUIT is hidden on web too; nothing to quit to in a tab.
 
-Volume matters disproportionately here: people play browser games in a
-tab beside other audio, and the demo has no volume control at all.
+**It needed audio buses that didn't exist.** Everything played on Master,
+so "music volume" had nothing to move. `default_bus_layout.tres` now has
+Music and SFX, with all 13 scene-embedded players and both autoloads
+routed.
 
-Sliders are the one place the plate rule bends — a slider can't be a
-drawn word. Keep them minimal and let the plates around them carry the
-identity.
+Applies live while dragging, saves on close — a slider that only takes
+effect on OK is a slider you can't set by ear, and saving per tick would
+hit the disk a hundred times a drag.
 
-### 3. Death & victory — **demo gate**
+### 3. Death & victory — **partly done 2026-08-08**
+
+The death report has a **CLOSE plate** now. It used to hold a fixed 5 s and
+jump to the title on its own, with no way to say "I've read it, let me go
+again." `DEATH_HOLD_TIME` is 20 s and has changed meaning — it's the net
+for someone who walked away, not the intended exit.
+
+Three things that would have broken it, all worth remembering for the next
+screen: the **mouse was still captured** from the fight (a visible,
+unclickable plate is worse than no plate); the outro was welded into one
+tween so CLOSE had to kill a queued callback, with a guard because the
+button and the timer can land on the same frame; and `ScreenFade` goes
+fully opaque, so the plate had to sit **later in sibling order** or it
+would have faded out underneath the darkness.
+
+**Victory is untouched and isn't an ending screen** — it's a banner that
+fades in, holds 6 s, fades out and drops you back into play for the
+endless descent. Nothing to close.
+
+The remaining work here is the **visual** pass, below.
+
+### 3b. Death & victory visuals — **demo gate**
 
 Built and working, but typeset. The roadmap's finish work says it
 plainly: *"a demo lives or dies on its endings."* This is the last
@@ -204,23 +234,56 @@ free.
 
 - UI is drawn art in torchlight, not text on a surface
 - Hover is light, never colour
-- Plates are 300 × 93, three states, nearest, drawn at final size
+- Plates are 300 × 93, three states, nearest, drawn at final size; the
+  full-width `click_to_descend` prompt is 600 × 93
 - Press Start 2P, multiples of 8
 - The title is the hub; a run is minted there, death returns there
-- The black `click to descend` frame stays
+- The black `click to descend` frame stays — it got *drawn*, not replaced
 - Pause menu is the next piece built
 
-**Open — Jessop's calls, not to be guessed:**
+**Settled in build, 2026-08-08:**
 
-- **The colour palette.** Six font colours exist; how many should?
-  Suggest picking three roles — *neutral* (read this), *gold* (you
-  gained), *red* (you lost) — and mapping the seven labels onto them.
-- **The scrim.** Does the world dim behind a menu, how much, and does
-  it freeze?
-- **Plate backing.** Do plates need to carry their own ground to read
-  over arbitrary tiles?
-- **Whether the HUD becomes drawn at all**, or stays functional text in
-  a consolidated palette.
+- **A plate means "this is pressable."** Never put non-interactive text on
+  one. The OPTIONS heading was nearly given a plate and shouldn't have
+  been — players would click it. Headings are Labels; plates are buttons.
+- **Never scale a plate non-integer.** They're pixel art at 1:1, so
+  shrinking one to 0.75 shreds it. When a plate looks too big next to a
+  heading, **resize the heading** — that's a font number. A genuinely
+  smaller button means drawing a smaller plate, and that plate would then
+  be the reusable "secondary action" size.
+- **The scrim: dim, and freeze.** Pause runs `get_tree().paused = true`
+  behind a 0.6 black scrim; Options adds 0.55 of its own. Menus set
+  `PROCESS_MODE_ALWAYS` to work against it. Plates read fine on an
+  arbitrary dungeon frame at that level — **no plate backing needed**,
+  which closes that question.
+- **A panel hides what it covers.** Options hides the pause plates and the
+  control list rather than sitting on top of them; two screens showing
+  through each other reads as unfinished.
+- **Ticks mark a DEFAULT, not a recommendation.** Only the MOUSE slider has
+  them — 1.0 is the tuned baseline and was unfindable at 32% of the old
+  0.3–2.5 track. Volume has no correct value; your ears are the readout.
+- **Two-tone lists.** Keys are gold `0.91, 0.76, 0.35`, actions bone
+  `0.75, 0.73, 0.64`. Gold was chosen because it's ALREADY this UI's word
+  for interactive — the plate hover glow and the OPTIONS heading — so the
+  control list says "these are the things you press" in the language the
+  interface already speaks. No new palette entries were invented.
+- **Aligned columns are a container's job, not a monospace-padding job.**
+  The control list is a 4-column `GridContainer` of 12 Labels. The hand-
+  padded version was one character out twice, and centre-alignment centres
+  each line independently so it showed.
+
+**Still open — Jessop's calls, not to be guessed:**
+
+- **The colour palette.** Still six-plus font colours. Suggest three roles
+  — *neutral* (read this), *gold* (you gained / you press), *red* (you
+  lost) — and mapping every label onto them.
+- **Whether the HUD becomes drawn at all**, or stays functional text in a
+  consolidated palette.
+- **The stock widgets.** The fullscreen `CheckButton` is the single most
+  out-of-place element on screen — it's the only thing that looks like it
+  came from another program. Sliders are second. The panel background is
+  third. Recommended order if the art time exists: toggle, panel, sliders;
+  the labels can stay.
 
 ---
 

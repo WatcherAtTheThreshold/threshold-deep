@@ -6,6 +6,38 @@ extends Node3D
 ## / QUIT plates rise. A run is born here (START -> RunState.reset() ->
 ## dungeon); death returns here. On a return, MetaState.intro_seen skips
 ## the flythrough straight to the settled menu.
+##
+## The `Corpse` node earns its place twice. As story it explains the sword —
+## someone came down here before you, it went badly for one of them, and the
+## other left their weapon in the stone. As engineering it is a SHADER WARM:
+## every creature in the game shares one material config (billboard 2, shaded,
+## alpha_cut 1, nearest), and shader variants compile on that config rather
+## than the texture, so this one sprite compiles the whole bestiary's shader
+## before the dungeon ever loads. That is what the web build's first-entry
+## hitch was. It sits straight down the approach corridor so it renders on
+## frame one of the walk — while the screen is still fading up from black,
+## which is exactly where you want a compile stall to land.
+## A dead one, deliberately: start-screen.md rejected a LIVE wizard here
+## because a creature that notices you and does nothing is "a promise the
+## screen doesn't keep." A corpse promises nothing.
+##
+## `ShaderWarm` is the engineering half, split out so the corpse can be judged
+## purely as a picture. It sits at world (5.5, 1.6, 9) — INSIDE the solid stone
+## of cell (2, 4), one cell east of the approach corridor. Occlusion culling is
+## off, so objects buried in a wall are still submitted as draw calls and still
+## compile their pipelines; only the depth test throws the pixels away. In the
+## camera frustum from frame one, invisible forever.
+##
+## It holds one node per MATERIAL CONFIG the dungeon uses and the title
+## otherwise wouldn't touch — variants compile per config, not per texture, so
+## one node covers every user of that config:
+##   Mist      the mist.gdshader ShaderMaterial (gates, doors)
+##   Orb       unshaded, billboard 1 — every projectile
+##   Dot       unshaded, billboard 2 — Rot/Ember/Cinder overlays
+##   Creature  shaded, billboard 2 — the entire bestiary
+## Tiles are already warm: the title runs the same dungeon_tiles.tres.
+## ADD A NODE HERE whenever a new material config ships, or the first thing
+## that uses it will stutter on a web build.
 
 const EYE_HEIGHT := 2.05  # camera world y — matches player (1.5 origin + 0.55)
 const WALK_TIME := 16.0    # tune to the title track in the music phase
@@ -40,15 +72,37 @@ const BOX_MAX := Vector2i(11, 7)
 @onready var music: AudioStreamPlayer = $Music
 @onready var crackle: AudioStreamPlayer = $Crackle
 @onready var black: ColorRect = $UI/Black
-@onready var prompt: Label = $UI/Prompt
+@onready var prompt: TextureButton = $UI/Prompt
 @onready var menu: VBoxContainer = $UI/Menu
 @onready var start_button: TextureButton = $UI/Menu/Start
+@onready var options_button: TextureButton = $UI/Menu/Options
 @onready var quit_button: TextureButton = $UI/Menu/Quit
 @onready var camera: Camera3D = $CameraPath/Follow/Camera3D
 
 var flicker_time := 0.0
+const OPTIONS_SCENE := preload("res://scenes/options_panel.tscn")
+
+## The three scenes the DUNGEON loads at RUNTIME instead of preloading — the
+## creatures that spawn copies of themselves. Their scripts use `load()` rather
+## than `preload()` because a script preloading its own scene risks the parse
+## cycle this project has hit before ("Parse Error: Busy"), so the call can't
+## simply be changed there. On a single-threaded web export (`thread_support=
+## false`) that load BLOCKS the frame — confirmed 2026-08-08 as the jag you
+## feel the first time a slime splits.
+## Touching them here puts them in ResourceLoader's cache, so the in-fight
+## `load()` becomes a cache hit. Process-lifetime, so it survives to the run.
+## ONE PER FRAME, and while the screen is still black — never all at once, or
+## we'd have moved the stall rather than removed it.
+const WARM_SCENES: Array[String] = [
+	"res://scenes/slime.tscn",
+	"res://scenes/mush.tscn",
+	"res://scenes/frogman.tscn",
+]
+
 var intro_started := false
 var settled := false
+var warm_index := 0
+var options_panel: CanvasLayer = null
 var walk_tween: Tween
 var fade_tween: Tween
 
@@ -64,7 +118,14 @@ func _ready() -> void:
 	_lay_camera_path()
 	crackle.finished.connect(crackle.play)  # hand-loop the torch ambient
 	start_button.pressed.connect(_on_start)
+	options_button.pressed.connect(_on_options)
 	quit_button.pressed.connect(_on_quit)
+	# The descend plate is a real button so it can wear its hover glow, but
+	# _unhandled_input still accepts a click ANYWHERE — the browser gesture
+	# gate should never be something you can miss.
+	prompt.pressed.connect(_begin_intro)
+	# Every plate in this scene gets the click, including any added later.
+	Sfx.wire_buttons(self)
 	if OS.has_feature("web"):
 		quit_button.hide()  # nothing to quit to in a browser tab
 	if MetaState.intro_seen:
@@ -79,6 +140,11 @@ func _process(delta: float) -> void:
 	# The torch never rests: a subtle energy flicker keeps the whole
 	# frame alive. (The dungeon flickers the hand sprite; here there is
 	# no hand, so the light itself breathes.)
+	if warm_index < WARM_SCENES.size():
+		# Runs from the very first frame, behind the black gate — the player
+		# hasn't even clicked yet, so a blocked frame here costs nothing.
+		load(WARM_SCENES[warm_index])
+		warm_index += 1
 	flicker_time += delta
 	torch_light.light_energy = TORCH_BASE_ENERGY \
 			+ 0.18 * sin(flicker_time * 11.0) \
@@ -118,6 +184,10 @@ func _begin_intro() -> void:
 		return
 	intro_started = true
 	MetaState.intro_seen = true  # future title visits skip to the menu
+	# It fades over the next 0.3s but a Control at alpha 0 still EATS clicks —
+	# leave it hittable and a tap at screen centre during the walk would
+	# re-enter this guarded function instead of skipping to the menu.
+	prompt.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	music.play()      # the composed title track, one-shot
 	crackle.play()    # torch ambient, hand-looped; carries the quiet after
 	# Reveal the walk: the black gate fades, the prompt fades with it.
@@ -171,6 +241,14 @@ func _on_start() -> void:
 	# A run is born HERE, at the title — the dungeon only consumes it.
 	RunState.reset()
 	get_tree().change_scene_to_file("res://scenes/dungeon.tscn")
+
+
+func _on_options() -> void:
+	if options_panel != null:
+		return
+	options_panel = OPTIONS_SCENE.instantiate()
+	options_panel.closed.connect(func() -> void: options_panel = null)
+	add_child(options_panel)
 
 
 func _on_quit() -> void:

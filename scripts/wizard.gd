@@ -201,6 +201,13 @@ const WANDER_LEG_MAX := 2.0
 const WANDER_PAUSE_MIN := 2.0
 const WANDER_PAUSE_MAX := 6.0
 const ORB_DAMAGE := 2  # half-heart units; orb.gd's own default, named here
+# Circling while it holds its range. It used to stand perfectly still between
+# casts, which made a caster look dead and made it trivial to lead. Slower than
+# a full walk so the sidestep reads as poise, not panic; the flip interval is
+# randomised so a knot of them never circles in lockstep.
+const STRAFE_TIME_MIN := 0.9
+const STRAFE_TIME_MAX := 2.2
+const STRAFE_SPEED_FRAC := 0.65
 
 # --- Per-element FIGHT STYLE ----------------------------------------------
 # The roster differs in HOW IT FIGHTS, not only how it looks. Blue is the
@@ -271,6 +278,8 @@ var orb_speed_scale := 1.0
 # element's base cooldown it lands on. setup() runs BEFORE add_child, _ready
 # after — so the roll happens first and the numbers are applied second.
 var spawn_depth := 1
+var strafe_sign := 1.0   # which way it's currently circling
+var strafe_timer := 0.0  # counts down to the next direction flip
 var health := MAX_HEALTH
 var cast_cooldown := BASE_CAST_COOLDOWN
 var cast_timer := 1.0
@@ -446,8 +455,25 @@ func _physics_process(delta: float) -> void:
 				recovery_timer = RECOVERY_TIME
 			cast_timer = cast_cooldown
 	elif sees_target:
-		# Keep respectful distance: back away if the target closes in.
-		if dist < RETREAT_RANGE:
+		# Three bands, and the whole identity of the necromancer is that it
+		# wants to stand in the middle one. It is NOT a skeleton: it closes to
+		# its own preferred distance and no further.
+		#
+		# The far band used to be missing entirely. Sight reaches 14 m but the
+		# orb only 11, so a wizard that spotted you across a long room saw you,
+		# couldn't cast, and had no instruction to move — it just stood there.
+		# Three metres of statue.
+		if dist > cast_range:
+			var toward := to_target.normalized()
+			if _floor_ahead(toward):
+				velocity.x = toward.x * speed
+				velocity.z = toward.z * speed
+			else:
+				# A rim between it and you: it won't walk into the dark to
+				# reach you. Hold, and let you come.
+				velocity.x = 0.0
+				velocity.z = 0.0
+		elif dist < RETREAT_RANGE:
 			var away := -to_target.normalized()
 			if _floor_ahead(away):
 				velocity.x = away.x * speed
@@ -457,8 +483,7 @@ func _physics_process(delta: float) -> void:
 				velocity.x = 0.0
 				velocity.z = 0.0
 		else:
-			velocity.x = move_toward(velocity.x, 0.0, speed)
-			velocity.z = move_toward(velocity.z, 0.0, speed)
+			_strafe(delta, to_target)
 		cast_timer -= delta
 		if cast_timer <= 0.0 and dist <= cast_range:
 			charging = true
@@ -542,6 +567,31 @@ func _wander(delta: float) -> void:
 		if wander_wait <= 0.0:
 			wander_dir = Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 			wander_timer = randf_range(WANDER_LEG_MIN, WANDER_LEG_MAX)
+
+
+func _strafe(delta: float, to_target: Vector3) -> void:
+	# Holding the right distance should not mean holding STILL. It circles,
+	# which is harder to lead and reads as a caster keeping its angle on you.
+	# Never during a cast: the charging branch returns before this one, and
+	# that rooted glow is the telegraph Pillar 3 promises.
+	strafe_timer -= delta
+	if strafe_timer <= 0.0:
+		strafe_timer = randf_range(STRAFE_TIME_MIN, STRAFE_TIME_MAX)
+		strafe_sign = -strafe_sign
+	var side := to_target.normalized().cross(Vector3.UP) * strafe_sign
+	if not _floor_ahead(side):
+		# A rim that way — reverse rather than circle off the edge. Same probe
+		# the retreat uses; a caster that kites itself into a shaft is a gift.
+		strafe_sign = -strafe_sign
+		side = -side
+	if _floor_ahead(side):
+		velocity.x = side.x * speed * STRAFE_SPEED_FRAC
+		velocity.z = side.z * speed * STRAFE_SPEED_FRAC
+	else:
+		# Boxed in both ways (a ledge on one side, a wall on the other) —
+		# stand and cast, which is what it did everywhere before this.
+		velocity.x = move_toward(velocity.x, 0.0, speed)
+		velocity.z = move_toward(velocity.z, 0.0, speed)
 
 
 func _update_view(frame: int) -> void:

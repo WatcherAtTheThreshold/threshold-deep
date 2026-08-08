@@ -38,12 +38,17 @@ The web only runs the **Compatibility** renderer; our project is
 - [ ] In Project Settings → Rendering → Renderer, add a **web override**
   = `gl_compatibility` (writes `rendering/renderer/rendering_method.web`
   to `project.godot`; the Windows default stays Forward+).
-- [ ] **Eyeball the lighting.** Threshold Deep's whole mood is the
-  torch-lit dark. Compatibility handles lights differently — the
-  interiors may read brighter/flatter, and the intentional darkness is a
-  pillar. Export a test build and look before shipping. If it's washed
-  out, tune ambient/torch **per-renderer** rather than globally so the
-  desktop look is untouched.
+  *Still unset as of 2026-08-08 — `project.godot` has no
+  `rendering_method` line. This is now only about EDITOR PREVIEW: the web
+  export runs Compatibility whether or not the override exists, which is
+  why the builds below worked without it. Setting it just lets you see
+  what the browser sees without exporting.*
+- [x] **Eyeball the lighting — DONE 2026-08-08, by testing rather than
+  by checkbox.** Several browser runs plus one full export served over
+  Node. The torch-lit dark survives Compatibility; no washing out, no
+  per-renderer tuning needed. Audio, pointer lock and the first-click
+  gesture all confirmed live, including the UI click on the descend
+  plate (the one sound the browser could legitimately have swallowed).
 
 ### 2. Audio size: 58 MB of WAV — DONE 2026-07-29
 
@@ -79,6 +84,15 @@ full `.wav` grep afterward (came back clean).*
   zip root).
 
 ### Smoke-test the export locally (must be over HTTP, not file://)
+
+> **Run and passed, 2026-08-08.** Full export served over Node and played
+> in-browser. Two things that bit on the way and are worth knowing before
+> the next one: **`python -m http.server` does not work on this machine** —
+> `python` resolves to the Windows Store stub, which just prints "Python was
+> not found." Use `npx serve` (real Node lives at `C:\Program Files\nodejs`).
+> And the preset's `export_path` is `../../Godot/exports/index.html`, i.e.
+> `d:\Godot\exports\` — a folder that did not exist, which Godot will not
+> always create for you.
 
 **Double-clicking `index.html` fails** with "NetworkError when attempting
 to fetch resource" — browsers block the `fetch()` Godot uses to load its
@@ -134,8 +148,12 @@ is content/feel, which is the hands-on call:
 - [ ] No obvious soft-locks or generator dead-ends in a dozen test runs.
 - [ ] First-60-seconds reads well to someone who's never seen it (the
   Reddit/stranger test — no one to explain controls).
-- [ ] Controls surfaced somewhere in-game (move/dash/attack, Esc, R is
-  debug-only — consider hiding R for the public build).
+- [x] Controls surfaced somewhere in-game — **DONE 2026-08-08.** The pause
+  menu (Esc) carries the list: move / dash / look / attack / shove / pause,
+  keyboard column and mouse column. **R is deliberately omitted** per this
+  entry's own note; it stays a debug key and is listed nowhere a player
+  reads. Right-click/shove IS listed — the off-hand torch is the mechanic
+  nobody finds unaided.
 
 ## Feedback loop (the actual goal)
 

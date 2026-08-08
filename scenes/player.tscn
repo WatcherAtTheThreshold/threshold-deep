@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3]
+[gd_scene load_steps=16 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/viewmodel.gd" id="2_viewmodel"]
@@ -10,6 +10,9 @@
 [ext_resource type="Script" path="res://scripts/left_torch.gd" id="6_left_torch"]
 [ext_resource type="FontFile" path="res://assets/fonts/PressStart2P-Regular.ttf" id="8_font"]
 [ext_resource type="Texture2D" path="res://assets/textures/mist-overlay.png" id="9_mist"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/close_button.png" id="12_close"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/close_button_hover.png" id="13_closeh"]
+[ext_resource type="Texture2D" path="res://assets/ui/title/close_button_pressed.png" id="14_closep"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_player"]
 radius = 0.4
@@ -27,14 +30,17 @@ script = ExtResource("1_player")
 shape = SubResource("capsule_player")
 
 [node name="StepSound" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 stream = ExtResource("5_steps")
 volume_db = -10.0
 
 [node name="CreakSound" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 stream = ExtResource("11_creak")
 volume_db = -6.0
 
 [node name="TorchCrackle" type="AudioStreamPlayer" parent="."]
+bus = &"SFX"
 stream = ExtResource("10_crackle")
 volume_db = -16.0
 autoplay = true
@@ -221,6 +227,23 @@ vertical_alignment = 1
 theme_override_fonts/font = ExtResource("8_font")
 theme_override_font_sizes/font_size = 24
 theme_override_colors/font_color = Color(0.85, 0.55, 0.45, 1)
+
+[node name="DeathClose" type="TextureButton" parent="HUD"]
+visible = false
+texture_filter = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -150.0
+offset_top = -140.0
+offset_right = 150.0
+offset_bottom = -47.0
+grow_horizontal = 2
+grow_vertical = 0
+texture_normal = ExtResource("12_close")
+texture_pressed = ExtResource("14_closep")
+texture_hover = ExtResource("13_closeh")
 
 [node name="DeathStats" type="Label" parent="HUD"]
 visible = false

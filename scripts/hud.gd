@@ -37,9 +37,17 @@ const ICON_HALBERD := preload("res://assets/items/weapon_halberd.png")
 
 const FADE_IN_TIME := 0.7
 const DESCENT_FADE_TIME := 0.8
-const DEATH_HOLD_TIME := 5.0
+## The CLOSE plate is the intended way out of the death report; this interval
+## is only the net for a player who walked away. It was 5 s when the timer WAS
+## the only exit — long enough now to read the tally without feeling trapped.
+const DEATH_HOLD_TIME := 20.0
 
 var last_total := 0
+# Death-report state: the pending tween (so CLOSE can cancel its auto-advance),
+# what to fade out, and a guard so the button and the timer can't both fire.
+var death_tween: Tween = null
+var death_elements: Array[CanvasItem] = []
+var death_closing := false
 
 @onready var player: Player = get_parent()
 @onready var hearts_box: HBoxContainer = $Hearts
@@ -55,6 +63,7 @@ var _shown_second := -1  # last whole second painted into run_info
 @onready var killer_face: TextureRect = $KillerFace
 @onready var death_cause: Label = $DeathCause
 @onready var death_stats: Label = $DeathStats
+@onready var death_close: TextureButton = $DeathClose
 @onready var toast_name: Label = $ToastName
 @onready var toast_desc: Label = $ToastDesc
 
@@ -67,6 +76,8 @@ func _ready() -> void:
 	player.health_changed.connect(_on_health_changed)
 	player.blocked.connect(_on_blocked)
 	player.died.connect(_on_player_died)
+	death_close.pressed.connect(close_death_report)
+	Sfx.wire_buttons(self)
 	player.poisoned.connect(_on_poisoned)
 	player.burned.connect(_on_burned)
 	last_total = player.health + player.magic_hearts
@@ -180,19 +191,23 @@ func _on_player_died() -> void:
 	for e in elements:
 		e.modulate.a = 0.0
 		e.visible = true
-	var tween := create_tween()
+	death_elements = elements
+	# The mouse is still CAPTURED from the fight — free it or the CLOSE plate
+	# is visible and unclickable, which is worse than having no plate at all.
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	death_tween = create_tween()
 	# Half-darken the world, bring in the verdict and the culprit...
-	tween.tween_property(screen_fade, "color:a", 0.55, 0.5)
-	tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.7)
-	tween.parallel().tween_property(killer_face, "modulate:a", 1.0, 0.7)
-	tween.parallel().tween_property(death_cause, "modulate:a", 1.0, 0.7)
-	tween.tween_property(death_stats, "modulate:a", 1.0, 0.4)
-	# ...let it sit, then close the dark over everything.
-	tween.tween_interval(DEATH_HOLD_TIME)
-	tween.tween_property(screen_fade, "color:a", 1.0, 0.9)
-	for e in elements:
-		tween.parallel().tween_property(e, "modulate:a", 0.0, 0.9)
-	tween.tween_callback(_restart_run)
+	death_tween.tween_property(screen_fade, "color:a", 0.55, 0.5)
+	death_tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.7)
+	death_tween.parallel().tween_property(killer_face, "modulate:a", 1.0, 0.7)
+	death_tween.parallel().tween_property(death_cause, "modulate:a", 1.0, 0.7)
+	death_tween.tween_property(death_stats, "modulate:a", 1.0, 0.4)
+	# The plate arrives with the report and is the way out. The interval after
+	# it is a safety net for someone who walked away, not the intended path —
+	# hence long enough to actually read the tally rather than the old 5 s.
+	death_tween.tween_callback(_show_death_close)
+	death_tween.tween_interval(DEATH_HOLD_TIME)
+	death_tween.tween_callback(close_death_report)
 
 
 func _killer_phrase() -> String:
@@ -236,6 +251,30 @@ func _build_death_stats() -> String:
 		if row.size() > 0:
 			lines.append("   ".join(row))
 	return "\n".join(lines)
+
+
+func _show_death_close() -> void:
+	death_close.modulate.a = 0.0
+	death_close.visible = true
+	create_tween().tween_property(death_close, "modulate:a", 1.0, 0.5)
+
+
+func close_death_report() -> void:
+	# Reached two ways: the player pressing CLOSE, or the safety-net interval
+	# running out. Guarded, because both can land in the same frame.
+	if death_closing:
+		return
+	death_closing = true
+	# The waiting tween still holds a queued call to this function — kill it
+	# or the auto-advance fires again behind the manual one.
+	if death_tween != null and death_tween.is_valid():
+		death_tween.kill()
+	var outro := create_tween()
+	outro.tween_property(screen_fade, "color:a", 1.0, 0.9)
+	outro.parallel().tween_property(death_close, "modulate:a", 0.0, 0.9)
+	for e in death_elements:
+		outro.parallel().tween_property(e, "modulate:a", 0.0, 0.9)
+	outro.tween_callback(_restart_run)
 
 
 func _restart_run() -> void:

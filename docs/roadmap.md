@@ -116,16 +116,18 @@ fills up.
 
 ### Finish work
 
-- **UI — see [docs/ui-language.md](ui-language.md)** (drafted
-  2026-08-07). The rule is that UI is drawn art in torchlight, not text
-  on a surface; the reason the in-game UI reads as characterless is that
-  the HUD is seven typeset Labels while the only finished pieces are
-  drawn plates. Demo-scoped order: **pause menu + Options** (checks the
-  web-demo checklist's unticked "controls surfaced in-game", and is the
-  cheapest place to solve what UI looks like OVER gameplay), then the
-  death/victory pass, then the `click to descend` frame, then the HUD.
-  Meta UI stays out — the title is already the hub, so meta adds a
-  screen rather than rewiring the flow.
+- **UI — see [docs/ui-language.md](ui-language.md)** (drafted 2026-08-07).
+  The rule is that UI is drawn art in torchlight, not text on a surface.
+  **Pause menu, Options, the drawn `click to descend` plate, the death
+  report's CLOSE plate, audio buses and settings persistence all BUILT
+  2026-08-08** — which checks the web-demo checklist's "controls surfaced
+  in-game" and answers the doc's open question about what UI looks like
+  OVER gameplay (a scrim carries it; plates need no backing of their own).
+  **Remaining, in order:** the death/victory *visual* pass, the HUD's
+  identity, and the four stock Godot widgets that still look imported —
+  the fullscreen toggle worst, then the panel, then the sliders. Meta UI
+  stays out; the title is already the hub, so meta adds a screen rather
+  than rewiring the flow.
 - One pass on the death report and victory screen — a demo lives
   or dies on its endings.
 - A fresh full-run balance pass once the item wave is in (the

@@ -109,6 +109,8 @@ const FROGMAN_MIN_DEPTH := 3
 const SKELETON_PACK_CHANCE := 0.6        # of skeleton spawns that become a pack
 const SKELETON_PACK_THIRD_CHANCE := 0.4  # of those packs that are 3, not 2
 const REVENANT_PACK_CHANCE := 0.2        # of packs that rise ONCE after you clear them
+const WIZARD_COVEN_CHANCE := 0.45        # of wizard spawns that arrive as a coven
+const WIZARD_COVEN_THIRD_CHANCE := 0.35  # of covens that are 3, not 2
 
 const WOOD_WALL_HITS := 4  # half-heart damage units: torch 2 swings, sword 1
 const FLOOR_COLLAPSE_CHANCE := 0.35
@@ -1031,9 +1033,11 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 		for cell in spawn_cells:
 			var enemy: Node3D
 			var is_skeleton := false
+			var is_wizard := false
 			var roll := randf()
 			if roll < wizard_chance:
 				enemy = WIZARD_SCENE.instantiate()
+				is_wizard = true
 			elif roll < wizard_chance + SLIME_CHANCE:
 				enemy = SLIME_SCENE.instantiate()
 			elif roll < wizard_chance + SLIME_CHANCE + mush_chance:
@@ -1050,6 +1054,8 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 			# are never touched, some singletons just become 2-3.
 			if is_skeleton and randf() < SKELETON_PACK_CHANCE:
 				_spawn_skeleton_pack(rooms[i], cell, enemy)
+			elif is_wizard and randf() < WIZARD_COVEN_CHANCE:
+				_spawn_wizard_coven(rooms[i], cell, enemy)
 		if randf() < ROOM_POTION_CHANCE:
 			var stone := _stone_cells(rooms[i])
 			if stone.size() > 0:
@@ -1059,6 +1065,46 @@ func _populate(rooms: Array[Rect2i], skip_idx := -1, with_hatch := true,
 				add_child(potion)
 	if with_hatch:
 		_place_hatch(rooms, hatch_exclude)
+
+
+func _spawn_wizard_coven(room: Rect2i, origin: Vector2i, origin_wiz: Node3D) -> void:
+	# A coven, not a crowd: 2-3 necromancers, DELIBERATELY one colour each
+	# rather than a fresh roll per body. Three blues would fire in lockstep
+	# every 2.2s and land as a volley wall; one of each fires at 2.2 / 1.5 /
+	# 3.2 behind wind-ups of 0.45 / 0.30 / 0.85, so the threat ROLLS instead of
+	# arriving at once. The per-element fight styles are what make a gang
+	# survivable at all — without them this would just be three of the same
+	# enemy shooting you together.
+	#
+	# It also plants the 3-3 climax: meet colour trios through the act and the
+	# three amalgams rising from their corpses read as a payoff, not a surprise.
+	var extra := 2 if randf() < WIZARD_COVEN_THIRD_CHANCE else 1
+	# The origin already rolled AND applied its element (setup + add_child ran
+	# in _populate, and _ready consumed it), so it can't be reassigned here.
+	# The others take the colours it didn't — that's what guarantees the mix.
+	var taken: int = origin_wiz.get("element")
+	var others: Array[int] = []
+	for e in [0, 1, 2]:
+		if e != taken:
+			others.append(e)
+	others.shuffle()
+	var spots := _stone_cells(room)
+	spots.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		return Vector2(a - origin).length() < Vector2(b - origin).length())
+	var placed := 0
+	for c in spots:
+		if placed >= extra:
+			break
+		if c == origin:
+			continue
+		var wiz := WIZARD_SCENE.instantiate()
+		wiz.setup(RunState.depth)
+		# Overwrite setup()'s random roll BEFORE add_child — _ready() applies
+		# whatever `element` holds at that moment, so this is the last window.
+		wiz.element = others[placed]
+		wiz.position = _cell_to_world(c)
+		add_child(wiz)
+		placed += 1
 
 
 func _spawn_skeleton_pack(room: Rect2i, origin: Vector2i, origin_skel: Node3D) -> void:

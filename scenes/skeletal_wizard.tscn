@@ -17,6 +17,7 @@ script = ExtResource("1_boss")
 shape = SubResource("capsule_boss")
 
 [node name="StepSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"SFX"
 stream = ExtResource("3_steps")
 volume_db = -4.0
 pitch_scale = 0.8

@@ -91,6 +91,7 @@ const STAFF_ORB_FRAMES: Array[Texture2D] = [
 	preload("res://assets/sprites/magic_staff/magic_staff_orb3.png"),
 ]
 const BOOMERANG_SCENE := preload("res://scenes/boomerang.tscn")
+const PAUSE_MENU_SCENE := preload("res://scenes/pause_menu.tscn")
 const TORCH_HIT_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/player/torch_hit1.ogg"),
 	preload("res://assets/audio/sfx/player/torch_hit2.ogg"),
@@ -429,8 +430,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
 		# Mouse X turns the whole body, mouse Y tilts only the camera.
-		rotate_y(-event.relative.x * MOUSE_SENSITIVITY)
-		camera.rotate_x(-event.relative.y * MOUSE_SENSITIVITY)
+		# MOUSE_SENSITIVITY is the baseline; MetaState carries the player's
+		# multiplier from Options, so the const stays the thing to tune and
+		# the slider stays a preference on top of it.
+		var sens := MOUSE_SENSITIVITY * MetaState.mouse_sensitivity
+		rotate_y(-event.relative.x * sens)
+		camera.rotate_x(-event.relative.y * sens)
 		camera.rotation.x = clampf(camera.rotation.x, -PI / 2.0, PI / 2.0)
 	elif event.is_action_pressed("attack"):
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
@@ -445,11 +450,25 @@ func _unhandled_input(event: InputEvent) -> void:
 				and RunState.weapon != "torch":
 			_torch_attack()
 	elif event.is_action_pressed("ui_cancel"):
-		# Esc toggles the mouse in and out of capture.
-		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-			Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		else:
-			Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+		# Esc opens the pause menu, which frees the mouse and takes over Esc
+		# from there. It used to only toggle mouse capture — that left the
+		# controls unlisted anywhere in-game and gave a stuck player nothing
+		# but Alt-F4.
+		_open_pause()
+
+
+func _open_pause() -> void:
+	# Never over the death report, the victory screen, or a floor transition:
+	# those own the moment, and `controls_enabled` is already false for exactly
+	# those states (it's what the boss-drop plunge uses too).
+	if not controls_enabled or get_tree().paused:
+		return
+	var menu := PAUSE_MENU_SCENE.instantiate()
+	# Parented to the SCENE, not the player — a pause menu that dies with the
+	# body it hangs on is not a pause menu.
+	get_tree().current_scene.add_child(menu)
+	get_tree().paused = true
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 
 
 func shake(strength: float, duration: float) -> void:
