@@ -48,6 +48,12 @@ const BLUE_AGGRO_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_aggro3.ogg"),
 ]
 const BLUE_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_cast1.ogg")
+## Cast gain is PER ELEMENT because the three files are not comparable: mean
+## level runs blue -23.3, red -28.9, brown -15.0 — a 14 dB spread — over
+## durations of 0.81s, 1.58s and 0.15s. They all played at a flat -4.0 until
+## 2026-08-08, which made a brown cast roughly 14 dB louder than a red one.
+## These land all three near -27.3 effective, where blue already sat.
+const BLUE_CAST_DB := -4.0
 const BLUE_ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit1.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_orb_hit2.ogg"),
@@ -99,6 +105,7 @@ const RED_AGGRO_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_red_aggro3.ogg"),
 ]
 const RED_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_red_cast1.ogg")
+const RED_CAST_DB := 1.5
 const RED_ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_red_orb_hit1.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_red_orb_hit2.ogg"),
@@ -147,6 +154,7 @@ const BROWN_AGGRO_SOUNDS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_brown_aggro3.ogg"),
 ]
 const BROWN_CAST_SOUND := preload("res://assets/audio/sfx/enemies/wizard_brown_cast1.ogg")
+const BROWN_CAST_DB := -12.5
 const BROWN_ORB_IMPACTS: Array[AudioStream] = [
 	preload("res://assets/audio/sfx/enemies/wizard_brown_orb_hit1.ogg"),
 	preload("res://assets/audio/sfx/enemies/wizard_brown_orb_hit2.ogg"),
@@ -261,6 +269,7 @@ var orb_frame_a: Texture2D = BLUE_ORB_A
 var orb_frame_b: Texture2D = BLUE_ORB_B
 var aggro_sounds: Array[AudioStream] = BLUE_AGGRO_SOUNDS
 var cast_sound: AudioStream = BLUE_CAST_SOUND
+var cast_db := BLUE_CAST_DB
 var orb_impacts: Array[AudioStream] = BLUE_ORB_IMPACTS
 var orb_flight: AudioStream = BLUE_ORB_FLIGHT
 var element_glow: Color = BLUE_GLOW
@@ -329,6 +338,7 @@ func _apply_element() -> void:
 			orb_frame_b = RED_ORB_B
 			aggro_sounds = RED_AGGRO_SOUNDS
 			cast_sound = RED_CAST_SOUND
+			cast_db = RED_CAST_DB
 			orb_impacts = RED_ORB_IMPACTS
 			orb_flight = RED_ORB_FLIGHT
 			element_glow = RED_GLOW
@@ -356,6 +366,7 @@ func _apply_element() -> void:
 			orb_frame_b = BROWN_ORB_B
 			aggro_sounds = BROWN_AGGRO_SOUNDS
 			cast_sound = BROWN_CAST_SOUND
+			cast_db = BROWN_CAST_DB
 			orb_impacts = BROWN_ORB_IMPACTS
 			orb_flight = BROWN_ORB_FLIGHT
 			element_glow = BROWN_GLOW
@@ -682,10 +693,15 @@ func _fire_orb(t: PhysicsBody3D) -> void:
 	get_parent().add_child.call_deferred(orb)
 	# The launch. Without it the cast reads as a thing that ARRIVED rather than
 	# a thing someone DID (creature-polish.md's outstanding wizard item).
-	Sfx.play_at(cast_sound, global_position, -4.0)
+	Sfx.play_at(cast_sound, global_position, cast_db)
 
 
 func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	if who == player and not player.huntable:
+		# The body has been worked over enough. Stand down and drift off —
+		# a corpse is not prey, and a skeleton still swinging behind the
+		# death report reads as the game not noticing you lost.
+		return false
 	# A known threat — a grudge, or infighting kin — is hunted on range +
 	# line of sight alone. The player, unprovoked, must be HEARD (close, any
 	# direction) or SEEN (inside the forward cone, at range, clear line):

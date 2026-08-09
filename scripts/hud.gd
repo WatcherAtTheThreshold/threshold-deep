@@ -192,6 +192,14 @@ func _on_player_died() -> void:
 		e.modulate.a = 0.0
 		e.visible = true
 	death_elements = elements
+	# The drift dies WITH you, not on the way out the door. It used to hush in
+	# _restart_run, one line before the scene change — a 1.2s fade against a
+	# title track starting at full, so every death overlapped the two. It only
+	# sounded wrong SOMETIMES because the drift plays random passages with long
+	# silences between: die in a gap and there was nothing to collide.
+	# Hushing here gives it the whole report to fade out in, and the quiet the
+	# report plays in is the better beat anyway.
+	MusicDrift.hush()
 	# The mouse is still CAPTURED from the fight — free it or the CLOSE plate
 	# is visible and unclickable, which is worse than having no plate at all.
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
@@ -280,9 +288,9 @@ func close_death_report() -> void:
 func _restart_run() -> void:
 	# Death returns to the title — the hub where the next run is born.
 	# RunState.reset() now lives on the title's START (so a completed run
-	# can still be read here); MetaState keeps the flythrough from
-	# replaying, and hush() silences the dungeon drift on the way out.
-	MusicDrift.hush()
+	# can still be read here); MetaState keeps the flythrough from replaying.
+	# The drift was hushed back at _on_player_died — by now it's long silent,
+	# so the title's own track opens on nothing.
 	get_tree().change_scene_to_file("res://scenes/title.tscn")
 
 
@@ -379,44 +387,48 @@ func _make_item_icon(tex: Texture2D) -> TextureRect:
 
 func _rebuild_items() -> void:
 	# The run's kit drawn left-to-right in a top band, wrapping into new
-	# rows as it fills (HFlowContainer). Weapons come FIRST (leftmost) as
-	# the anchor, then crystals. Tiered crystals show the current tier's
-	# cut, never stack. Driven straight from RunState, which persists
-	# across floors.
+	# rows as it fills (HFlowContainer), in the ORDER IT WAS COLLECTED.
+	#
+	# It used to draw in source order — weapons then crystals — which looked
+	# tidy and told you nothing: a fixed layout can only show what you already
+	# knew. Collection order makes the rightmost icon the thing you most
+	# recently claimed, which is what you're checking for on an item floor
+	# ("did I already take it, or am I still looking?"), and it reads back as
+	# the run's story on the way down.
+	#
+	# Tiered crystals still show the current tier's cut and never stack; the
+	# upgrade just moves the family to the end (see RunState.record_item).
 	for child in item_strip.get_children():
 		child.queue_free()
-	if RunState.has_sword:
-		item_strip.add_child(_make_item_icon(ICON_SWORD))
-	if RunState.has_staff:
-		item_strip.add_child(_make_item_icon(ICON_STAFF))
-	if RunState.has_boomerang:
-		item_strip.add_child(_make_item_icon(ICON_BOOMERANG))
-	if RunState.has_halberd:
-		item_strip.add_child(_make_item_icon(ICON_HALBERD))
-	if RunState.lucky:
-		item_strip.add_child(_make_item_icon(ICON_LUCKY))
-	if RunState.rage_tier > 0:
-		item_strip.add_child(_make_item_icon(ICON_RAGE[RunState.rage_tier]))
-	if RunState.emberstone:
-		item_strip.add_child(_make_item_icon(ICON_EMBERSTONE))
-	if RunState.rotstone:
-		item_strip.add_child(_make_item_icon(ICON_ROTSTONE))
-	if RunState.hasty_tier > 0:
-		item_strip.add_child(_make_item_icon(ICON_HASTY[RunState.hasty_tier]))
-	if RunState.wideswing:
-		item_strip.add_child(_make_item_icon(ICON_WIDESWING))
-	if RunState.fleet_tier > 0:
-		item_strip.add_child(_make_item_icon(ICON_FLEET[RunState.fleet_tier]))
-	if RunState.quickstep:
-		item_strip.add_child(_make_item_icon(ICON_QUICKSTEP))
-	if RunState.twicecut:
-		item_strip.add_child(_make_item_icon(ICON_TWICECUT))
-	if RunState.gapleaper:
-		item_strip.add_child(_make_item_icon(ICON_GAPLEAPER))
-	if RunState.barrelstone:
-		item_strip.add_child(_make_item_icon(ICON_BARRELSTONE))
-	if RunState.armor_tier > 0:
-		item_strip.add_child(_make_item_icon(ICON_TURNING[RunState.armor_tier]))
+	for key: StringName in RunState.item_order:
+		var icon := _strip_icon(key)
+		if icon != null:
+			item_strip.add_child(_make_item_icon(icon))
+
+
+func _strip_icon(key: StringName) -> Texture2D:
+	# Tiered families read their tier from RunState at DRAW time, so an
+	# upgrade repaints the existing slot rather than needing its own entry.
+	# An unknown key returns null and is skipped — a new relic that forgets to
+	# be listed here leaves a gap, it doesn't crash the HUD.
+	match key:
+		&"sword": return ICON_SWORD
+		&"staff": return ICON_STAFF
+		&"boomerang": return ICON_BOOMERANG
+		&"halberd": return ICON_HALBERD
+		&"luckyluck": return ICON_LUCKY
+		&"quickstep": return ICON_QUICKSTEP
+		&"twicecut": return ICON_TWICECUT
+		&"gapleaper": return ICON_GAPLEAPER
+		&"barrelstone": return ICON_BARRELSTONE
+		&"wideswing": return ICON_WIDESWING
+		&"rotstone": return ICON_ROTSTONE
+		&"emberstone": return ICON_EMBERSTONE
+		&"rage": return ICON_RAGE[RunState.rage_tier]
+		&"hasty": return ICON_HASTY[RunState.hasty_tier]
+		&"fleetfoot": return ICON_FLEET[RunState.fleet_tier]
+		&"armor": return ICON_TURNING[RunState.armor_tier]
+	return null
 
 
 func _process(_delta: float) -> void:

@@ -110,6 +110,25 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   connects every `BaseButton` beneath it, so a new plate gets its click free
   and the tenth one can't be forgotten. Sliders are `Range`s, not
   `BaseButton`s, so dragging volume stays silent.
+- **MEASURE EVERY NEW SOUND BEFORE PICKING ITS GAIN.** Not a style note — every
+  file added in the 2026-08-07/08 sweep would have been wrong by ear. They
+  ranged from **13 dB hotter** than a creature death (frogman reveal) to **6 dB
+  quieter than their own other half** (mush fuse vs split), and the three
+  necromancer casts sat **14 dB apart** while all playing at a flat -4.0, which
+  had made a brown cast far louder than a red one for as long as brown existed.
+  `ffmpeg -i f.ogg -af volumedetect -f null /dev/null` gives mean and max.
+  Reference points: a creature death lands near **-29 effective** (mean + gain),
+  a signature beat near **-26**. Peaks must stay under 0 dBFS after gain.
+- **The drift hushes when you DIE, not when you leave.** `MusicDrift.hush()`
+  fades over 1.2s and the autoload survives scene changes, so hushing at the
+  scene swap overlapped the dungeon track with the title's on every death — it
+  only *sometimes* sounded wrong because the drift plays random passages with
+  long silences, so dying in a gap collided with nothing. It now hushes at
+  `_on_player_died`, giving it the whole death report to fade in. Quit-to-title
+  hushes too (that path had NO hush at all and left the drift running under the
+  title indefinitely), and `title.gd._ready` hushes as a catch-all — free, since
+  `hush()` early-returns when the drift isn't running. **Any new route to the
+  title needs one, or gets the catch-all.**
 
 ## UI (docs/ui-language.md is the full spec)
 
@@ -138,6 +157,20 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   scrim is what makes plates read on an arbitrary dungeon frame. It carries the
   control list, and Options is one shared scene instanced by both it and the
   title so the two can't drift.
+- **The item strip draws in COLLECTION order** (`RunState.item_order`), not
+  source order. A fixed layout can only show what you already knew; collection
+  order makes the rightmost icon the thing you just claimed, which is the
+  question the strip actually gets asked on an item floor — *did I already take
+  it, or am I still looking?* — and it reads back as the run's story.
+  `RunState.record_item(grant)` is called from `relic_pickup.gd`'s single
+  `body.call(grant)` funnel (19 relics) plus `sword_pickup.gd` (its own script,
+  because `pickup_sword` returns void not bool). It trims the tier suffix so an
+  upgrade lands on the family's existing slot — the tier-2 ART says "upgraded",
+  a duplicate icon would just be noise — and erase-then-appends so the upgrade
+  moves to the end, since it IS the most recent thing you did. `hud.gd`'s
+  `_strip_icon()` maps key -> icon and reads tiers at DRAW time; an unlisted key
+  returns null and is skipped, so a new relic that forgets to register leaves a
+  gap rather than crashing the HUD.
 
 ## Layout
 
@@ -337,6 +370,24 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   in — so connected/growing holes rim only their true outer edge and
   never leave a seam floating over open space. Rims live under a
   `HoleRims` container so the collapse-sink pass ignores them.
+  **What sells the depth is HEIGHT FOG, not geometry** (settled
+  2026-08-08). The void slab is unshaded pure black sitting only 2.3 m
+  below the floor — well inside torch range — so lit stone used to meet
+  absolute black at a hard line, on wall-adjacent edges as well as floor
+  ones. `fog_height` = the walking surface with `fog_height_density`
+  0.8 fades everything below it toward fog colour: ~55% by the rim's
+  bottom, ~84% by the slab. Walls, rims and slab all fade by ONE rule, so
+  no edge case needs its own art — a `floor_hole_edge_fade` tile was
+  designed and then proved unnecessary.
+  **THE RULE THIS CREATES: height fog is absolute-Y, so anything that
+  lives below the walking surface must re-base it or be fogged out of
+  existence.** `_set_fog_floor(y)` does that; `_drop_boss_floor` calls it
+  with the chamber's floor (12 m down would otherwise be 100% fog and the
+  3-3 climax an unlit black room), and `_ready` resets it to 0.5 on EVERY
+  floor load — the Environment is a cached scene sub-resource, so a boss
+  floor's value would leak into the next run, the same trap
+  `_apply_appearance` works around. Pits, lava, or a deeper drop chamber
+  all inherit this.
   Falling below y = -1.5 kills the player ("the Dark Below", no
   portrait) and despawns creatures — kill credited if the player's
   shove sent them over (`last_attacker`), but the body and its
@@ -381,6 +432,17 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   A creature never rallies against its own script (kin stay on one side),
   already-aware creatures are skipped, and a creature's own grudge is
   never overwritten by a shout.
+  **The roster stands down when you die.** `take_damage` already ignored a
+  corpse (`health <= 0`), but nothing TOLD the creatures — they kept chasing,
+  lunging and shouting aggro over the death report, which read as the game not
+  having noticed either. `player.huntable` goes false `MAUL_TIME` (2s) after
+  death, hooked to the player's OWN `died` signal so all four death paths
+  (fall, blow, poison, burn) inherit it and a fifth would too. The guard is one
+  line at the top of each creature's `_perceives()` — they stop noticing you,
+  `noticed` drops, and they fall back to wandering with no new state. The
+  amalgam needs its own (it has no `_perceives` and no wander): it halts and
+  stands over the body. The 2s maul is deliberate — the room freezing the
+  instant you fall reads worse than a beat of aftermath.
   Every enemy implements `kill_label()` (state-aware display name)
   and passes it to `RunState.record_kill()`; the fatal blow against
   the player records the attacker's label + current sprite for the
@@ -484,6 +546,35 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   forward burst, ~1s cooldown; there is deliberately no jump),
   `attack` (left mouse). Esc toggles mouse capture; R rerolls the
   dungeon.
+
+## Web build — the first-run stutter
+
+The web export is **single-threaded** (`thread_support=false`), so every
+first-use cost blocks a frame. Symptom was intermittent hitching from ~3s to
+~23s into the FIRST run of a session and never again — the signature of
+per-asset costs being paid off one at a time.
+
+`scenes/title.tscn`'s **`ShaderWarm`** node (script `shader_warm.gd`) pre-pays
+them during the hall walk, buried in solid stone at world (5.5, 1.6, 9). That
+works because occlusion culling is off: an object inside a wall is still
+submitted as a draw call and still builds its pipeline; only the depth test
+throws the pixels away. In frustum from frame one, invisible forever.
+
+Three kinds of cost, three tricks:
+- **Shader variants** compile per material CONFIG. Four sibling nodes (Mist /
+  Orb / Dot / Creature) cover every config the dungeon uses. **ADD A NODE when
+  a new config ships**, or its first user stutters.
+- **Textures** upload per texture, on DRAW not on load — so the script cycles
+  them through four scratch sprites, one per slot per frame. The list is
+  HARVESTED at runtime from the creature scripts' own constants, never
+  hand-maintained. Scripts are `load()`ed, not `preload()`ed: every creature
+  declares `@onready var player: Player`, and a parse-time edge into that graph
+  is the "Parse Error: Busy" cycle. Directory scanning doesn't survive export.
+- **Runtime `load()`** blocks. slime/mush/frogman load their own scene to spawn
+  a copy (they can't preload it — same cycle), so those three are touched here
+  to make the in-fight call a cache hit.
+
+Tiles are already warm: the title runs the same `dungeon_tiles.tres`.
 
 ## Testing
 

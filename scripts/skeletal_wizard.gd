@@ -45,6 +45,27 @@ const TAKE_HIT_SOUNDS: Array[AudioStream] = [
 const WALK_FRAME_TIME := 0.28
 const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_death.ogg")
 const ROAR_SOUND := preload("res://assets/audio/sfx/enemies/skeletal_wizard_roar.ogg")
+## The launch. Until now only the orb's FLIGHT and IMPACT had audio, so the
+## volley read as a thing that ARRIVED rather than a thing someone DID —
+## creature-polish.md's last outstanding item. Fired once per volley, not once
+## per orb: three stacked copies of the same sample is a phaser, not a boss.
+##
+## Each amalgam launches in ITS necromancer's voice — the same three files the
+## living roster casts with, so the trio sounds like what it was assembled
+## from. No new audio needed.
+##
+## PER-ELEMENT GAIN IS MANDATORY HERE, not a nicety: the three files differ by
+## 14 dB of mean level (blue -23.3, red -28.9, brown -15.0) and run 0.15s to
+## 1.58s. One shared number would make brown a bark and red a whisper. These
+## put all three at about -26.3 effective — a shade above the necromancer's
+## cast, below this thing's own roar and death at -2.0. A boss, but a cast is
+## smaller than a rise.
+const BLUE_CAST := preload("res://assets/audio/sfx/enemies/wizard_cast1.ogg")
+const RED_CAST := preload("res://assets/audio/sfx/enemies/wizard_red_cast1.ogg")
+const BROWN_CAST := preload("res://assets/audio/sfx/enemies/wizard_brown_cast1.ogg")
+const BLUE_CAST_DB := -3.0
+const RED_CAST_DB := 2.5
+const BROWN_CAST_DB := -11.5
 const ROAR_TEX := preload("res://assets/sprites/skeletal_wizard/skeletal_wizard_roar1.png")
 const ROAR_TIME := 1.0  # the rise: reared up and bellowing before the hunt
 const RISE_HEIGHT := 1.6  # how far it heaves up out of the pile during the roar
@@ -167,6 +188,8 @@ var cast_recover := CAST_RECOVER
 var melee_damage := MELEE_DAMAGE
 var orb_damage := ORB_DAMAGE
 var orb_speed_scale := 1.0
+var cast_sound: AudioStream = BLUE_CAST
+var cast_db := BLUE_CAST_DB
 var ember := false  # red's signature, exactly as on the necromancer
 
 var health := 40
@@ -221,6 +244,8 @@ func _apply_element() -> void:
 			cast_recover = RED_CAST_RECOVER
 			melee_damage = RED_MELEE_DAMAGE
 			orb_speed_scale = RED_ORB_SPEED
+			cast_sound = RED_CAST
+			cast_db = RED_CAST_DB
 		Element.BROWN:
 			front_frames = BROWN_FRONT
 			side_frames = BROWN_SIDE
@@ -239,6 +264,8 @@ func _apply_element() -> void:
 			melee_damage = BROWN_MELEE_DAMAGE
 			orb_damage = BROWN_ORB_DAMAGE
 			orb_speed_scale = BROWN_ORB_SPEED
+			cast_sound = BROWN_CAST
+			cast_db = BROWN_CAST_DB
 	# The wind-up light wears the colour, same reason the necromancers do: a
 	# red amalgam charging under a blue glow lies about what's coming.
 	cast_glow.light_color = element_glow
@@ -274,6 +301,19 @@ func _physics_process(delta: float) -> void:
 	# It was built from things that saw you: it always faces you.
 	if dist > 0.01:
 		facing = to_player.normalized()
+
+	if not player.huntable:
+		# You're down and it has had its moment over the body. Unlike the
+		# roster this thing has no wander to fall back on and no _perceives to
+		# gate — it hunts the player unconditionally — so it just stops. It
+		# stands over the corpse, which is the right image for the amalgam
+		# anyway, and the death report gets played out in quiet.
+		velocity.x = 0.0
+		velocity.z = 0.0
+		move_and_slide()
+		if step_sound.playing:
+			step_sound.stop()
+		return
 
 	if roar_timer > 0.0:
 		# The rise: it heaves up out of the pile, reared up and bellowing
@@ -370,6 +410,7 @@ func _update_view(frame: int) -> void:
 
 
 func _fire_volley() -> void:
+	Sfx.play_at(cast_sound, global_position, cast_db)
 	var from := global_position + Vector3.UP * 0.6
 	var base_dir := (player.global_position - from).normalized()
 	for i in VOLLEY_SIZE:

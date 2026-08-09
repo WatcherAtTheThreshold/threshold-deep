@@ -268,6 +268,10 @@ func _ready() -> void:
 	# Re-skin the shared tile materials for THIS world's look (texture only —
 	# the meshes, shapes, and the ASCII the generator emits never change).
 	_apply_appearance(RunState.world(RunState.depth))
+	# Height fog sits on the walking surface every floor. Reset here for the
+	# same reason the appearance is: the Environment is a cached sub-resource,
+	# so a 3-3 that lowered it would hand the next run a fogged-out dungeon.
+	_set_fog_floor(0.5)
 
 	kind = RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
@@ -1295,6 +1299,12 @@ func _drop_boss_floor() -> void:
 	# Drop the death plane below the chamber floor: standing in the chamber
 	# (y ~ -11.5) is now safe, but a fall THROUGH it still ends the run.
 	player.fall_death_y = 0.5 - float(BOSS_DROP_LAYERS) * 4.0 - 2.5
+	# The height fog has to follow the floor down with it. It exists to swallow
+	# shafts — anything below the walking surface fades toward fog colour — but
+	# it is measured in ABSOLUTE Y, so a chamber 12 m down would sit at 100%
+	# fog and the whole climax would be an unlit black room. Re-base it on the
+	# new floor and the chamber reads exactly like any other room.
+	_set_fog_floor(0.5 - float(BOSS_DROP_LAYERS) * 4.0)
 	# The consent plate AND the sealed hatch ride down with the floor — the
 	# dropped flow spawns a fresh hatch in the chamber on clear, so the
 	# arena's is redundant; either way, no prop hangs in the air.
@@ -1698,6 +1708,22 @@ func _rise_next_amalgam() -> void:
 	boss.max_health = share
 	amalgam_risen += 1
 	amalgams.append(boss)
+
+
+func _set_fog_floor(y: float) -> void:
+	# Height fog fades everything BELOW `y` toward the fog colour, which is what
+	# swallows an open shaft — the void slab sits 2.3 m down, well inside torch
+	# range, and without this it reads as a hard black plane against lit stone.
+	# Walls, rims and the slab all fade by the same rule, so no edge case gets
+	# its own treatment.
+	#
+	# Set on EVERY floor load, not once: the Environment is a scene
+	# sub-resource and stays cached across reloads, so a boss floor that
+	# lowered it would otherwise leak that value into the next run — the same
+	# shared-resource trap _apply_appearance has to work around.
+	var env: Environment = $WorldEnvironment.environment
+	if env != null:
+		env.fog_height = y
 
 
 func _check_amalgam_rise() -> void:

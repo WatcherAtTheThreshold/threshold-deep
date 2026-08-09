@@ -75,5 +75,10 @@ func _on_quit_to_title() -> void:
 	# Unpause BEFORE changing scene — a tree left paused would load the title
 	# frozen, with an unclickable menu and no way back.
 	get_tree().paused = false
+	# And silence the drift. Death hushes at the moment you fall, but this path
+	# had NO hush at all — MusicDrift is an autoload, so quitting mid-run left
+	# the dungeon track running under the title's own for as long as you sat
+	# there. Only the death path was ever covered.
+	MusicDrift.hush()
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	get_tree().change_scene_to_file("res://scenes/title.tscn")

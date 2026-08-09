@@ -35,9 +35,13 @@ extends Node3D
 ##   Orb       unshaded, billboard 1 — every projectile
 ##   Dot       unshaded, billboard 2 — Rot/Ember/Cinder overlays
 ##   Creature  shaded, billboard 2 — the entire bestiary
+##   Slot0-3   scratch sprites the warm script cycles textures through
 ## Tiles are already warm: the title runs the same dungeon_tiles.tres.
 ## ADD A NODE HERE whenever a new material config ships, or the first thing
 ## that uses it will stutter on a web build.
+## Everything else — the per-texture uploads and the runtime-loaded scenes —
+## is driven by scripts/shader_warm.gd on that node. All warming lives there;
+## the title itself stays a title.
 
 const EYE_HEIGHT := 2.05  # camera world y — matches player (1.5 origin + 0.55)
 const WALK_TIME := 16.0    # tune to the title track in the music phase
@@ -82,26 +86,8 @@ const BOX_MAX := Vector2i(11, 7)
 var flicker_time := 0.0
 const OPTIONS_SCENE := preload("res://scenes/options_panel.tscn")
 
-## The three scenes the DUNGEON loads at RUNTIME instead of preloading — the
-## creatures that spawn copies of themselves. Their scripts use `load()` rather
-## than `preload()` because a script preloading its own scene risks the parse
-## cycle this project has hit before ("Parse Error: Busy"), so the call can't
-## simply be changed there. On a single-threaded web export (`thread_support=
-## false`) that load BLOCKS the frame — confirmed 2026-08-08 as the jag you
-## feel the first time a slime splits.
-## Touching them here puts them in ResourceLoader's cache, so the in-fight
-## `load()` becomes a cache hit. Process-lifetime, so it survives to the run.
-## ONE PER FRAME, and while the screen is still black — never all at once, or
-## we'd have moved the stall rather than removed it.
-const WARM_SCENES: Array[String] = [
-	"res://scenes/slime.tscn",
-	"res://scenes/mush.tscn",
-	"res://scenes/frogman.tscn",
-]
-
 var intro_started := false
 var settled := false
-var warm_index := 0
 var options_panel: CanvasLayer = null
 var walk_tween: Tween
 var fade_tween: Tween
@@ -114,6 +100,11 @@ func _ready() -> void:
 	# quit. A cold boot is already visible, so this is just belt-and-braces
 	# there.
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	# Belt-and-braces: the title owns its own track, so nothing else should be
+	# playing when you arrive. Death and quit-to-title both hush on their way
+	# here, but this catches any future route in — and it's free, since hush()
+	# early-returns when the drift isn't running.
+	MusicDrift.hush()
 	_build_corridor()
 	_lay_camera_path()
 	crackle.finished.connect(crackle.play)  # hand-loop the torch ambient
@@ -140,11 +131,6 @@ func _process(delta: float) -> void:
 	# The torch never rests: a subtle energy flicker keeps the whole
 	# frame alive. (The dungeon flickers the hand sprite; here there is
 	# no hand, so the light itself breathes.)
-	if warm_index < WARM_SCENES.size():
-		# Runs from the very first frame, behind the black gate — the player
-		# hasn't even clicked yet, so a blocked frame here costs nothing.
-		load(WARM_SCENES[warm_index])
-		warm_index += 1
 	flicker_time += delta
 	torch_light.light_energy = TORCH_BASE_ENERGY \
 			+ 0.18 * sin(flicker_time * 11.0) \

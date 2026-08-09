@@ -441,6 +441,11 @@ func _get_target() -> PhysicsBody3D:
 
 
 func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	if who == player and not player.huntable:
+		# The body has been worked over enough. Stand down and drift off —
+		# a corpse is not prey, and a skeleton still swinging behind the
+		# death report reads as the game not noticing you lost.
+		return false
 	# A known threat — a grudge, or infighting kin — is hunted on range +
 	# line of sight alone. The player, unprovoked, must be HEARD (close, any
 	# direction) or SEEN (inside the forward cone, at range, clear line):

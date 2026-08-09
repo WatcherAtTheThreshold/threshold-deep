@@ -105,14 +105,27 @@ Web export validated.
 
 **Done:** the death-sound sweep and the aggro "sees-you" sweep across
 the whole roster (see docs/creature-polish.md), plus the dedicated
-`boss_floor_fall.wav` for the 3-3 cave-in. **Still on the wishlist:**
-wall crack tick (non-breaking hits; break is in), mush merge/split
-squelch, frogman reveal fwump, descending A-minor fall stinger,
-falling wail + distant thud (bodies and cargo taken by the deep),
-amalgam assembly (or its deliberate silence) + its cast/launch, a
-dedicated pale-gate crossing voice, ambient drips. Plus retune passes
-on everything already in — levels, tails, pitch spreads — as the mix
-fills up.
+`boss_floor_fall.wav` for the 3-3 cave-in. **And as of 2026-08-08 the
+whole SIGNATURE-MECHANIC list is closed** — slime split/merge, mush
+fuse/split, the frogman reveal, the necromancer cast and the amalgam's
+volley launch (which takes its element's necromancer voice, so the trio
+sounds like what it was assembled from). Also shipped: the UI button
+click, and the plate press retuned from a 1.2 s grind to a 0.18 s thunk
+so the secret room's wall grind — the one carrying direction and
+distance — isn't buried behind a decorative one.
+
+**Still on the wishlist:** wall crack tick (non-breaking hits; break is
+in — note `broken_partial_wall.ogg` DOES fire, it's just 0.07 s and may
+be too short to register), descending A-minor fall stinger, falling wail
++ distant thud (bodies and cargo taken by the deep), amalgam assembly
+(or its deliberate silence), a dedicated pale-gate crossing voice (it
+currently borrows the item-room mist door, so gold and pale sound
+identical despite the grammar saying they differ), ambient drips.
+
+**The habit worth keeping from the sweep:** measure every new file
+against the mix before choosing a gain. Every one would have been wrong
+by ear — see CLAUDE.md's Audio section for the reference levels and the
+14 dB necromancer-cast defect it uncovered.
 
 ### Finish work
 
@@ -242,10 +255,46 @@ against whether they're good ideas.*
   `_start_boss_fight` — and mist grammar already says gold = bargain,
   cold = fight, so a gold door that seals cold is a new sentence in a
   language the game speaks. Ship on the mist seal; cages are the second
-  pass (retune rule). For the second hidden room, make it a **variant**
-  of the commoner — one type rolled per x-1, never both on one floor.
-  The tell is the mechanic, and two secrets a floor turns finding one
-  from an event into a chore.
+  pass (retune rule).
+  - **WHERE a second secret goes (worked through 2026-08-08).** The gate is
+    one boolean — `DungeonGenerator.generate(..., kind == FloorKind.REGULAR)`
+    — so secrets are x-1-only today and moving them is nearly free. Cost
+    isn't the question; placement is.
+  - **x-2 is out. Treat it as a non-compete.** It already IS the item
+    floor. A secret item room there makes one floor the place you get
+    everything and flattens the run's rhythm from heal → choose → fight
+    into choose → choose → fight. The two-pedestal bargain is the whole
+    identity of that floor; don't give it a second source.
+  - **x-3 is the interesting one.** A boss floor currently has an arena, a
+    consent plate and mist doors — and no reason at all to explore. A
+    secret there creates a real decision (look around, or go fight) and
+    plugs into a rule already chosen deliberately: time isn't scored, so
+    lingering is *supposed* to pay. Two watch items — on 3-3 the arena
+    floor caves in, so an unfound secret becomes permanently unreachable
+    mid-fight (acceptable, but real), and the graft needs wooden floor to
+    bury a trigger under, so confirm boss floors generate wood patches.
+  - **x-1 variant** (one of two secret types rolled per floor) is the safe
+    alternative: same discovery rate, more variety behind the wall. But it
+    adds no DRAW, which was the actual goal. Never both types on one
+    floor — the tell is the mechanic, and two secrets a floor turns
+    finding one from an event into a chore.
+  - **TIMING — not before the demo ships.** Secrets serve the player on
+    their fifth run, not their first. The commoner's tell is a pale plank
+    with deliberately no spotlight, so a first-timer in a 5–10 minute
+    session will almost certainly never find one. Correct design for a
+    game with depth; wrong thing to build before a feedback round, because
+    nobody in that round will see it. Same effort spent on the remaining
+    signature sounds, the death/victory visual pass, or the stock UI
+    widgets is hit by EVERY player in their first ten minutes.
+- **The claims-to-pool ratio** — recurring during playtest (2026-08-08),
+  parked deliberately. Two instincts that keep surfacing are the same
+  instinct: "hold some items back for Acts II/III" shrinks the pool, "get
+  more items during a run" raises the draws, and both are reaching for the
+  same number — **how much of the toybox one run gets to touch.** Today
+  `_relic_pool()` starts at 18 and a run claims about 6, so roughly a
+  third. Whether that's right is a FEEL question, and the only instrument
+  that reads it is somebody else's playtest. Don't tune it from the
+  inside; ship, watch, then move one end or the other — not both.
 - ~~**Elemental amalgams**~~ — **BUILT 2026-08-06**, both halves. The
   necromancers got per-element fight styles first (`wizard.gd`'s
   `_apply_element` now carries speed, fire rate, wind-up, reach and orb
@@ -255,9 +304,10 @@ against whether they're good ideas.*
   when the previous drops past `AMALGAM_RISE_AT` (half). Each takes
   `AMALGAM_SHARE` (0.45) of the corpse-scaled pool, so the trio is ~1.35x
   the old single boss rather than 3x — the difficulty is three patterns,
-  not a longer health bar. Red and brown wear **cloned placeholder art**
-  under `skeletal_wizard_red/` and `skeletal_wizard_brown/`, awaiting
-  recolour. Watch item it taught: the wave-clear branch had to learn to
+  not a longer health bar. ~~Red and brown wear cloned placeholder art~~ —
+  **REPAINTED 2026-08-08**, all 28 variant files, no clones left; each also
+  casts in its own necromancer's voice, so the trio now reads as three
+  bodies in art and in sound. Watch item it taught: the wave-clear branch had to learn to
   rise the next colour, or a fast player who killed one before it reached
   the half-health cue would end the climax one boss in with the reward
   already dropped. Original entry follows.

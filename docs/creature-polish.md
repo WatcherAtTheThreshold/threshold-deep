@@ -14,6 +14,13 @@ Legend: **✓** present · **—** missing · **~** partial / generic
 > cross-cutting audio work is the **signature-mechanic sounds**
 > (split/merge/fuse/reveal/cast launch). Take-hit is knock-branch driven
 > for mobs, `hit_anim`-timer driven for the amalgam.
+>
+> **Status (2026-08-08): the signature-sound list is EMPTY.** Slime
+> split/merge, mush fuse/split, the frogman reveal and both cast launches are
+> all wired. The habit worth keeping from that sweep: **measure every new file
+> against the mix before choosing a gain.** Every single one would have been
+> wrong by ear — the files ranged from 13 dB hotter than a creature death to
+> 6 dB quieter than their own other half.
 
 | Creature | Attack anim | Hit flash | Aggro "sees you" SFX | Hit SFX | Death SFX | Death art |
 |---|:--:|:--:|:--:|:--:|:--:|:--:|
@@ -81,16 +88,14 @@ roster gained weight in one sweep.
 ### Wizard — [wizard.gd](../scripts/wizard.gd)
 - **Has:** a real cast telegraph (charge/release/recover frames +
   swelling `cast_glow`), hit flash, hit SFX (×3), dead art.
-- **Needs (signature sound):** a **launch cue at the caster.** *(Corrected
-  2026-08-02 — the earlier note here overstated this.* The orb is NOT
-  silent: `orb.tscn` carries an autoplay `FlightSound` that travels with
-  the projectile, and `orb.gd` plays `impact_sounds` on hit. Both cues
-  exist.*)* What's genuinely missing is a sound at the moment of release:
-  `_fire_orb` ([wizard.gd:324](../scripts/wizard.gd#L324)) has no
-  `Sfx.play`, so the cast reads as a thing that *arrives* rather than a
-  thing someone *did*. A charge hum during `_start_cast_glow` is still
-  optional on top. See **docs/necromancers.md** — adding it parameterized
-  closes it for the whole elemental roster at once.
+- **~~Needs (signature sound)~~ — DONE.** `_fire_orb` plays a per-element
+  `cast_sound`, so the cast reads as a thing someone DID rather than a thing
+  that arrived. **And 2026-08-08 that exposed a live defect:** all three
+  elements played at a flat -4.0, but the files are 14 dB apart in mean level
+  (blue -23.3, red -28.9, brown -15.0) over 0.81s / 1.58s / 0.15s — so a brown
+  cast had been roughly 14 dB louder than a red one for as long as brown has
+  existed. Gain is now per element (`BLUE/RED/BROWN_CAST_DB`), landing all
+  three near -27.3 effective, where blue already sat by ear.
   (**Death SFX and aggro cue: DONE.**)
 
 ### Slime (+ Slime Boss) — [slime.gd](../scripts/slime.gd)
@@ -120,26 +125,41 @@ roster gained weight in one sweep.
 - **Also has:** a **directional attack lunge** across all four tiers
   (front/side/back via `_attack_view`; boss front-only), and a **gold
   spore poof** (`_puff_spores`, CPUParticles) on any player hit.
-- **Needs (signature sounds):** *fuse & split* sounds (the fusion is a
-  signature mechanic and currently silent). (**Death SFX and aggro cue:
-  DONE.**)
+- **~~Needs (signature sounds)~~ — DONE 2026-08-08:** `mush_fuse1.ogg` fires
+  in `_try_merge` at the MIDPOINT between the two bodies, before `other` is
+  freed — the fusion happens between them, not at whichever one survives.
+  `mush_split.ogg` fires on the parent in `_split`, before the halves shove
+  apart, so the whole cascade is audible: boss -> megas -> mushes -> minis.
+  **Measured, not matched:** the two files are 6 dB apart (fuse -20.3, split
+  -26.7) despite being halves of one mechanic, so equal gains would have made
+  the split half as present. -5.0 and **+1.0** (positive gain is fine — split
+  peaks at -10.6) put both near -25.7 effective, alongside the slime pair.
+  (**Death SFX and aggro cue: DONE.**)
 
 ### Frogman → Frog / Toad — [frogman.gd](../scripts/frogman.gd)
 - **Has:** coated walk turnaround, the comedic coat-off **reveal beat**,
   **frog & toad attack lunges (just added)**, hit flash, shared hit SFX
   (×3), dead art + crumpled-coat prop.
-- **Needs (signature sound):** a **reveal stinger** — the coat-off freeze
-  at [frogman.gd `_start_reveal`](../scripts/frogman.gd) is the game's best
-  comic beat and plays in silence; a little sting would make it land.
-  (**Death SFX and aggro cue: DONE.**)
+- **~~Needs (signature sound)~~ — DONE 2026-08-08:** `frogman_reveal.ogg` on
+  the first line of `_start_reveal`. Louder than a death on purpose (-12.0,
+  ~-25.2 effective): the beat is a 0.7s invulnerable pause with nothing else
+  happening, so the sound IS the moment. The file averages -13.2 dB where a
+  creature death sits near -26, so a death-shaped gain would have been ~13 dB
+  too loud. (**Death SFX and aggro cue: DONE.**)
 
 ### Skeletal Wizard — boss — [skeletal_wizard.gd](../scripts/skeletal_wizard.gd)
 - **Has:** attack windup/release frames, orb frames, **orb impact SFX**
   (×3), hit flash, hit SFX (×3), dead art. The most animated fighter.
-- **Needs (signature sound):** a **cast/launch sound** for the volley
-  (only the *impact* has audio now). (**Death SFX: DONE**, −2 dB boss
-  stinger; **rise roar: DONE** on assembly. A separate in-battle re-aggro
-  sting is parked — see the matrix note.)
+- **~~Needs (signature sound)~~ — DONE 2026-08-08.** `_fire_volley` opens with
+  a cast, fired ONCE per volley rather than once per orb — three stacked copies
+  of one sample 0.28 rad apart is a phaser, not a boss. Each amalgam launches
+  in **its necromancer's voice**: `_apply_element` hands it the same
+  blue/red/brown cast files the living roster uses, so the trio sounds like
+  what it was assembled from, at no new audio cost. Per-element gain is
+  mandatory here for the same 14 dB reason as the wizard; these sit ~1 dB above
+  the necromancer's cast — a boss, but a cast is smaller than a rise.
+  (**Death SFX: DONE**, −2 dB boss stinger; **rise roar: DONE** on assembly. A
+  separate in-battle re-aggro sting is parked — see the matrix note.)
 
 ---
 

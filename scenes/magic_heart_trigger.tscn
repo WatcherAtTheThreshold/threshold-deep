@@ -23,7 +23,7 @@ size = Vector3(1.875, 0.06, 1.875)
 
 script = ExtResource("1_trigger")
 pressed_texture = ExtResource("3_pressed")
-activate_delay = 1.2
+activate_delay = 0.18
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
 position = Vector3(0, 0.5, 0)

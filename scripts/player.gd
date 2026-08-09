@@ -176,6 +176,16 @@ var _shake_strength := 0.0
 var _shake_base := Vector3.ZERO  # the camera rest pos the shake perturbs around
 var boomerang_out := false
 var controls_enabled := true
+## Whether creatures should still be hunting this body. `take_damage` already
+## ignores a corpse (health <= 0), but the ROSTER didn't know you were dead —
+## it kept chasing, lunging and shouting over the death report, which read as
+## the game not having noticed either.
+##
+## They get MAUL_TIME to work the body over first. That beat is deliberate:
+## the whole room freezing the instant you fall is worse than a couple of
+## seconds of aftermath, and aftermath is the house style.
+const MAUL_TIME := 2.0
+var huntable := true
 var gate_pull := false  # a mist gate's tween owns the body; physics stands down
 
 @onready var camera: Camera3D = $Camera3D
@@ -185,6 +195,10 @@ var gate_pull := false  # a mist gate's tween owns the body; physics stands down
 
 func _ready() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
+	# Hooked to our OWN signal rather than written into the death paths: there
+	# are four of them (fall, blow, poison, burn) and they all emit `died`, so
+	# a fifth inherits this for free instead of quietly missing it.
+	died.connect(_on_died)
 	base_fov = camera.fov
 	# The torch never stops burning; loop the crackle by hand.
 	$TorchCrackle.finished.connect($TorchCrackle.play)
@@ -455,6 +469,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		# controls unlisted anywhere in-game and gave a stuck player nothing
 		# but Alt-F4.
 		_open_pause()
+
+
+func _on_died() -> void:
+	# A tween, not a SceneTreeTimer: it belongs to this node, so a reload or a
+	# quit-to-title kills it rather than firing into a freed player.
+	var maul := create_tween()
+	maul.tween_interval(MAUL_TIME)
+	maul.tween_callback(func() -> void: huntable = false)
 
 
 func _open_pause() -> void:

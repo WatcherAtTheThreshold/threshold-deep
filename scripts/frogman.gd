@@ -56,6 +56,14 @@ const AGGRO_COATED := preload("res://assets/sprites/frogmen/frogmen-phase1/frogm
 const AGGRO_FROG := preload("res://assets/sprites/frogmen/frogmen-phase2/frog_aggro1.png")
 const AGGRO_TOAD := preload("res://assets/sprites/frogmen/frogmen-phase2/toad_aggro1.png")
 const DEATH_SOUND := preload("res://assets/audio/sfx/enemies/frogmen_frog_toad_death.ogg")
+## The coat-off freeze — creature-polish.md calls it "the game's best comic
+## beat", and until now it played in total silence. Louder than a death on
+## purpose: the whole beat is a 0.7s invulnerable pause with nothing else
+## happening, so this sound IS the moment. Measured, not guessed — the file
+## averages -13.2 dB where a creature death sits near -26, so matching gains
+## would have made it roughly 13 dB too loud.
+const REVEAL_SOUND := preload("res://assets/audio/sfx/enemies/frogman_reveal.ogg")
+const REVEAL_DB := -12.0
 const COATED_TAKEHIT_FRONT: Array[Texture2D] = [
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit1.png"),
 	preload("res://assets/sprites/frogmen/frogmen-phase1/frogmen_front_takehit2.png"),
@@ -445,6 +453,7 @@ func _hit_view(frame: int) -> void:
 
 
 func _start_reveal() -> void:
+	Sfx.play_at(REVEAL_SOUND, global_position, REVEAL_DB)
 	state = State.REVEAL
 	reveal_timer = REVEAL_TIME
 	attack_anim = 0.0  # drop any mid-lunge so it doesn't carry into the frog
@@ -521,6 +530,11 @@ func _get_target() -> PhysicsBody3D:
 
 
 func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	if who == player and not player.huntable:
+		# The body has been worked over enough. Stand down and drift off —
+		# a corpse is not prey, and a skeleton still swinging behind the
+		# death report reads as the game not noticing you lost.
+		return false
 	# A known threat — a grudge, or infighting kin — is hunted on range +
 	# line of sight alone. The player, unprovoked, must be HEARD (close, any
 	# direction) or SEEN (inside the forward cone, at range, clear line):

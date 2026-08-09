@@ -171,6 +171,16 @@ const BOSS_MAX_HEALTH := 40
 const BOSS_SPLIT_HEALTH := 20
 const MERGE_RANGE := 1.2
 const MERGE_COOLDOWN := 4.0
+# The two signature mechanics, finally audible (docs/creature-polish.md).
+# Levelled by measurement, not ear: mush_fuse1 averages -20.3 dB and
+# mush_split -26.7, a 6 dB gap between two files that should land equally, so
+# matching gains would have made the split half as present as the fusion.
+# These put both at roughly -25.7 effective — the same place slime split/merge
+# sit, about 3 dB above a creature death.
+const FUSE_SOUND := preload("res://assets/audio/sfx/enemies/mush_fuse1.ogg")
+const SPLIT_SOUND := preload("res://assets/audio/sfx/enemies/mush_split.ogg")
+const FUSE_DB := -5.0
+const SPLIT_DB := 1.0
 const SIGHT_RANGE := 13.0  # forward vision reach, cone-gated
 const INFIGHT_SIGHT_RANGE := 20.0
 const HEAR_RANGE := 3.5  # sensed this close regardless of facing
@@ -570,6 +580,9 @@ func _try_merge() -> void:
 		var between: Vector3 = other.global_position - global_position
 		between.y = 0.0
 		if between.length() < MERGE_RANGE:
+			# Fired at the MIDPOINT, before `other` is freed — the fusion
+			# happens between the two, not at whichever one survives.
+			Sfx.play_at(FUSE_SOUND, global_position + between * 0.5, FUSE_DB)
 			health = clampi(health + other.health, 1, MEGA_MAX_HEALTH)
 			if other.green:
 				green = true
@@ -588,6 +601,9 @@ func _split(child_state: State) -> void:
 	@warning_ignore("integer_division")
 	var h2 := maxi(health / 2, 1)
 	var h1 := maxi(health - h2, 1)
+	# The burst, on the parent's position — it happens HERE, before the two
+	# halves shove apart. Whole cascade audible: boss → megas → mushes → minis.
+	Sfx.play_at(SPLIT_SOUND, global_position, SPLIT_DB)
 	_drop_splat()
 	var side := Vector3.RIGHT.rotated(Vector3.UP, randf() * TAU)
 	var other: CharacterBody3D = (load("res://scenes/mush.tscn") as PackedScene).instantiate()
@@ -815,6 +831,11 @@ func _get_target() -> PhysicsBody3D:
 
 
 func _perceives(who: PhysicsBody3D, dist: float, reach: float) -> bool:
+	if who == player and not player.huntable:
+		# The body has been worked over enough. Stand down and drift off —
+		# a corpse is not prey, and a skeleton still swinging behind the
+		# death report reads as the game not noticing you lost.
+		return false
 	# Kin to fuse with, a corpse to eat, or a grudge is pursued on range +
 	# line of sight alone. The player, unprovoked, must be HEARD (close, any
 	# direction) or SEEN (inside the forward cone, at range, clear line):

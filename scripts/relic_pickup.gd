@@ -35,6 +35,10 @@ func _on_body_entered(body: Node3D) -> void:
 	if not body is Player:
 		return
 	if body.call(grant):
+		# Order is recorded HERE rather than in the twenty pickup_* methods:
+		# every relic funnels through this one call, and `grant` is already a
+		# unique name per item. A twenty-site version would be missing one.
+		RunState.record_item(grant)
 		if toast_title != "":
 			body.toast(toast_title, toast_desc)
 		_play_pickup_sound()

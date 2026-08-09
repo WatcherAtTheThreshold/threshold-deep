@@ -18,6 +18,17 @@ var carried_magic := 0
 # Weapons are pool items, once each per run; the hand holds the one
 # claimed LAST. Crystals apply to whatever is held.
 var weapon := "torch"
+## Display order for the HUD strip: WHAT you took and WHEN, which the flags
+## below can't express. The strip used to draw in source order, so it told you
+## only what you already knew from the toast. In collection order the rightmost
+## icon is always the thing you picked up last — which answers the question the
+## strip actually gets asked on an item floor: did I already take this one, or
+## am I still looking? It also reads as the run's story: barrelstone, then the
+## halberd two floors on, then the boomerang.
+##
+## Flags stay the source of truth for gameplay (pool availability, effects);
+## this is presentation only. Survives descend, cleared by reset.
+var item_order: Array[StringName] = []
 var has_sword := false
 var has_staff := false
 var has_boomerang := false
@@ -148,6 +159,22 @@ func descend(current_health: int, current_max: int, current_magic: int) -> void:
 	changed.emit()
 
 
+func record_item(grant: StringName) -> void:
+	# `grant` is the Player method the pickup calls ("pickup_rage2"), already
+	# unique per pickup. Trimming the tier suffix lands an upgrade on the
+	# family's EXISTING entry instead of adding a second icon — the tier-2 art
+	# is what says "upgraded", a duplicate slot would just be noise. No base
+	# grant name ends in "2", so the trim can't collide.
+	#
+	# erase-then-append rather than a plain append: an upgrade is the most
+	# recent thing you did, so it should move to the end. That keeps the
+	# "rightmost is newest" promise the whole feature rests on.
+	var key := StringName(String(grant).trim_prefix("pickup_").trim_suffix("2"))
+	item_order.erase(key)
+	item_order.append(key)
+	changed.emit()
+
+
 func reset() -> void:
 	print("Run over: reached depth %d in %s with %d kills (dealt %d, took %d) — SCORE %d." \
 			% [depth, time_text(), kills, damage_dealt, damage_taken, score()])
@@ -161,6 +188,7 @@ func reset() -> void:
 	carried_max_health = -1
 	carried_magic = 0
 	weapon = "torch"
+	item_order.clear()
 	has_sword = false
 	has_staff = false
 	has_boomerang = false

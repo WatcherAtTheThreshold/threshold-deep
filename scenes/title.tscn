@@ -23,6 +23,7 @@
 [ext_resource type="Texture2D" uid="uid://d3vpvduu64kjo" path="res://assets/textures/mist-overlay.png" id="21_mist_tex"]
 [ext_resource type="Texture2D" uid="uid://b00xyxgmaypua" path="res://assets/sprites/wizard/wizard_orb1.png" id="22_orb"]
 [ext_resource type="Texture2D" uid="uid://daxak1wd4htbr" path="res://assets/sprites/dot/dot_ember_catch1.png" id="23_dot"]
+[ext_resource type="Script" path="res://scripts/shader_warm.gd" id="24_warm"]
 
 [sub_resource type="ShaderMaterial" id="mat_warm_mist"]
 shader = ExtResource("20_mist_sh")
@@ -91,6 +92,7 @@ texture = ExtResource("19_corpse")
 
 [node name="ShaderWarm" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.5, 1.6, 9)
+script = ExtResource("24_warm")
 
 [node name="Mist" type="MeshInstance3D" parent="ShaderWarm"]
 mesh = SubResource("mesh_warm_mist")
@@ -113,6 +115,42 @@ texture = ExtResource("23_dot")
 
 [node name="Creature" type="Sprite3D" parent="ShaderWarm"]
 scale = Vector3(0.2, 0.2, 0.2)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("19_corpse")
+
+[node name="Slot0" type="Sprite3D" parent="ShaderWarm"]
+scale = Vector3(0.05, 0.05, 0.05)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("19_corpse")
+
+[node name="Slot1" type="Sprite3D" parent="ShaderWarm"]
+scale = Vector3(0.05, 0.05, 0.05)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("19_corpse")
+
+[node name="Slot2" type="Sprite3D" parent="ShaderWarm"]
+scale = Vector3(0.05, 0.05, 0.05)
+pixel_size = 0.03125
+billboard = 2
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("19_corpse")
+
+[node name="Slot3" type="Sprite3D" parent="ShaderWarm"]
+scale = Vector3(0.05, 0.05, 0.05)
 pixel_size = 0.03125
 billboard = 2
 shaded = true

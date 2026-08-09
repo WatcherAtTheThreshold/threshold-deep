@@ -12,17 +12,24 @@ signal activated
 ## The rim lands a hair BELOW the floor surface rather than level with
 ## it: coplanar faces z-fight, and its top face is the one you'd see.
 ##
-## SINK_TIME matches the press sound's length and the easing runs IN,
-## not out: the sound is two bricks sliding that seat with a thunk at
-## the very end, so the plate must still be moving when the thunk lands.
-## Ease out would have parked it a full second early.
+## SINK_TIME matches the press sound's length and the easing runs IN, not
+## out — the plate should still be accelerating when it stops, so the halt
+## itself is the beat. Ease out would land it soft, which is the opposite
+## of a thunk.
+##
+## It was 1.2 s (2026-08-08) back when the press sound was a long grind.
+## That lost: the plate's grind and the SECRET WALL's grind are the same
+## family of noise, and the wall's is the one carrying information — which
+## direction it opened and how far away it is. Two grinds in a row buried
+## the useful one behind the decorative one. The press is now a single
+## thunk and gets out of the way.
 const PRESSED_SPRITE_Y := 0.02
 const PRESSED_RIM_Y := -0.035
-const SINK_TIME := 1.2
+const SINK_TIME := 0.18
 
-## Stone grinding as the plate goes down. Deliberately NOT the secret
-## room's grind: the magic-heart plate already triggers that one for the
-## wall slide, and the two would stack.
+## The seating thunk. Deliberately NOT the secret room's grind: the
+## magic-heart plate already triggers that one for the wall slide, and the
+## two would stack. Keep this SHORT — it is a full stop, not a sentence.
 const PRESS_SOUND := preload(
 		"res://assets/audio/sfx/environment/plate_press_grind1.ogg")
 const PRESS_DB := -8.0
@@ -34,10 +41,12 @@ const PRESS_DB := -8.0
 
 ## How long `activated` waits after the press, so what the plate sets off
 ## answers the seating thunk instead of talking over it. The secret plate
-## sets this to the sound's length — its wall grind is the same family of
-## sound and the two used to start together. The BOSS plate deliberately
-## leaves it at 0: its seal has to drop the instant you commit, or you
-## could step back out of the arena before the mists close.
+## sets this to SINK_TIME — just long enough for the thunk to land, so the
+## wall grind reads as the ANSWER to it. Keep the two in step: a delay
+## longer than the sink is dead air, shorter and they overlap.
+## The BOSS plate deliberately leaves it at 0: its seal has to drop the
+## instant you commit, or you could step back out of the arena before the
+## mists close.
 @export var activate_delay := 0.0
 
 var used := false
