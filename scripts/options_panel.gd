@@ -23,7 +23,14 @@ signal closed
 @onready var music: HSlider = $Panel/Margin/Box/Grid/Music
 @onready var sfx: HSlider = $Panel/Margin/Box/Grid/Sfx
 @onready var sens: HSlider = $Panel/Margin/Box/Grid/Sens
-@onready var fullscreen: CheckButton = $Panel/Margin/Box/Fullscreen
+## A TextureButton in toggle_mode, not a CheckButton — texture_normal is off,
+## texture_pressed is on, so the drawn plate family covers the one widget that
+## used to visibly come from another program. Still a BaseButton, so it
+## inherits the click from Sfx.wire_buttons for free.
+@onready var fullscreen: TextureButton = $Panel/Margin/Box/FullscreenRow/Fullscreen
+## The label is its own node now (the CheckButton used to carry both), so
+## hiding on web has to hide the ROW or the word is left stranded.
+@onready var fullscreen_row: HBoxContainer = $Panel/Margin/Box/FullscreenRow
 @onready var back_button: TextureButton = $Panel/Margin/Box/BackRow/Back
 
 
@@ -39,7 +46,7 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		# The browser owns the viewport; a fullscreen toggle here fights the
 		# itch embed rather than filling the screen.
-		fullscreen.hide()
+		fullscreen_row.hide()
 	back_button.pressed.connect(close)
 	master.value_changed.connect(_on_master)
 	music.value_changed.connect(_on_music)

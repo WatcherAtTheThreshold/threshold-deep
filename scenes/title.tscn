@@ -24,6 +24,7 @@
 [ext_resource type="Texture2D" uid="uid://b00xyxgmaypua" path="res://assets/sprites/wizard/wizard_orb1.png" id="22_orb"]
 [ext_resource type="Texture2D" uid="uid://daxak1wd4htbr" path="res://assets/sprites/dot/dot_ember_catch1.png" id="23_dot"]
 [ext_resource type="Script" path="res://scripts/shader_warm.gd" id="24_warm"]
+[ext_resource type="Texture2D" uid="uid://cqhgrw5jm5nd0" path="res://assets/structures/tables/table1_front.png" id="25_structure"]
 
 [sub_resource type="ShaderMaterial" id="mat_warm_mist"]
 shader = ExtResource("20_mist_sh")
@@ -121,6 +122,14 @@ shaded = true
 alpha_cut = 1
 texture_filter = 0
 texture = ExtResource("19_corpse")
+
+[node name="Structure" type="Sprite3D" parent="ShaderWarm"]
+scale = Vector3(0.2, 0.2, 0.2)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("25_structure")
 
 [node name="Slot0" type="Sprite3D" parent="ShaderWarm"]
 scale = Vector3(0.05, 0.05, 0.05)

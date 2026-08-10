@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://assets/structures/cages/cage1_front.png" id="1_front"]
+[ext_resource type="Texture2D" path="res://assets/structures/cages/cage1_side.png" id="2_side"]
+
+[sub_resource type="BoxShape3D" id="box_cage"]
+size = Vector3(1, 1, 1)
+
+[node name="Cage1" type="StaticBody3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("box_cage")
+
+[node name="Front" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.5)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("1_front")
+
+[node name="Back" type="Sprite3D" parent="."]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.5, -0.5)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("1_front")
+
+[node name="SideRight" type="Sprite3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.5, 0.5, 0)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_side")
+
+[node name="SideLeft" type="Sprite3D" parent="."]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.5, 0.5, 0)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_side")

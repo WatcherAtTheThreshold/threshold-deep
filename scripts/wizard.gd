@@ -303,6 +303,14 @@ var knock_timer := 0.0
 var last_attacker: PhysicsBody3D = null
 var facing := Vector3.FORWARD
 var noticed := false    # true while it currently perceives the player
+## Where this one is WORKING — a station it was posted at by dungeon.gd's
+## `_post_wizards_at_stations`. Vector3.INF means "not posted, wander freely".
+## Standing still with your back to the door is the entire point: the aggro
+## startle already freezes a wizard and wheels it round to face you, and that
+## beat can only read as "someone INTERRUPTED" if you first saw it not looking
+## at you. Wandering would turn it away within a second — `_wander` rewrites
+## `facing` every frame — so the post has to suppress the wander outright.
+var post := Vector3.INF
 var aggro_timer := 0.0  # counts down through the startle freeze
 var wander_dir := Vector3.ZERO
 var wander_timer := 0.0
@@ -421,6 +429,11 @@ func _physics_process(delta: float) -> void:
 	var sees_target := _perceives(t, dist, sight)
 	if sees_target and t == player and not noticed:
 		noticed = true
+		# Interrupted for good. Clearing the post here rather than on losing
+		# sight means it never wanders back to work — once you've been seen,
+		# whatever it was doing is over, and a wizard drifting back to its
+		# bench mid-fight would undo the beat that just landed.
+		post = Vector3.INF
 		aggro_timer = AGGRO_TIME
 		Sfx.play_at(aggro_sounds[randi_range(0, aggro_sounds.size() - 1)],
 				global_position, -4.0)
@@ -500,6 +513,8 @@ func _physics_process(delta: float) -> void:
 			charging = true
 			charge_timer = charge_time
 			_start_cast_glow()
+	elif post != Vector3.INF:
+		_hold_post()
 	else:
 		_wander(delta)
 
@@ -557,6 +572,20 @@ func _floor_ahead(dir: Vector3) -> bool:
 		probe, probe + Vector3.DOWN * 3.0, 1, [get_rid()])
 	query.hit_from_inside = true
 	return not get_world_3d().direct_space_state.intersect_ray(query).is_empty()
+
+
+func _hold_post() -> void:
+	# Bent over the work. Zero velocity means the animation block below reads
+	# `moving == false` and draws the idle frame in whatever direction `facing`
+	# points — so a wizard posted at a bench against the far wall shows you its
+	# BACK as you come through the door. That silhouette is the whole setup;
+	# `aggro_tex` is the payoff.
+	velocity.x = 0.0
+	velocity.z = 0.0
+	var to_post := post - global_position
+	to_post.y = 0.0
+	if to_post.length() > 0.05:
+		facing = to_post.normalized()
 
 
 func _wander(delta: float) -> void:

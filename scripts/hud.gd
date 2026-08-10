@@ -8,6 +8,20 @@ const HEART_MAGIC := preload("res://assets/ui/heart_magic.png")
 const HEART_MAGIC_HALF := preload("res://assets/ui/heart_magic_half.png")
 const HEART_SIZE := Vector2(48, 48)
 
+## Boss effigies, in the order the bosses are fought. `RunState.bosses_defeated`
+## is a plain 0-3 and the order is fixed (slime, mush, amalgam), so the COUNT
+## alone says which were earned — no new bookkeeping, the same trick
+## `trophy_count()` plays with the relic flags.
+##
+## 48x48 on purpose: everything the HUD draws lands in a fixed 48 px slot, and
+## only a canvas 48 divides evenly stays crisp. The 64x64 crystals borrowed as
+## strip icons are quietly downscaled 0.75x; these aren't.
+const EFFIGIES: Array[Texture2D] = [
+	preload("res://assets/ui/effigies/effigy_slime.png"),
+	preload("res://assets/ui/effigies/effigy_mush.png"),
+	preload("res://assets/ui/effigies/effigy_skeletal_wizard.png"),
+]
+
 # Item-strip icons (the bottom-left run summary). Tiered relics index by
 # tier (1/2); the [0] slot is unused padding.
 const ICON_LUCKY := preload("res://assets/items/crystals/crystal_luckyluck1.png")
@@ -64,6 +78,8 @@ var _shown_second := -1  # last whole second painted into run_info
 @onready var death_cause: Label = $DeathCause
 @onready var death_stats: Label = $DeathStats
 @onready var death_close: TextureButton = $DeathClose
+@onready var effigy_row: HBoxContainer = $EffigyRow
+@onready var item_report: HBoxContainer = $ItemReport
 @onready var toast_name: Label = $ToastName
 @onready var toast_desc: Label = $ToastDesc
 
@@ -154,29 +170,65 @@ func start_gate_fade() -> void:
 
 
 func _go_down() -> void:
+	# The DESCENT is what ends the run, not the kill. Every floor ends by
+	# taking the hatch; making the last one end the same way turns eight
+	# repetitions of a habit into a ceremony, and it lets you claim the boss
+	# reward and catch your breath before you choose to finish.
+	#
+	# Intercepted HERE rather than in hatch.gd because the fade has already
+	# run by the time this fires — so the report resolves on the black instead
+	# of over the chamber. You step down, the world goes out, and the account
+	# of the run arrives.
+	if RunState.bosses_defeated >= 3 and not RunState.victory_shown:
+		RunState.victory_shown = true
+		show_victory()
+		return
 	RunState.descend(player.health, player.max_health, player.magic_hearts)
 	get_tree().reload_current_scene()
 
 
 func show_victory() -> void:
-	# Boss three is down. The run is won — and the dungeon continues
-	# below for whoever wants to know how deep it goes.
+	# The win report. Deliberately the death report's BONES with a different
+	# frame — same score-first stats, same CLOSE plate, same exit to the title.
+	# structure.md: "the last thing anyone builds and the first thing anyone
+	# screenshots", which a banner that fades while you keep walking could
+	# never be.
+	#
+	# Reached only from _go_down (the 3-3 hatch), so `screen_fade` is already
+	# opaque — no darkening pass here, the report just arrives on the black.
+	# No killer portrait and no cause line: nothing killed you.
 	death_label.text = "YOU PREVAILED"
 	death_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
 	death_stats.text = _build_death_stats()
-	death_label.modulate.a = 0.0
-	death_stats.modulate.a = 0.0
-	death_label.visible = true
-	death_stats.visible = true
-	var tween := create_tween()
-	tween.tween_property(death_label, "modulate:a", 1.0, 1.2)
-	tween.parallel().tween_property(death_stats, "modulate:a", 1.0, 1.2)
-	tween.tween_interval(6.0)
-	tween.tween_property(death_label, "modulate:a", 0.0, 1.5)
-	tween.parallel().tween_property(death_stats, "modulate:a", 0.0, 1.5)
-	tween.tween_callback(func() -> void:
-		death_label.visible = false
-		death_stats.visible = false)
+	# Victory reclaims the two bands a death report spends on the killer
+	# portrait and the "slain by" line — nothing killed you — so everything
+	# below the title rises into that space instead of stranding itself at the
+	# bottom under an empty gap. All three effigies are guaranteed here
+	# (`bosses_defeated >= 3` is what triggered this screen), which makes the
+	# spoils row the widest it ever gets.
+	_fill_report_rows()
+	effigy_row.offset_top = 110.0
+	effigy_row.offset_bottom = 158.0
+	item_report.offset_top = 176.0
+	item_report.offset_bottom = 224.0
+	death_stats.offset_top = 250.0
+	death_stats.offset_bottom = -178.0
+	var elements: Array[CanvasItem] = [death_label, death_stats]
+	elements.append_array(_report_rows())
+	death_elements = elements
+	for e in elements:
+		e.modulate.a = 0.0
+		e.visible = true
+	# The mouse is still captured from the fight; the CLOSE plate needs it.
+	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+	death_tween = create_tween()
+	death_tween.tween_property(death_label, "modulate:a", 1.0, 1.2)
+	for row in _report_rows():
+		death_tween.tween_property(row, "modulate:a", 1.0, 0.45)
+	death_tween.tween_property(death_stats, "modulate:a", 1.0, 0.6)
+	death_tween.tween_callback(_show_death_close)
+	death_tween.tween_interval(DEATH_HOLD_TIME)
+	death_tween.tween_callback(close_death_report)
 
 
 func _on_player_died() -> void:
@@ -185,9 +237,11 @@ func _on_player_died() -> void:
 	death_cause.text = "Slain by %s" % _killer_phrase()
 	death_stats.text = _build_death_stats()
 	killer_face.texture = RunState.killer_texture
+	_fill_report_rows()
 	var elements: Array[CanvasItem] = [death_label, death_cause, death_stats]
 	if RunState.killer_texture != null:
 		elements.append(killer_face)
+	elements.append_array(_report_rows())
 	for e in elements:
 		e.modulate.a = 0.0
 		e.visible = true
@@ -209,6 +263,10 @@ func _on_player_died() -> void:
 	death_tween.parallel().tween_property(death_label, "modulate:a", 1.0, 0.7)
 	death_tween.parallel().tween_property(killer_face, "modulate:a", 1.0, 0.7)
 	death_tween.parallel().tween_property(death_cause, "modulate:a", 1.0, 0.7)
+	# ...then the spoils, one band at a time — what you beat, then what you
+	# carried — before the numbers land under them.
+	for row in _report_rows():
+		death_tween.tween_property(row, "modulate:a", 1.0, 0.35)
 	death_tween.tween_property(death_stats, "modulate:a", 1.0, 0.4)
 	# The plate arrives with the report and is the way out. The interval after
 	# it is a safety net for someone who walked away, not the intended path —
@@ -259,6 +317,38 @@ func _build_death_stats() -> String:
 		if row.size() > 0:
 			lines.append("   ".join(row))
 	return "\n".join(lines)
+
+
+func _fill_report_rows() -> void:
+	# The report's two picture bands. Both reuse `_make_item_icon` — the same
+	# 48 px slot the HUD strip uses — so an effigy and a relic read as the same
+	# CLASS of thing, which is what makes the row scan as a row.
+	#
+	# Effigies come from the boss count; the kit comes from `item_order`, so
+	# the report tells the run's story in the order it happened rather than in
+	# a tidy fixed layout that could only show what you already knew.
+	for child in effigy_row.get_children():
+		child.queue_free()
+	for i in mini(RunState.bosses_defeated, EFFIGIES.size()):
+		effigy_row.add_child(_make_item_icon(EFFIGIES[i]))
+	for child in item_report.get_children():
+		child.queue_free()
+	for key: StringName in RunState.item_order:
+		var icon := _strip_icon(key)
+		if icon != null:
+			item_report.add_child(_make_item_icon(icon))
+
+
+func _report_rows() -> Array[CanvasItem]:
+	# Only the bands that HAVE something. An empty row would still fade in and
+	# occupy its gap, and a torch-only run that beat nothing would show two
+	# blank stripes where the spoils should be.
+	var rows: Array[CanvasItem] = []
+	if RunState.bosses_defeated > 0:
+		rows.append(effigy_row)
+	if not RunState.item_order.is_empty():
+		rows.append(item_report)
+	return rows
 
 
 func _show_death_close() -> void:

@@ -471,6 +471,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		_open_pause()
 
 
+func win_immunity() -> void:
+	# The third boss is down and the run is WON — but the end screen doesn't
+	# fire until you take the hatch, and that gap is yours to spend. Finish a
+	# boss at half a heart with a red amalgam's Ember still ticking and a
+	# `take_burn` tick would hand you the death report after you'd already won.
+	#
+	# So: clear both damage-over-time channels outright (they live OUTSIDE
+	# `take_damage`, which is exactly why i-frames alone wouldn't stop them)
+	# and hold i-frames open for anything else still in the air. Not a
+	# difficulty decision — a guard against losing something already earned.
+	#
+	# Zeroing the counters is enough on its own: `poisoned`/`burned` carry
+	# health values and only fire ON a tick, so no ticks means no more HUD
+	# pulses. Emitting them here would have flashed the screen, not calmed it.
+	poison_ticks = 0
+	burn_ticks = 0
+	invuln_timer = INF
+
+
 func _on_died() -> void:
 	# A tween, not a SceneTreeTimer: it belongs to this node, so a reload or a
 	# quit-to-title kills it rather than firing into a freed player.

@@ -1,0 +1,54 @@
+[gd_scene format=3 uid="uid://cuc0ykjtynsjd"]
+
+[ext_resource type="Texture2D" uid="uid://cqhgrw5jm5nd0" path="res://assets/structures/tables/table1_front.png" id="1_front"]
+[ext_resource type="Texture2D" uid="uid://dqloxl307h0cs" path="res://assets/structures/tables/table1_side.png" id="2_side"]
+[ext_resource type="Texture2D" uid="uid://cc56eaqktqyf3" path="res://assets/structures/tables/table1_top.png" id="3_top"]
+
+[sub_resource type="BoxShape3D" id="box_table"]
+size = Vector3(2, 1, 1)
+
+[node name="Table" type="StaticBody3D" unique_id=1083935575]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=952785350]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("box_table")
+
+[node name="Front" type="Sprite3D" parent="." unique_id=567617572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0.5)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("1_front")
+
+[node name="Back" type="Sprite3D" parent="." unique_id=1688128512]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0.5, -0.5)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("1_front")
+
+[node name="SideRight" type="Sprite3D" parent="." unique_id=183315887]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 1, 0.5, 0)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_side")
+
+[node name="SideLeft" type="Sprite3D" parent="." unique_id=144304059]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1, 0.5, 0)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("2_side")
+
+[node name="Top" type="Sprite3D" parent="." unique_id=1951463731]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 1, 0)
+pixel_size = 0.03125
+shaded = true
+alpha_cut = 1
+texture_filter = 0
+texture = ExtResource("3_top")

@@ -28,6 +28,79 @@ const EMBERSTONE_SCENE := preload("res://scenes/emberstone_pickup.tscn")
 const ARMOR_PICKUP_SCENE := preload("res://scenes/armor_pickup.tscn")
 const ARMOR2_PICKUP_SCENE := preload("res://scenes/armor2_pickup.tscn")
 const STAFF_PICKUP_SCENE := preload("res://scenes/staff_pickup.tscn")
+
+## Boxed props — docs/stations.md. Pure decoration with a collider: no script,
+## no behaviour, nothing in a group, so they cost a frame only its draw calls.
+## Tables 2 and 3 currently carry duplicates of table1's art (placeholders to
+## be repainted in place), which is why they can all share one draw.
+const TABLE_SCENES: Array[PackedScene] = [
+	preload("res://scenes/table1.tscn"),
+	preload("res://scenes/table2.tscn"),
+	preload("res://scenes/table3.tscn"),
+]
+const CAGE_SCENE := preload("res://scenes/cage1.tscn")
+const CAGE_TALL_SCENE := preload("res://scenes/cage2.tscn")
+const CAGED_MUSH_SCENE := preload("res://scenes/caged_mush.tscn")
+const CAGED_SKELETON_SCENE := preload("res://scenes/caged_skeleton.tscn")
+const TABLE_HEIGHT := 1.0                # a small cage sits on top at exactly this
+const STRUCTURE_ROOM_CHANCE := 0.55      # per eligible room
+const STRUCTURE_TALL_CAGE_CHANCE := 0.3  # a placement is a tall cage, not a table
+const STRUCTURE_CAGE_CHANCE := 0.45      # a placed table carries a small cage
+const STRUCTURE_OCCUPANT_CHANCE := 0.6   # a placed cage has something IN it
+## A CAGELESS table carries supplies. Deliberately a potion and not a magic
+## heart: gold light is the commoner secret's currency (three hearts behind a
+## pale plank) and stops reading as a secret's reward the moment tables hand
+## it out. Red keeps the tiers honest — kills drop potions, stations stock
+## one, gold is the secret, crystals are pedestals. docs/stations.md carries
+## the argument, including why a decorative candle was rejected: a glow in
+## this game promises something to TAKE, so a lit table must have one.
+const STRUCTURE_POTION_CHANCE := 0.5
+const STRUCTURE_CLEARANCE := 1.6         # metres clear of anything already placed
+## CELLS (2 m each) a prop must keep between itself and any doorway. The wall
+## test already makes placing IN a doorway impossible; this is about not
+## placing BESIDE one, where a 2 m table narrows the way in. 2 leaves a full
+## empty cell of threshold. Rooms are 3x3 to 7x7, so raising this quietly
+## rules small rooms out of furniture altogether — which is a reasonable thing
+## to want, but check the density before assuming placement broke.
+const STRUCTURE_DOOR_CLEARANCE := 2
+
+## Relics held back for Acts II/III (2026-08-09). The scenes and every system
+## around them still work — they just don't enter the draw. **Emptying this
+## array restores the full pool**, which is what Act II will want.
+##
+## WHY, because this reads like content being thrown away: a demo run makes SIX
+## claims (three item rooms at one-of-two, three boss drops) and the pool was
+## EIGHTEEN. So a run touched a third of the toybox, and a DESIGNED PAIR —
+## Rotstone with Emberstone, the Pillar-4 set — both landed in only 10% of
+## runs. At twelve it's 23%. Variety isn't what's lost: C(12,6) is still 924
+## possible loadouts, and nobody plays a demo 924 times.
+##
+## What went and why:
+##  - quickstep / twicecut / gapleaper — FIVE of the eighteen improved dashing,
+##    28% of the pool on one verb, and a dash build needs 3+ pieces that six
+##    claims can't assemble. Fleetfoot and Barrelstone stay so the verb keeps a
+##    voice (and Barrelstone keeps its interaction with shafts).
+##  - staff — flat 0.5s cooldown, and ranged deliberately gets no Hasty
+##    scaling, so it deals the SWORD'S DPS AT ZERO RISK; Wide Swing makes it
+##    AoE on top. Drawing it early gives you the least interesting version of
+##    the game. The boomerang stays: `_attack` returns while `boomerang_out`,
+##    so exactly one is in flight at a time — situational power, not free.
+##  - lucky — drop rolls x0.6 is imperceptible across nine floors and compounds
+##    across twenty-eight. An Act III item that happens to already exist.
+##  - hasty — the last cut and the first to bring back if six picks feel thin.
+##    Its melee half is honest, but with the staff gone half its text is dead.
+##
+## Both tiers of a family go together, and PAIRS ARE NEVER SPLIT — cutting
+## Rotstone while keeping Emberstone would orphan a system.
+const DEFERRED_RELICS: Array[PackedScene] = [
+	QUICKSTEP_SCENE,
+	TWICECUT_SCENE,
+	GAPLEAPER_SCENE,
+	STAFF_PICKUP_SCENE,
+	LUCKYLUCK_SCENE,
+	HASTY_SCENE,
+	HASTY2_SCENE,
+]
 const BOOMERANG_PICKUP_SCENE := preload("res://scenes/boomerang_pickup.tscn")
 const HALBERD_PICKUP_SCENE := preload("res://scenes/halberd_pickup.tscn")
 const MIST_SCENE := preload("res://scenes/mist_door.tscn")
@@ -82,7 +155,7 @@ const CEILING_TALL_CHANCE := 0.35   # a regular room's odds of a raised ceiling
 const CEILING_CATHEDRAL_CHANCE := 0.2  # of raised rooms, odds of +2 vs +1 layer
 const CEILING_GRAND_LAYERS := 2     # boss arenas + item rooms go this tall
 const BOSS_DROP_LAYERS := 3         # the amalgam chamber sits this many cell-
-                                    # layers (4m each) below the boss arena
+									# layers (4m each) below the boss arena
 
 const GRID_WIDTH := 40
 const GRID_HEIGHT := 28
@@ -143,6 +216,10 @@ var enemy_wood := {}   # instance id -> is the cell underfoot plank, for the cre
 var alert_seen := {}   # instance id -> was-noticed last frame, for alert propagation
 var grudge_seen := {}  # instance id -> id of the creature it was feuding with, for infight rallies
 var floor_rooms: Array[Rect2i] = []
+## Every station placed this floor: {"pos", "room", "front"}. Recorded so
+## `_post_wizards_at_stations` can find them again — one station per room and
+## rooms never overlap, so a station and a wizard can only ever pair one way.
+var stations: Array[Dictionary] = []
 var kind: int = RunState.FloorKind.REGULAR
 
 # Boss floor state
@@ -332,6 +409,12 @@ func _ready() -> void:
 		add_child(above)
 	last_player_cell = _player_cell()
 	_place_heart_caches()
+	# LAST of the placement passes on purpose: its clearance check sweeps the
+	# nodes already added, so running here is what keeps a table off the hatch,
+	# the pedestals, the mist gates and the spawned roster without knowing what
+	# any of them are.
+	_place_structures()
+	_post_wizards_at_stations()
 
 	# Every floor announces itself.
 	if kind == RunState.FloorKind.BOSS:
@@ -1529,18 +1612,35 @@ func _start_boss_fight() -> void:
 			slime.health = slime.BOSS_MAX_HEALTH
 			slime.spawn_timer = 1.2
 		_:
-			# Boss 3 placeholder: a wave of skeletons and wizards.
-			# TODO(structure.md): the Skeletal Wizard amalgam —
-			# phase two assembles from the corpses this wave leaves.
+			# Boss 3: the wave that BECOMES the amalgam. Three necromancers,
+			# one of each colour, deliberate rather than a roll per body —
+			# exactly the rule _spawn_wizard_coven follows, and for the same
+			# reason: three of one colour fire in lockstep and land as a volley
+			# wall, while one of each rolls in at 2.2 / 1.5 / 3.2 behind
+			# wind-ups of 0.45 / 0.30 / 0.85.
+			#
+			# It also makes _spawn_amalgam's own narration true. That function
+			# says "the pile held three necromancers' worth of dead, so three
+			# rise" — which was fiction while this wave fielded two. Now the
+			# corpses you make ARE the three that come back, in the same
+			# colours, and the climax reads as consequence instead of arrival.
 			var spots := _stone_cells(arena)
 			spots.shuffle()
-			for n in 6:
+			var colours: Array[int] = [0, 1, 2]
+			colours.shuffle()  # one of each, but never the same one on the left
+			for n in 7:
 				var enemy: Node3D
-				if n < 2:
+				var is_wizard := n < colours.size()
+				if is_wizard:
 					enemy = WIZARD_SCENE.instantiate()
 				else:
 					enemy = SKELETON_SCENE.instantiate()
 				enemy.setup(RunState.depth)
+				if is_wizard:
+					# Overwrite setup()'s roll BEFORE add_child — _ready()
+					# applies whatever `element` holds at that moment, so this
+					# is the last window. Same handoff as the coven's.
+					enemy.element = colours[n]
 				var cell := center if spots.is_empty() \
 						else spots[n % spots.size()]
 				enemy.position = _cell_to_world(cell)
@@ -1802,9 +1902,19 @@ func _finish_boss_fight() -> void:
 			reward.position = _cell_to_world(reward_cell, 0.5)
 			add_child(reward)
 	RunState.bosses_defeated += 1
-	if RunState.bosses_defeated >= 3 and not RunState.victory_shown:
-		RunState.victory_shown = true
-		player.get_node("HUD").show_victory()
+	if RunState.bosses_defeated >= 3:
+		# NO banner here. The fight stops, the chamber goes quiet, and a hatch
+		# and a relic appear in the dark — that IS the acknowledgement, shown
+		# rather than told. The report comes when you commit to the stairs
+		# (hud.gd `_go_down`).
+		#
+		# But the run is WON the moment this fires, so nothing may take it
+		# back. The gap between the kill and the hatch is player-controlled
+		# and you often finish a boss on fumes — a red amalgam's Ember ticks
+		# through `take_burn`, OUTSIDE the hit path, for up to 3 units after
+		# the fight is over. Without this you could beat the final boss and be
+		# handed the DEATH report by a burn. The deep is finished with you.
+		player.win_immunity()
 
 
 # ------------------------------------------------------------------
@@ -1858,6 +1968,11 @@ func _relic_pool() -> Array[PackedScene]:
 		pool.append(BOOMERANG_PICKUP_SCENE)
 	if not RunState.has_halberd:
 		pool.append(HALBERD_PICKUP_SCENE)
+	# Filtered at the END rather than guarded at each append: one place to
+	# read, and the ownership gating above stays untouched, so restoring an
+	# item for Act II is deleting a line from DEFERRED_RELICS and nothing else.
+	for scene in DEFERRED_RELICS:
+		pool.erase(scene)
 	return pool
 
 
@@ -2042,6 +2157,215 @@ func _place_hatch(rooms: Array[Rect2i], exclude_idx := -1) -> void:
 				cells[randi_range(0, cells.size() - 1)], 0.5)
 			add_child(gate)
 			return
+
+
+func _place_structures() -> void:
+	# Boxed props (docs/stations.md) as set dressing. Rooms only, and the
+	# spawn room is skipped so nothing is in your face on arrival.
+	#
+	# BOSS ARENAS ARE EXCLUDED, for two independent reasons that will both
+	# outlive this function: _drop_boss_floor caves every arena floor cell and
+	# anything not explicitly brought down is left hanging over the shaft (the
+	# same trap that forced corpses to be tweened and drops into the "drops"
+	# group); and once cages get occupants, a living thing inside the arena
+	# bounds holds _arena_has_living_enemies open forever — a soft-lock.
+	#
+	# Item rooms are excluded too, but only out of caution: the pedestals are
+	# authored placement and furniture would crowd them. Cheap to revisit.
+	for i in range(1, floor_rooms.size()):
+		if i == arena_room_idx or i == item_room_idx:
+			continue
+		if randf() >= STRUCTURE_ROOM_CHANCE:
+			continue
+		_place_one_structure(floor_rooms[i])
+
+
+func _place_one_structure(room: Rect2i) -> bool:
+	# A table is 2 m wide — EXACTLY one grid cell — so a careless one seals a
+	# path, and the generator proved solvability long before this runs. The
+	# wall test is what makes that safe: a cell only qualifies if its
+	# neighbour in that direction is solid wall, and a doorway never is. Back
+	# to the wall, front to the room.
+	var cells := _stone_cells(room)
+	cells.shuffle()
+	var centre := room.get_center()
+	var doors := _room_doorways(room)
+	for c in cells:
+		# _populate spawns the room's enemies on the centre cell, plus one to
+		# its left on the extra-skeleton roll. Keep the furniture out of that.
+		if c == centre or c == centre + Vector2i(-1, 0):
+			continue
+		if _near_doorway(c, doors):
+			continue
+		for d: Vector2i in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+			if _cell_id(c + d) != wall_id:
+				continue
+			# Push the centre back by half the table's DEPTH so its back face
+			# lands on the wall plane rather than the cell centre — the 2 m
+			# width then spans the cell edge to edge and reads as placed.
+			var mid := _cell_to_world(c, 0.5)
+			var pos := mid
+			if d.x != 0:
+				var face_x := (c.x + (1 if d.x > 0 else 0)) * CELL_SIZE
+				pos = Vector3(face_x - d.x * 0.5, 0.5, mid.z)
+			else:
+				var face_z := (c.y + (1 if d.y > 0 else 0)) * CELL_SIZE
+				pos = Vector3(mid.x, 0.5, face_z - d.y * 0.5)
+			if _position_crowded(pos):
+				continue
+			var spin := Vector3(0, rad_to_deg(atan2(float(-d.x), float(-d.y))), 0)
+			# `d` points AT the wall, so the room-facing side is -d. Recorded
+			# for _post_wizards_at_stations, which stands its coven on this
+			# side and turns them inward.
+			var front := Vector3(-d.x, 0.0, -d.y)
+			stations.append({"pos": pos, "room": room, "front": front})
+			if randf() < STRUCTURE_TALL_CAGE_CHANCE:
+				# A tall cage STANDS ON THE FLOOR, never on a table. It is 2 m,
+				# so on a 1 m table its occupant's feet would sit at your eye
+				# line and its lid would be up in the ceiling. On the floor the
+				# skull lands at eye height, a flat corpse inside stays visible
+				# a metre below you, and the bars throw their shadows the whole
+				# length of the room.
+				var tall: Node3D = CAGE_TALL_SCENE.instantiate()
+				tall.position = pos
+				tall.rotation_degrees = spin
+				add_child(tall)
+				if randf() < STRUCTURE_OCCUPANT_CHANCE:
+					var bones: Node3D = CAGED_SKELETON_SCENE.instantiate()
+					bones.position = pos
+					add_child(bones)
+				return true
+			var table: Node3D = TABLE_SCENES[randi() % TABLE_SCENES.size()].instantiate()
+			table.position = pos
+			table.rotation_degrees = spin
+			add_child(table)
+			if randf() < STRUCTURE_CAGE_CHANCE:
+				# On the table, never the floor: a 1 m cage at floor level sits
+				# below knee height where you'd only see its lid. At table
+				# height it's dead centre of view and you can look INTO it.
+				var cage: Node3D = CAGE_SCENE.instantiate()
+				cage.position = pos + Vector3(0, TABLE_HEIGHT, 0)
+				cage.rotation_degrees = spin
+				add_child(cage)
+				if randf() < STRUCTURE_OCCUPANT_CHANCE:
+					# Same origin as the cage — both put their own base at the
+					# cage floor, so the occupant needs no offset here. Not
+					# rotated: it's a Y-billboard and turns to face you, which
+					# is the composition stations.md is built around (the bars
+					# correctly don't turn, the thing behind them does).
+					var caged: Node3D = CAGED_MUSH_SCENE.instantiate()
+					caged.position = cage.position
+					add_child(caged)
+			elif randf() < STRUCTURE_POTION_CHANCE:
+				# elif, not if: a cage already owns the tabletop. The three
+				# table states then read distinctly — bare, occupied, stocked.
+				#
+				# Nudged 0.2 m toward the room-facing edge, which is `-d` since
+				# `d` points at the wall. That's both looks and reach: a thing
+				# set down near an edge reads more natural than one centred,
+				# and the table's own collider holds you 0.9 m off its middle,
+				# which is right at the limit of the pickup's 0.6 m sphere plus
+				# your 0.4 m capsule. Dead centre would only trigger if you
+				# lined up square to the table.
+				var supply: Node3D = POTION_SCENE.instantiate()
+				supply.position = pos + Vector3(0, TABLE_HEIGHT, 0) + front * 0.2
+				add_child(supply)
+			return true
+	return false
+
+
+func _post_wizards_at_stations() -> void:
+	# The design payoff docs/stations.md was written for. A necromancer AT a
+	# station is a different creature from one standing in a room, and it costs
+	# almost nothing because both halves already existed: the aggro startle
+	# (freeze, wheel round, alert pose, sting) has always been there, it just
+	# never had a "before" to interrupt.
+	#
+	# IT RE-SITES, IT NEVER SPAWNS. `_spawn_wizard_coven` already puts 2-3
+	# together, deliberately one colour each — that was always a gathering with
+	# no reason. Moving them to a bench changes the meaning at zero cost to a
+	# balance that took a whole pass to tune. Adding wizards instead would do
+	# the opposite: the odds already overlap on ~25% of rooms (wizard chance
+	# caps at 0.45, stations land in 0.55), which is about one tableau a floor
+	# — the right frequency for a moment rather than wallpaper.
+	#
+	# MUST RUN AFTER _populate AND _place_structures. `_position_crowded`
+	# deliberately holds props 1.6 m CLEAR of spawned enemies, so those two
+	# systems push apart until something pulls them back together; this is that
+	# something, and it can only work once both have finished.
+	for station in stations:
+		var room: Rect2i = station["room"]
+		var spot: Vector3 = station["pos"]
+		var front: Vector3 = station["front"]
+		var crew: Array[Node3D] = []
+		for node: Node3D in get_tree().get_nodes_in_group("wizards"):
+			if not is_instance_valid(node):
+				continue
+			var cell := Vector2i(floori(node.position.x / CELL_SIZE),
+					floori(node.position.z / CELL_SIZE))
+			if room.has_point(cell):
+				crew.append(node)
+		if crew.is_empty():
+			continue
+		# No double-posting guard needed: `_place_structures` places at most one
+		# station per room and the generator rejects overlapping rooms, so a
+		# wizard's cell belongs to exactly one station.
+		#
+		# All three slots sit inside the station's OWN cell, which `_stone_cells`
+		# already proved reachable — 1.3 m out from the prop centre is 0.8 m from
+		# the cell centre, and ±0.8 m laterally stays inside its 2 m span. No new
+		# solvability question.
+		var lateral := Vector3(front.z, 0.0, -front.x)
+		var slots: Array[float] = [0.0, -0.8, 0.8]
+		for i in range(mini(crew.size(), slots.size())):
+			var wiz := crew[i]
+			var stand := spot + front * 1.3 + lateral * slots[i]
+			# Keep each body's own Y: `_cell_to_world` stands one at 1.5 while a
+			# station's origin sits on the floor at 0.5.
+			wiz.position = Vector3(stand.x, wiz.position.y, stand.z)
+			wiz.set("post", spot)
+
+
+func _room_doorways(room: Rect2i) -> Array[Vector2i]:
+	# The generator guarantees every room keeps a one-cell wall ring (it
+	# rejects any room whose grow(1) overlaps another), so a ring cell that
+	# ISN'T solid is precisely where a corridor broke through. No need to know
+	# anything about how corridors were carved.
+	var doors: Array[Vector2i] = []
+	var ring := room.grow(1)
+	for cy in range(ring.position.y, ring.end.y):
+		for cx in range(ring.position.x, ring.end.x):
+			var cell := Vector2i(cx, cy)
+			if room.has_point(cell):
+				continue  # interior, not the ring
+			if _is_open_cell(cell):
+				doors.append(cell)
+	return doors
+
+
+func _near_doorway(cell: Vector2i, doors: Array[Vector2i]) -> bool:
+	# Chebyshev, so the exclusion is a SQUARE around each opening — that's what
+	# "N cells back from the door" means on a grid, and it keeps a prop off the
+	# diagonal approach as well as the straight one.
+	for d in doors:
+		if maxi(absi(cell.x - d.x), absi(cell.y - d.y)) < STRUCTURE_DOOR_CLEARANCE:
+			return true
+	return false
+
+
+func _position_crowded(pos: Vector3) -> bool:
+	# Everything else this floor places — hatch, pedestals, mist gates,
+	# arrival door, the whole spawned roster — is already a direct child by
+	# the time structures run, so one distance sweep covers all of them and
+	# this function never has to learn their names. GridMaps and lights sit at
+	# the origin or overhead and would only ever produce false positives.
+	for child in get_children():
+		var node := child as Node3D
+		if node == null or node == player or node is GridMap or node is Light3D:
+			continue
+		if node.position.distance_to(pos) < STRUCTURE_CLEARANCE:
+			return true
+	return false
 
 
 func _place_against_wall(scene: PackedScene, room: Rect2i) -> bool:

@@ -7,8 +7,12 @@ extends Node3D
 ## TWO different costs, and they need different tricks:
 ##
 ## 1. SHADER VARIANTS compile the first time a material CONFIG is drawn. The
-##    four sibling nodes (Mist / Orb / Dot / Creature) cover every config the
-##    dungeon uses; they just have to exist and be in frustum.
+##    five sibling nodes (Mist / Orb / Dot / Creature / Structure) cover every
+##    config the dungeon uses; they just have to exist and be in frustum.
+##    BILLBOARD MODE IS PART OF THE CONFIG, which is easy to miss: every other
+##    node here billboards, so Structure covers the billboard-OFF case — the
+##    boxed props of docs/stations.md, and hatch.tscn, which had quietly gone
+##    uncovered since before the props existed.
 ## 2. TEXTURES upload to the GPU the first time each ONE is drawn — per
 ##    texture, not per config. 321 sprites, and the first room plus the first
 ##    fight touches enough of them to produce the 3-to-23-second stutter storm

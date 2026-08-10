@@ -32,10 +32,11 @@ This is the portfolio's only Godot project — use Godot 4 idioms
 | Creatures | 64×64 (small 32×32, brutes up to 96×96) | 32 px = 1 m; feet at bottom edge. Turnarounds: 6 drawings — front1/2, side1/2 (drawn facing LEFT; code flips for right), back1/2 — in a per-creature folder (sprites/skeleton/). The view is picked by projecting the creature's `facing` onto the camera's axes (see skeleton.gd `_update_view`); creatures without turnaround art yet stay front-only |
 | Viewmodel, right hand | 256×128 (standard; legacy 128×128 still renders correctly) | shown 3× nearest; art anchors to the bottom-right corner and bleeds off the bottom + right edge, extra width sweeps inward. The code sizes to whatever canvas it's given — migrate art gradually under the same filenames |
 | Viewmodel, left hand (torch) | 128×128 | bottom-left corner, own script (left_torch.gd); not part of the wide standard |
-| UI icons (hearts etc.) | 16×16 | shown 3× (48 px) |
+| UI icons (hearts, effigies) | 16×16 or 48×48 | **Everything the HUD draws lands in a fixed 48 px slot** (`HEART_SIZE`, via `_make_item_icon`'s EXPAND_IGNORE_SIZE + STRETCH_SCALE), so a canvas only stays crisp if 48 divides by it evenly: 16 (3×) and 48 (1×) do, 64 does NOT — the 64×64 crystals reused as strip icons are quietly downscaled 0.75× and lose a quarter of their rows. Pick 16 or 48 for anything drawn as an icon FIRST; `items/` art is 64 because it lives in the world first and is borrowed by the HUD second |
 | UI text | Press Start 2P (`assets/fonts/`, OFL) | sizes in multiples of 8 (16/24/48) |
-| Items (world pickups) | 16×16 | base at bottom edge; Area3D scenes, hover bob in code |
+| Items (world pickups) | 64×64 canvas (a few early files — both potions, the staff orb — are still 16×16 and render fine) | **The canvas is a CONTAINER, not the size.** One texel density everywhere: the ART is drawn to the object's real height at 32 px = 1 m, so a ~1 m crystal fills ~32 px of a 64 px canvas while a 0.5 m potion fills a 16 px one. Both sit at `pixel_size = 0.03125`. Base at bottom edge; Area3D scenes, hover bob in code |
 | Tiles (floor/wall textures) | 64×64 seamless | triplanar-mapped, repeats once per 2 m cell |
+| Structure faces (boxed props) | one PNG per face, 32 px = 1 m | table 2×1×1 m → front 64×32, side 32×32, top 64×32; cage 1×1×1 m → front + side 32×32, **no top**. Each face canvas is the two box dimensions it spans, so **each axis's pixel count must appear on exactly two canvases** — if one appears once, something is crossed. **The top canvas's UP edge is the prop's FRONT.** Naming `<prop><N>_<face>.png` — number on the NOUN, since a trailing number means animation frame everywhere else. Full spec: docs/stations.md |
 
 Sprites in world: `Sprite3D`, `pixel_size = 0.03125`, Y-billboard
 (`billboard = 2`), `shaded = true`, `alpha_cut = 1`, nearest filtering.
@@ -157,6 +158,18 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   scrim is what makes plates read on an arbitrary dungeon frame. It carries the
   control list, and Options is one shared scene instanced by both it and the
   title so the two can't drift.
+- **The end screens carry two bands of drawn icons** (`hud.gd`
+  `_fill_report_rows` / `_report_rows`): **effigies** for bosses beaten and
+  the run's **kit** in collection order, both through `_make_item_icon` so
+  they share the strip's 48 px slot and read as one class of thing. Effigies
+  come from `RunState.bosses_defeated` alone — it's 0–3 and the boss order is
+  fixed, so the count says which were earned, no new state. Empty rows are
+  SKIPPED, never drawn blank. **Call them effigies, never trophies:**
+  `trophy_count()` already means build-defining pickups claimed and feeds the
+  score ×50; `seal` is taken by `mist_door.gd`; `mark` is soft-taken by
+  `dot.gd`'s corpse scars. Band layout and the `DeathStats` headroom limit are
+  in docs/ui-language.md — **`TALLY_PER_ROW` is the wrong knob** if the stats
+  crowd, since 3 is already tuned to the screen width.
 - **The item strip draws in COLLECTION order** (`RunState.item_order`), not
   source order. A fixed layout can only show what you already knew; collection
   order makes the rightmost icon the thing you just claimed, which is the
@@ -180,7 +193,13 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   `wizard.tscn`, `slime.tscn`, `mush.tscn`, `frogman.tscn`),
   `orb.tscn` (wizard
   projectile), pickups (`potion.tscn`, `sword_pickup.tscn`),
-  `hatch.tscn`, UI (`pause_menu.tscn`, `options_panel.tscn`)
+  `hatch.tscn`, boxed props (`table1-3.tscn`, `cage1.tscn` sits on a table,
+  `cage2.tscn` stands on the floor) and their occupants
+  (`caged_mush.tscn`, `caged_skeleton.tscn`, one shared
+  `caged_specimen.gd`), UI (`pause_menu.tscn`, `options_panel.tscn`)
+- `assets/structures/{tables,cages}/` — boxed-prop face art. NOT
+  world-subfoldered the way `tiles/` is: stone masonry drifts per act, a
+  wooden table doesn't, so one set serves all three worlds
 - `scripts/` — one script per scene/system; `dungeon_generator.gd` is a
   static `class_name DungeonGenerator`
 - `resources/dungeon_tiles.tres` — hand-written MeshLibrary (BoxMesh +
@@ -360,6 +379,66 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   the door wall open (floor + ceiling lid + upper-band clear +
   grind sfx) onto three golden hearts. Reveal hooks live in both
   plank-death paths.
+- **Boxed props** (docs/stations.md — tables, cages) are walk-around 3D
+  built entirely from flat face sprites on a box: a `StaticBody3D` with a
+  `BoxShape3D` and four or five `Sprite3D` children carrying `hatch.tscn`'s
+  settings with **billboarding OFF**. `shaded = true` is the whole trick —
+  per-face response to the CARRIED torch is what reads as solid, and it only
+  works because the dungeon has no ambient light source. The node origin is
+  the prop's **BASE centre**, so floor placement is `position.y = 0.5` and a
+  cage on a table is `1.5`. Sprite3D is double-sided, so face normal
+  direction never matters. **Give `BoxShape3D` an explicit `size`** — Godot
+  omits properties at their default, so a missing line silently means
+  (1,1,1) and a 2 m table collides only across its middle metre; colliders
+  don't render, so use `Debug → Visible Collision Shapes`.
+  **Cage height decides where it goes:** `cage1` is 1 m and sits ON a table
+  (at floor level you'd see its lid, not its occupant); `cage2` is 2 m and
+  stands on the FLOOR (on a table its occupant's feet would be at your eye
+  line and its lid in the ceiling). Neither needs a top face.
+  `dungeon.gd`'s `_place_structures` / `_place_one_structure` /
+  `_room_doorways` / `_near_doorway` / `_position_crowded` place them: rooms
+  only, spawn room skipped, and a cell qualifies only if its neighbour is
+  solid WALL — which stops a prop landing IN a doorway, while
+  `STRUCTURE_DOOR_CLEARANCE` (Chebyshev, in cells) stops it landing BESIDE
+  one and narrowing the way in. Rooms are 3×3 to 7×7, so raising that
+  clearance quietly rules small rooms out of furniture entirely; if density
+  looks wrong, reach for `STRUCTURE_ROOM_CHANCE` first. Placement runs **LAST
+  of all placement passes** so one distance sweep clears the hatch,
+  pedestals, gates and roster at once — **keep it last**.
+  **A table is bare, occupied or stocked, never two at once** — a cage owns
+  the tabletop, so `STRUCTURE_POTION_CHANCE` is an `elif`. **Light in this
+  game promises something TAKEABLE** (32 scenes carry a `Glow`, and colour
+  encodes class: red = health, gold = magic hearts, orange = relic, warm
+  white = the hatch), which is why decorative candles were rejected and a
+  real potion shipped instead — see docs/stations.md. It is a POTION and not
+  a magic heart on purpose: gold is the commoner secret's currency and stops
+  reading as a secret's reward if tables hand it out. The potion sits 0.2 m
+  toward the room-facing edge because the table's collider holds the player
+  0.9 m out and the pickup only reaches 1.0 m — centred, it would need you
+  square to the table.
+- **Caged specimens** (`caged_specimen.gd`, one script shared by
+  `caged_mush.tscn` / `caged_skeleton.tscn`; scenes carry frames, sounds,
+  health and label) are `Node3D` decoration that answers back: no AI, no
+  movement, no collider. They idle, swap to the creature's existing
+  `*_aggro1` frame within `NOTICE_RANGE`, and can be killed. **They join
+  `"enemies"` because that is the only thing that makes melee find them** —
+  the sweep flattens Y with no raycast and no line-of-sight, which is why
+  hitting through bars costs nothing, and why the boss-arena rule below is
+  load-bearing. No `alert()` on purpose (both rally paths guard with
+  `has_method`). `base_tint`/`knock_timer` exist for `dot.gd`, so a caged
+  thing can burn. `corpse_lies_flat` is the only per-specimen behaviour: a
+  mush corpse is drawn TOP-DOWN and must lie flat, a skeleton corpse is an
+  upright bone pile and must not. A third specimen wanting different
+  behaviour should get its own script, not another flag.
+  **BOSS ARENAS GET NO PROPS — a soft-lock rule, not a taste rule**, true
+  for two independent reasons, so don't relax it when one stops applying:
+  `_drop_boss_floor` caves every arena floor cell and leaves anything not
+  tweened hanging over the shaft, AND a future cage occupant inside arena
+  bounds keeps `_arena_has_living_enemies` true forever. Item rooms are
+  excluded only out of caution about crowding pedestals.
+  New prop configs need a `ShaderWarm` node: **billboard mode is part of the
+  material config**, which is why `Structure` had to join Mist/Orb/Dot/
+  Creature — every one of those billboards.
 - Holes live in a second GridMap (`HoleMap`) and are **open lethal
   shafts** — no collision. A collisionless `void` tile (black slab,
   same look) sits under every wooden floor cell from build time;
@@ -590,6 +669,12 @@ No test framework — playtest in editor. **F5** boots the real front
 door (`title.tscn` is the startup scene → START drops into
 `dungeon.tscn`); open `dungeon.tscn` and press **F6** to skip the title
 and land straight in a run, or `main.tscn` + **F6** for the controlled
-CSG test room. The generator prints its
+CSG test room. **`main.tscn` has NO light nodes on purpose** and mirrors
+`dungeon.tscn`'s Environment (its one difference is `fog_height = 0.0`,
+because that room's walking surface is y = 0, not 0.5). Don't add a lamp
+to see better — the dungeon is ambient plus the CARRIED torch, and a
+static light makes every prop and creature judgement made there a lie.
+It currently holds the boxed-prop bench: three tables, a cage on one, and
+a second cage at floor level for contrast. The generator prints its
 ASCII blueprint to Output each run; R rerolls the current floor
 without resetting the run (debug key).

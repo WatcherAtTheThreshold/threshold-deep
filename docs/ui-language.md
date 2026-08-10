@@ -193,21 +193,64 @@ button and the timer can land on the same frame; and `ScreenFade` goes
 fully opaque, so the plate had to sit **later in sibling order** or it
 would have faded out underneath the darkness.
 
-**Victory is untouched and isn't an ending screen** — it's a banner that
-fades in, holds 6 s, fades out and drops you back into play for the
-endless descent. Nothing to close.
+**Victory is now an ending screen too**, not the old fades-out-and-keep-
+walking banner. The demo is gated: descending the 3-3 hatch triggers
+`show_victory()`, which is deliberately the death report's BONES with a
+different frame — same score-first stats, same CLOSE plate, same exit to
+the title. It reclaims the two bands death spends on the killer portrait
+and the "slain by" line, because nothing killed you.
 
-The remaining work here is the **visual** pass, below.
+### 3b. Death & victory visuals — **partly done 2026-08-10**
 
-### 3b. Death & victory visuals — **demo gate**
+The report is no longer only typeset. It now carries **two bands of drawn
+icons**, both built through `_make_item_icon` so they land in the same 48 px
+slot the HUD strip uses — an effigy and a relic read as the same CLASS of
+thing, which is what makes a row scan as a row:
 
-Built and working, but typeset. The roadmap's finish work says it
-plainly: *"a demo lives or dies on its endings."* This is the last
-thing a player sees before deciding whether to tell anyone.
+- **Effigies** — boss marks, from `RunState.bosses_defeated`. That's a plain
+  0–3 and the boss order is fixed (slime, mush, amalgam), so the COUNT alone
+  says which were earned. No new bookkeeping — the same trick `trophy_count()`
+  plays with the relic flags.
+- **The kit** — `RunState.item_order` through `_strip_icon`, so it reads in
+  the order you found things. The strip's whole argument applies here too: a
+  fixed layout can only show what you already knew.
 
-Structure is already decided in `structure.md` and shipped: SCORE
-leads, kills are a line, the killer's name and portrait appear. This is
-a **visual** pass on a working screen, not a redesign.
+**Empty rows are skipped, not drawn blank.** A torch-only run that beat
+nothing shows neither band rather than two empty stripes where spoils should
+be (`_report_rows()`).
+
+**"Effigy", never "trophy".** `trophy_count()` already means *build-defining
+pickups claimed* and feeds the score at ×50; a second meaning would collide in
+code, docs and scoring. `seal` was also unavailable (`mist_door.gd` has
+`func seal()` — it's what closes a boss arena) and `mark` is soft-taken by
+`dot.gd`'s corpse scars. Effigy also fits the register: amalgam, revenant,
+commoner, threshold. *Trophy* was the only candidate that sounded like a video
+game.
+
+**The bands, verified non-overlapping (1152×648):**
+
+| | death | victory |
+|---|---|---|
+| `DeathLabel` | 0 – 76 | 0 – 76 |
+| `KillerFace` | 84 – 180 | — |
+| `DeathCause` | 188 – 212 | — |
+| `EffigyRow` | 224 – 272 | 110 – 158 |
+| `ItemReport` | 282 – 330 | 176 – 224 |
+| `DeathStats` | 342 – 512 | 250 – 470 |
+| `DeathClose` | 523 – 616 | 523 – 616 |
+
+**`DeathStats` is the tight one** — 170 px, about eight lines, and a run that
+meets many creature types can push nine. `TALLY_PER_ROW` is the WRONG knob if
+it crowds: 3 is already tuned to the screen width, and 4 would wrap and
+produce more lines, not fewer. Drop the now-redundant `%d relics` from the
+damage line instead — the item row shows them.
+
+What remains is the **art** pass: `DeathLabel` and the stats are still Press
+Start 2P on black while the title and menus are drawn plates lit like objects.
+The roadmap's finish work says it plainly — *"a demo lives or dies on its
+endings"* — and this is the last thing a player sees before deciding whether
+to tell anyone. Structure is settled and shipped; this is a visual pass on a
+working screen, not a redesign.
 
 ### 4. The `click to descend` frame
 

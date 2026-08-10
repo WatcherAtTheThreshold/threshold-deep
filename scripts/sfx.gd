@@ -29,7 +29,7 @@ func _ready() -> void:
 ## scene beats nine hand-wired connections plus the tenth that gets forgotten —
 ## the same leverage dot.gd takes by living off the host instead of the
 ## creatures. Sliders are Ranges, not BaseButtons, so dragging volume stays
-## silent; the fullscreen CheckButton IS a BaseButton and does click, which is
+## silent; the fullscreen toggle IS a BaseButton and does click, which is
 ## what you want from a toggle.
 func wire_buttons(root: Node) -> void:
 	for node in root.find_children("*", "BaseButton", true, false):

@@ -1,17 +1,28 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/skeleton.tscn" id="1_skeleton"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/table1.tscn" id="3_table"]
+[ext_resource type="PackedScene" path="res://scenes/table2.tscn" id="4_table2"]
+[ext_resource type="PackedScene" path="res://scenes/table3.tscn" id="5_table3"]
+[ext_resource type="PackedScene" path="res://scenes/cage1.tscn" id="6_cage"]
+[ext_resource type="PackedScene" path="res://scenes/caged_mush.tscn" id="7_caged"]
+[ext_resource type="PackedScene" path="res://scenes/cage2.tscn" id="8_cage2"]
+[ext_resource type="PackedScene" path="res://scenes/caged_skeleton.tscn" id="9_bones"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
 background_color = Color(0.02, 0.02, 0.04, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.35, 0.38, 0.5, 1)
-ambient_light_energy = 0.5
+ambient_light_energy = 0.4
 fog_enabled = true
+fog_mode = 1
 fog_light_color = Color(0.03, 0.03, 0.05, 1)
-fog_density = 0.025
+fog_depth_begin = 7.0
+fog_depth_end = 24.0
+fog_height = 0.0
+fog_height_density = 0.8
 
 [sub_resource type="StandardMaterial3D" id="mat_floor"]
 albedo_color = Color(0.24, 0.23, 0.28, 1)
@@ -29,19 +40,6 @@ roughness = 0.8
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_main")
-
-[node name="Sun" type="DirectionalLight3D" parent="."]
-rotation = Vector3(-0.8, 0.6, 0)
-light_color = Color(0.7, 0.75, 0.9, 1)
-light_energy = 0.4
-shadow_enabled = true
-
-[node name="Torch" type="OmniLight3D" parent="."]
-position = Vector3(0, 3, 0)
-light_color = Color(1, 0.75, 0.45, 1)
-light_energy = 2.5
-omni_range = 14.0
-shadow_enabled = true
 
 [node name="Floor" type="CSGBox3D" parent="."]
 position = Vector3(0, -0.5, 0)
@@ -98,7 +96,31 @@ use_collision = true
 material = SubResource("mat_block")
 
 [node name="Skeleton" parent="." instance=ExtResource("1_skeleton")]
-position = Vector3(0, 1, -3)
+position = Vector3(-3, 1, -6)
+
+[node name="Table" parent="." instance=ExtResource("3_table")]
+position = Vector3(0, 0, 0)
+
+[node name="CagedTable" parent="." instance=ExtResource("6_cage")]
+position = Vector3(0, 1, 0)
+
+[node name="Specimen" parent="." instance=ExtResource("7_caged")]
+position = Vector3(0, 1, 0)
+
+[node name="Table2" parent="." instance=ExtResource("4_table2")]
+position = Vector3(-4.5, 0, -1)
+
+[node name="Table3" parent="." instance=ExtResource("5_table3")]
+position = Vector3(4.5, 0, -1)
+
+[node name="CageFloor" parent="." instance=ExtResource("6_cage")]
+position = Vector3(2.5, 0, 3)
+
+[node name="TallCage" parent="." instance=ExtResource("8_cage2")]
+position = Vector3(-2.5, 0, 3)
+
+[node name="CagedBones" parent="." instance=ExtResource("9_bones")]
+position = Vector3(-2.5, 0, 3)
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
-position = Vector3(0, 1, 4)
+position = Vector3(0, 1, 5)
