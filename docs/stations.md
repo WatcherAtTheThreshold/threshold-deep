@@ -277,6 +277,33 @@ careless one seals a corridor outright.
   door and the whole spawned roster without knowing any of their names. Keep
   it last.
 
+**THE RULE THIS BUG CREATED: the wall test only knows about walls that are
+walls NOW.** A table was found standing in the mouth of a revealed commoner
+chamber (2026-08-11). The secret door is ordinary `wall_id` stone until the
+plate fires — so it *passes* the test a prop needs, and only becomes a
+doorway afterwards. The ring scan can't see it either, because
+`_is_open_cell` is false at build time.
+
+Fix: `_room_doorways` appends `secret_door` and `secret_plank` outright.
+Both are known from the generator by line 362, long before placement runs at
+416 — the data was always there, it just wasn't asked for. Neither has to
+belong to the room being scanned; the Chebyshev check simply never matches
+for a room they're nowhere near.
+
+The plank is in that list for a different reason than the door. Furniture
+already can't stand ON it (`_stone_cells` returns stone only, and the plank
+is wood), but a waist-high table BESIDE it hides the only tell the secret
+gives you — "pattern recognition, no spotlight" stops working if the pattern
+is behind a table.
+
+**Breakable wooden walls have the same shape of risk and are already safe by
+accident:** they're `wall_wood_id`, not `wall_id`, so the wall test rejects
+them and no prop ever backs onto one. Worth knowing, because it means the
+protection is incidental — if that test is ever loosened to "any solid
+neighbour", breaking a wooden wall would start revealing furniture.
+
+**Anything else that turns wall into floor later must join that list.**
+
 **A table has three states, and they're mutually exclusive by design** — a
 cage owns the tabletop, so the potion roll is an `elif`. Bare, occupied by a
 specimen, or stocked with supplies; each reads as a different kind of place.

@@ -21,6 +21,11 @@ const DUCK_DB := -30.0
 const DUCK_DOWN := 0.3
 const DUCK_HOLD := 1.2
 const DUCK_UP := 2.5
+# The victory report owns the music the way a boss fight does, with one
+# difference: it never hands the floor back. Reached only through the 3-3
+# hatch, where the screen is already black, so the cut into it is covered.
+const END_VOLUME_DB := -6.0
+const END_FADE_IN := 2.0
 
 # --- Per-world track sets (mirrors dungeon.gd's WORLD_APPEARANCE) ---
 # A world's music comes from a folder under assets/audio/music/, named for the
@@ -30,6 +35,7 @@ const DUCK_UP := 2.5
 # scanning of res:// doesn't survive an export, and this game ships to web).
 const DRY_TRACKS: Array[AudioStream] = [  # world 1
 	preload("res://assets/audio/music/dry/threshold-deep.ogg"),
+	preload("res://assets/audio/music/dry/Atoll.mp3"),
 ]
 const DAMP_TRACKS: Array[AudioStream] = [  # world 2
 	preload("res://assets/audio/music/damp/AMinorLament.ogg"),
@@ -44,6 +50,9 @@ const DEEP_TRACKS: Array[AudioStream] = [  # world 3
 # means a fight" reads the same way the cold mist does.
 const BOSS_TRACKS: Array[AudioStream] = [
 	preload("res://assets/audio/music/boss/dungeonBoss.mp3"),
+]
+const END_TRACKS: Array[AudioStream] = [
+	preload("res://assets/audio/music/end/DigitalHaze.mp3"),
 ]
 const TRACK_SETS := {
 	"dry": DRY_TRACKS,
@@ -101,7 +110,10 @@ func hush() -> void:
 	# Silence the dungeon drift (e.g. returning to the title, which owns
 	# its own track) and stop it surfacing again. Bumping gen makes the
 	# running loop bail at its next check; begin() can restart it later.
-	if not started:
+	# `owned` is checked too: a boss fight or the victory track holds the
+	# player without the drift necessarily running, and every caller of hush()
+	# wants silence regardless of which one is playing.
+	if not started and not owned:
 		return
 	started = false
 	owned = false  # a fight in progress loses its claim along with the drift
@@ -125,6 +137,26 @@ func take_over() -> void:
 	player.volume_db = -60.0
 	player.play()  # from the top: a fight gets the whole shape of the piece
 	create_tween().tween_property(player, "volume_db", BOSS_VOLUME_DB, BOSS_FADE_IN)
+
+
+func play_end() -> void:
+	# The victory report. take_over()'s shape, with the ONE difference that
+	# matters: nothing ever calls release() after this, so the drift never
+	# resurfaces underneath the report. `owned` is what holds the claim.
+	#
+	# It deliberately does NOT clear `started`. Doing so would make hush()
+	# early-return on the way back to the title, leaving this track playing
+	# under the title theme — exactly the overlap bug the drift already had
+	# once, from the other direction.
+	if END_TRACKS.is_empty():
+		return
+	owned = true
+	gen += 1
+	player.stop()
+	player.stream = END_TRACKS[randi_range(0, END_TRACKS.size() - 1)]
+	player.volume_db = -60.0
+	player.play()  # from the top: an ending gets the whole shape of the piece
+	create_tween().tween_property(player, "volume_db", END_VOLUME_DB, END_FADE_IN)
 
 
 func release() -> void:

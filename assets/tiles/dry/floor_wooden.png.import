@@ -2,20 +2,20 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bpi2ixwxabbu8"
-path="res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.ctex"
+uid="uid://bxqp8oh13xg57"
+path="res://.godot/imported/floor_wooden.png-3fd9927f1bfd57ffb47e2ebbdb7894a7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/tiles/dry/floor_wooden.png"
-dest_files=["res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.ctex"]
+source_file="res://../threshold-deep/assets/tiles/dry/floor_wooden.png"
+dest_files=["res://.godot/imported/floor_wooden.png-3fd9927f1bfd57ffb47e2ebbdb7894a7.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
@@ -37,4 +37,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

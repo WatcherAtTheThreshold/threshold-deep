@@ -185,6 +185,108 @@ phase at all: "adding to or taking away from an existing system, like
 more items, is fitting at this stage." Weigh them against that test, not
 against whether they're good ideas.*
 
+- **Noise as a system — stone is quiet, wood is LOUD** (parked 2026-08-11,
+  and parked reluctantly; see the last paragraph). One idea at four scopes,
+  ordered by value ÷ risk rather than by appeal:
+  1. **Wooden floors carry.** The standout, and the cheapest. **The tutorial
+     has already happened** — the plank creak plays, footsteps DUCK on wood
+     for contrast, creatures creak too. Every player already knows planks are
+     loud; they just don't know it costs them yet. This converts existing
+     audio into a mechanic rather than adding anything.
+  2. **Melee and breaking make noise.** `_make_noise(radius)` already exists
+     and already routes to `_alert_around`; it just has two callers. A sword
+     fight is currently SILENT to the room while a boomerang throw wakes 9 m.
+     Breaking a wooden wall should carry furthest of the three.
+  3. **Attacking another creature is loud** — a special case of 2, not its
+     own feature.
+  4. **Enemies investigate a noise.** The big one, and the only one that is a
+     new behaviour state. Structurally it already exists: `wizard.gd`'s `post`
+     is a Vector3 that overrides wander, and investigating is that plus
+     movement toward the point. Not exotic — but it changes how every room
+     plays, which is the whole reason this family is parked.
+
+  **THE LEVER IS THE POINT, and it's the part most likely to be forgotten.**
+  All four make the game louder and harder, and the player currently has no
+  quiet option — without one this is just "everything is worse now." The lever
+  already exists in the geometry: **stone is quiet, wood is loud**, so planks
+  stop being only a hazard to avoid and become a ROUTE DECISION. It costs
+  nothing, because the levels already vary. It also gives planks a coherent
+  identity — loud *and* unstable instead of just unstable — and stacks a real
+  risk/reward on the commoner secret, since the pale plank tell means **the
+  secrets are exactly where the noise is.**
+
+  Existing values to build against: `NOISE_RADIUS` 9.0 (ranged fire),
+  `ALERT_RADIUS` 7.0 (the rally). Ranged noise is already WIDER than the
+  rally.
+
+  *Parked, not rejected, and the temptation to pull it forward is real — it
+  is the rare idea that makes an existing subsystem pay off twice. The reason
+  to hold is scope, not merit: every item here changes difficulty on EVERY
+  floor, and runs currently land near ten minutes with a genuine chance of
+  dying. That is a tuned state, reached by playtesting, and this family
+  re-opens all of it. Ship first.*
+- **More item opportunities — SECRET ROOMS on x-2 and x-3** (parked
+  2026-08-13). The question was "should there be more chances at items", and
+  the answer turned out to be yes but through exactly one door.
+
+  **What +2 claims actually buys** (200k simulated runs, pool of 12, playing
+  optimally toward the target; three item rooms at choose-1-of-2 and three
+  FORCED boss drops):
+
+  | | 6 claims (today) | 8 claims |
+  |---|---|---|
+  | Both rage AND both fleetfoot tiers | **1.8%** | **7.7%** |
+  | Any one family completed to tier 2 | 42% | 66% |
+  | Rot + Ember pair | 16% | 27% |
+  | Holds a weapon at all | 82% | 92% |
+
+  **THE STATED GOAL BARELY MOVES.** "Two more items gets the player both rage
+  tiers and both speed tiers" is intuitive and wrong: 1.8% to 7.7% is still
+  under one run in thirteen. The tier gate is why — `rage2` does not enter the
+  pool until `rage1` is held, so it is four SEQUENTIAL draws from a 12-wide
+  pool, and half the claims are boss drops with no choice at all.
+
+  What +2 does buy is **"most runs complete at least one family"** (42% to
+  66%), which is the better target anyway. Maxing one thing is a build; maxing
+  two specific things should stay a story told afterwards, not the default.
+
+  **The Isaac lesson.** Treasure rooms, boss drops, shops, devil and angel
+  rooms, curse rooms, secret rooms, four kinds of chest, beggars, slot
+  machines, tinted rocks, Boss Rush. Almost every one carries a COST or a
+  CONDITION — devil rooms take health and demand an undamaged floor, curse
+  rooms charge at the door, shops need coins earned, Boss Rush needs floor six
+  inside twenty minutes. The treasure room is nearly the only free item, and
+  it is exactly one per floor. **Free items add power, not decisions.**
+
+  **Why secret rooms are the one to build:** the price is NOTICING. It needs
+  no new system — pale plank -> trigger plate -> sliding wall already exists
+  and only x-1 uses it. It rewards lingering, which the score design already
+  encourages by never scoring time. A different plate is the right signal for
+  "this one holds a relic, not hearts".
+
+  **Three mechanisms considered and REJECTED, with reasons, so they do not
+  come back around:**
+  - *An item on a table* — breaks a language just finished. docs/stations.md
+    settled the tier table on 2026-08-11: red is health, gold is the secret,
+    orange is a pedestal relic. A relic on a table adds a fifth meaning to a
+    system that had finally become consistent.
+  - *Random mob drop* — no condition, no agency, and it makes FARMING optimal.
+    Kills are weighted low in `RunState.score()` on purpose, because the
+    dungeon fights itself; a relic drop rewards exactly the grinding that
+    weighting exists to discourage.
+  - *Under a destructible tile* — makes every plank worth breaking, which is
+    busywork in a 10-minute run, and fights planks being a HAZARD.
+
+  **Three downsides that apply to any version of this:** it dilutes the item
+  room (two pedestals, take one, is the only genuine item DECISION in the game
+  and it only reads while items are scarce); it is power creep against an
+  amalgam hardened on 2026-08-09 (three necromancers, pool 44 to 48); and ten
+  minutes is not thirty — Isaac affords a dozen sources because a run is 30-60
+  minutes, while here every extra source is time spent NOT fighting.
+
+  *Act II, not demo. It moves item balance, boss difficulty and run length at
+  once — three things that would need re-testing during trailer capture of the
+  current tuning.*
 - Fall-in hole state (pits/lava/spikes — collision plumbing ready)
 - Doors, keys, locked treasure rooms
 - Minimap from the ASCII grid

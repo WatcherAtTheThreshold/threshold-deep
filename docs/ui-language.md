@@ -231,19 +231,63 @@ game.
 
 | | death | victory |
 |---|---|---|
-| `DeathLabel` | 0 – 76 | 0 – 76 |
-| `KillerFace` | 84 – 180 | — |
-| `DeathCause` | 188 – 212 | — |
-| `EffigyRow` | 224 – 272 | 110 – 158 |
-| `ItemReport` | 282 – 330 | 176 – 224 |
-| `DeathStats` | 342 – 512 | 250 – 470 |
+| `DeathLabel` | 38 – 114 | 38 – 114 |
+| `KillerFace` | 122 – 186 | — |
+| `DeathCause` | 194 – 218 | — |
+| `EffigyRow` | 230 – 278 | 124 – 220 |
+| `ItemReport` | 288 – 336 | 232 – 296 |
+| `DeathStats` | 348 – 512 | 310 – 482 |
 | `DeathClose` | 523 – 616 | 523 – 616 |
 
-**`DeathStats` is the tight one** — 170 px, about eight lines, and a run that
-meets many creature types can push nine. `TALLY_PER_ROW` is the WRONG knob if
-it crowds: 3 is already tuned to the screen width, and 4 would wrap and
-produce more lines, not fewer. Drop the now-redundant `%d relics` from the
-damage line instead — the item row shows them.
+**THE TITLE STARTS AT 38 BECAUSE THE HUD IS STILL LIVE UNDERNEATH IT.**
+`RunInfo` — the `floor · clock · score` line — occupies y 16–48, and a 48 pt
+title centred in a band starting at 0 spans roughly 14–100, so "YOU DIED" sat
+straight across the floor number. Reported 2026-08-11 by someone checking how
+deep they'd got and finding it covered. Both screens now start their title at
+38, putting its text at ~52–100 with 12 px of clearance.
+
+**The report does NOT hide the HUD, and that's the constraint.** Hearts, the
+strip and `RunInfo` all stay on screen under the report, so every band added
+here has to clear them rather than assume a blank canvas.
+
+**The two screens deliberately size their icons differently** (2026-08-11):
+death keeps the strip's own 48 px; victory goes 96 for effigies and 64 for the
+kit, because it IS the celebration and always shows all three effigies. Death
+stays compact because its stats block has the least headroom of anything on
+either screen. `DEATH_EFFIGY_PX` / `DEATH_ITEM_PX` / `VICTORY_EFFIGY_PX` /
+`VICTORY_ITEM_PX` in `hud.gd`, passed through `_fill_report_rows`.
+
+**THOSE NUMBERS AREN'T FREE CHOICES.** Nearest filtering only survives an
+integer scale, so a slot must be a whole multiple or divisor of the SOURCE
+canvas:
+
+| source | crisp at | used for |
+|---|---|---|
+| 48 px (effigies) | 48, 96, 144 | 48 death · **96 victory** |
+| 64 px (crystals) | 32, 64, 128 | 48 death ✗ · **64 victory ✓** |
+| 64 px (creature sprites) | 32, 64, 128 | **64 killer portrait** |
+
+The 64 px crystals squeezed into a 48 px slot sit at **0.75× and lose a
+quarter of their rows** — true of the in-game HUD strip since long before the
+report existed. Victory's 64 px row is the only place in the game they draw
+1:1. If death's row ever looks muddy beside it, 64 fixes it, but costs 16 px
+from the tightest block on either screen.
+
+**`KillerFace` was mangled from the day it shipped and nobody spotted it.**
+Every creature sprite is 64×64 and the box was **96 — a 1.5× upscale**, so the
+portrait leading the death screen was the least crisp art in the game. Fixed
+to 64 on 2026-08-11, which also freed exactly the 32 px the title needed to
+clear `RunInfo`; the two changes paid for each other. If a 96×96 brute ever
+becomes a killer it will downscale, but the whole roster is 64 today.
+
+**`DeathStats` is the tight one** — 164 px on death (about eight lines), and a
+run meeting many creature types can push nine. Victory has 172 px plus a
+deliberate **41 px of slack above the CLOSE plate**, because the tally is the
+one element that GROWS with the run: a row per three creature types met.
+`TALLY_PER_ROW` is the WRONG knob if it crowds — 3 is already tuned to the
+screen width, and 4 would wrap and produce more lines, not fewer. Drop the
+now-redundant `%d relics` from the damage line instead; the item row shows
+them.
 
 What remains is the **art** pass: `DeathLabel` and the stats are still Press
 Start 2P on black while the title and menus are drawn plates lit like objects.

@@ -232,7 +232,19 @@ func _settle_fx() -> void:
 
 func _physics_process(delta: float) -> void:
 	var host := get_parent()
-	if host == null or not host is CharacterBody3D:
+	# Node3D, NOT CharacterBody3D. This guard used to demand a body and quietly
+	# broke every non-body host: a caged specimen (Node3D, it never moves) had
+	# its Dot free itself on frame one, before a single tick — so specimens were
+	# immune to Rot, Ember and Cinder, and because `fx` and `glow` hang off the
+	# HOST so they can outlive this node, they were orphaned mid-animation and
+	# stuck on the catch frame forever. Found 2026-08-11 as "frozen DoT art on
+	# caged corpses"; the immunity was the larger half of the same bug.
+	#
+	# Node3D is the honest requirement — `attach()` already types its host as a
+	# plain `Node`, and nothing below needs more than `global_position` plus the
+	# `dead` / `take_damage` / `knock_timer` / `base_tint` / `"Sprite"` contract
+	# that any Dot host must implement anyway.
+	if host == null or not host is Node3D:
 		queue_free()
 		return
 	if host.get("dead") == true:

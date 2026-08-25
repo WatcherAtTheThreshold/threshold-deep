@@ -71,6 +71,47 @@ full `.wav` grep afterward (came back clean).*
 
 ## Export steps (Godot editor)
 
+- [ ] **Sweep stale UIDs first.** Godot loads fine with them — it falls back
+  to the text path and warns in tan rather than red — but an exported build
+  resolves through a baked UID cache, and a stale pointer is not something to
+  discover on itch.
+
+  **Cause:** the `.import` sidecar carries a texture's identity, not the PNG.
+  Overwrite art in place and the UID survives; DELETE and re-add (or lose the
+  `.import`) and Godot mints a new one while the `.tres`/`.tscn` still points
+  at the old. Exporting straight onto the existing filename avoids it — but
+  art sessions get fast and loose, so run the check regardless of intent
+  rather than trusting the discipline.
+
+  **Symptom:** `invalid UID: uid://… - using text path instead: res://…`,
+  one per drifted file. Eight of these appeared 2026-08-12 after the dry tile
+  set was redrawn — every one in `assets/tiles/dry/`.
+
+  Reports and repairs every `.tscn`/`.tres` in the project:
+
+  ```bash
+  node -e "
+  const fs=require('fs');
+  function walk(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>{
+    const p=d+'/'+e.name;
+    if(e.isDirectory()) return e.name==='.godot'?[]:walk(p);
+    return /\.(tscn|tres)$/.test(e.name)?[p]:[];});}
+  let n=0;
+  for(const f of walk('.').map(x=>x.replace(/^\.\//,''))){
+    let s=fs.readFileSync(f,'utf8'),c=false;
+    s=s.replace(/(\[ext_resource[^\]]*?uid=\")(uid:\/\/[^\"]+)(\"[^\]]*?path=\"res:\/\/)([^\"]+)(\")/g,
+      (all,a,uid,b,p,z)=>{const i=p+'.import';
+        if(!fs.existsSync(i)) return all;
+        const r=(fs.readFileSync(i,'utf8').match(/uid=\"(uid:\/\/[^\"]+)\"/)||[])[1];
+        if(!r||r===uid) return all; c=true; n++; return a+r+b+p+z;});
+    if(c){fs.writeFileSync(f,s);console.log('fixed '+f);}
+  }
+  console.log(n+' stale uid(s) corrected');
+  "
+  ```
+
+  Safe to run any time — it only rewrites UIDs that disagree with their own
+  `.import`, and never touches paths.
 - [ ] Project → Export → confirm the **Web** preset; install web export
   templates if prompted.
 - [ ] Export Project to a folder **outside the repo** (e.g. a
@@ -138,6 +179,66 @@ clash with the gallery. If that day comes:
 - [ ] Rename gallery `index.html` → `bestiary.html`; update any links
   that point at it (the `bestiary-qr.png` in `docs/` likely encodes a
   URL — regenerate the QR if the path changes).
+
+## Capture session — the soft-lock runs ARE the trailer runs
+
+*Added 2026-08-12. The dozen verification runs and the footage hunt are the
+same session: the itch page needs art at launch either way, and the best shots
+in this game cannot be staged.*
+
+**Rules for the session, decided before recording starts:**
+
+- [ ] **Record continuously**, one long file per session, all twelve runs.
+  Two hours costs nothing on disk. Trying to hit record when something good
+  begins is exactly how the good thing gets missed.
+- [ ] **Do not tune while recording.** This session is capture plus a
+  soft-lock watch. Anything noticed goes on a list for AFTER the upload —
+  bug-hunting, shot-hunting and art-fixing at once means all three done badly.
+- [ ] **Exit condition: twelve runs, then cut with whatever exists.** Missing
+  shots become a deliberate second session, not a reason to keep playing.
+  "I need better footage" is the same polish loop as the tiles wearing a
+  different hat, and it is much easier to justify because it feels like
+  shipping work.
+
+### Can't be staged — must be caught live
+
+- [ ] **The secret-room reveal.** Random, x-1 floors only, needs the pale
+  plank spotted and broken. The slab grinds aside over 4 s with the positional
+  grind — it is the game's best single reveal and it has been happening
+  unrecorded for weeks.
+- [ ] **The 3-3 floor drop and amalgam assembly.** Arena floor caving,
+  corpses tumbling into the chamber, three elemental amalgams rising in
+  sequence. The biggest spectacle in the game, and it EXISTS ONLY at the end
+  of a winning run. If twelve runs produce no 3-3 clear, film it deliberately
+  rather than counting the session a failure.
+- [ ] **A posted necromancer turning around** — its back to you at a bench,
+  then the startle. The whole point of stations, and it needs the coven to
+  land in a room that got a prop.
+- [ ] **Mush fusion into a mega**, or a slime split re-merging. The ecology
+  reads instantly on film and needs two bodies to meet on their own.
+- [ ] **The boomerang return dragging something toward you** — the only pull
+  in a game made of shoves.
+
+### Stageable — film these in `main.tscn`, no luck required
+
+*It is already a trailer studio: no enemies, controlled lighting, the camera
+goes exactly where wanted. Anything here that shows up in a fight is a bonus,
+not the plan.*
+
+- [ ] **Cage bar-shadows sweeping the floor** as the torch moves past. The
+  strongest single image the boxed props produce.
+- [ ] **Walking a full circle around a table** — the per-face torchlight that
+  makes flat sprites read as solid.
+- [ ] **A caged specimen breathing**, and noticing you through the bars.
+- [ ] Tables, tall cage and small cage together for a composition shot.
+
+### Also worth having
+
+- [ ] The victory report (all three effigies, full item row) — the screenshot
+  most likely to end up on the itch page.
+- [ ] A death report with a good killer portrait.
+- [ ] Title screen with the planted sword in torchlight.
+- [ ] One clean corridor walk showing height fog and an open shaft.
 
 ## Pre-ship polish gate (content, not plumbing)
 

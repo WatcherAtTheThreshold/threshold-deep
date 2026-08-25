@@ -16,6 +16,20 @@ const HEART_SIZE := Vector2(48, 48)
 ## 48x48 on purpose: everything the HUD draws lands in a fixed 48 px slot, and
 ## only a canvas 48 divides evenly stays crisp. The 64x64 crystals borrowed as
 ## strip icons are quietly downscaled 0.75x; these aren't.
+## Report icon slots. These MUST be integer multiples or divisors of the SOURCE
+## canvas or nearest filtering shreds them — effigies are 48 px (clean at 48 /
+## 96 / 144), the crystals 64 px (clean at 32 / 64 / 128). See _make_item_icon.
+##
+## Victory goes large because it IS the celebration and always shows all three
+## effigies; death stays at the strip's own 48 because its stats block has the
+## least headroom of anything on either screen. Note the victory item row at 64
+## is the only place the crystals draw 1:1 — everywhere else they're squeezed
+## into a 48 slot at 0.75x.
+const DEATH_EFFIGY_PX := 48.0
+const DEATH_ITEM_PX := 48.0
+const VICTORY_EFFIGY_PX := 96.0
+const VICTORY_ITEM_PX := 64.0
+
 const EFFIGIES: Array[Texture2D] = [
 	preload("res://assets/ui/effigies/effigy_slime.png"),
 	preload("res://assets/ui/effigies/effigy_mush.png"),
@@ -197,6 +211,11 @@ func show_victory() -> void:
 	# Reached only from _go_down (the 3-3 hatch), so `screen_fade` is already
 	# opaque — no darkening pass here, the report just arrives on the black.
 	# No killer portrait and no cause line: nothing killed you.
+	# The ending gets its own piece. Started FIRST so its fade-in runs under the
+	# report's, and reached only through the 3-3 hatch where the screen is already
+	# black — so the cut away from the deep drift is covered by the transition.
+	# Death does the opposite and calls hush(): nothing is owed a fanfare there.
+	MusicDrift.play_end()
 	death_label.text = "YOU PREVAILED"
 	death_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
 	death_stats.text = _build_death_stats()
@@ -206,13 +225,21 @@ func show_victory() -> void:
 	# bottom under an empty gap. All three effigies are guaranteed here
 	# (`bosses_defeated >= 3` is what triggered this screen), which makes the
 	# spoils row the widest it ever gets.
-	_fill_report_rows()
-	effigy_row.offset_top = 110.0
-	effigy_row.offset_bottom = 158.0
-	item_report.offset_top = 176.0
-	item_report.offset_bottom = 224.0
-	death_stats.offset_top = 250.0
-	death_stats.offset_bottom = -178.0
+	_fill_report_rows(VICTORY_EFFIGY_PX, VICTORY_ITEM_PX)
+	# The title drops off the top edge — at 0 it read as pinned rather than
+	# placed — and the two picture bands grow into the room that death spends
+	# on the portrait and the cause line.
+	death_label.offset_top = 38.0
+	death_label.offset_bottom = -534.0
+	effigy_row.offset_top = 124.0
+	effigy_row.offset_bottom = 220.0
+	item_report.offset_top = 232.0
+	item_report.offset_bottom = 296.0
+	# Stats keep a deliberate 53 px of slack above the CLOSE plate: this block
+	# is the one thing on the screen that GROWS with the run, since the tally
+	# gains a row per three creature types met.
+	death_stats.offset_top = 310.0
+	death_stats.offset_bottom = -166.0
 	var elements: Array[CanvasItem] = [death_label, death_stats]
 	elements.append_array(_report_rows())
 	death_elements = elements
@@ -237,7 +264,7 @@ func _on_player_died() -> void:
 	death_cause.text = "Slain by %s" % _killer_phrase()
 	death_stats.text = _build_death_stats()
 	killer_face.texture = RunState.killer_texture
-	_fill_report_rows()
+	_fill_report_rows(DEATH_EFFIGY_PX, DEATH_ITEM_PX)
 	var elements: Array[CanvasItem] = [death_label, death_cause, death_stats]
 	if RunState.killer_texture != null:
 		elements.append(killer_face)
@@ -319,7 +346,7 @@ func _build_death_stats() -> String:
 	return "\n".join(lines)
 
 
-func _fill_report_rows() -> void:
+func _fill_report_rows(effigy_px: float, item_px: float) -> void:
 	# The report's two picture bands. Both reuse `_make_item_icon` — the same
 	# 48 px slot the HUD strip uses — so an effigy and a relic read as the same
 	# CLASS of thing, which is what makes the row scan as a row.
@@ -327,16 +354,18 @@ func _fill_report_rows() -> void:
 	# Effigies come from the boss count; the kit comes from `item_order`, so
 	# the report tells the run's story in the order it happened rather than in
 	# a tidy fixed layout that could only show what you already knew.
+	var effigy_size := Vector2(effigy_px, effigy_px)
+	var item_size := Vector2(item_px, item_px)
 	for child in effigy_row.get_children():
 		child.queue_free()
 	for i in mini(RunState.bosses_defeated, EFFIGIES.size()):
-		effigy_row.add_child(_make_item_icon(EFFIGIES[i]))
+		effigy_row.add_child(_make_item_icon(EFFIGIES[i], effigy_size))
 	for child in item_report.get_children():
 		child.queue_free()
 	for key: StringName in RunState.item_order:
 		var icon := _strip_icon(key)
 		if icon != null:
-			item_report.add_child(_make_item_icon(icon))
+			item_report.add_child(_make_item_icon(icon, item_size))
 
 
 func _report_rows() -> Array[CanvasItem]:
@@ -464,11 +493,18 @@ func _make_heart(tex: Texture2D) -> TextureRect:
 	return icon
 
 
-func _make_item_icon(tex: Texture2D) -> TextureRect:
-	# Same treatment as a heart: fixed 48px slot, nearest, scaled to fit.
+func _make_item_icon(tex: Texture2D, size := HEART_SIZE) -> TextureRect:
+	# Same treatment as a heart: fixed slot, nearest, scaled to fit.
+	#
+	# THE SLOT SIZE IS NOT A FREE CHOICE. Nearest filtering only stays crisp on
+	# an integer scale, so a slot has to be a whole multiple or divisor of the
+	# SOURCE canvas: 48 px effigies are clean at 48 / 96 / 144, and the 64 px
+	# crystals at 32 / 64 / 128. The HUD strip's 48 slot puts a 64 px crystal
+	# at 0.75x and drops a quarter of its rows — which is why the report's item
+	# row is 64, the size where they finally draw 1:1.
 	var icon := TextureRect.new()
 	icon.texture = tex
-	icon.custom_minimum_size = HEART_SIZE
+	icon.custom_minimum_size = size
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_SCALE

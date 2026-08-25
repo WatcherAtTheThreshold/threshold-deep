@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/skeleton.gd" id="1_skeleton"]
 [ext_resource type="Texture2D" path="res://assets/sprites/skeleton/skeleton_front1.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/footsteps_enemies.ogg" id="3_steps"]
+[ext_resource type="Script" path="res://scripts/sprite_bob.gd" id="90_bob"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_skeleton"]
 radius = 0.5
@@ -22,6 +23,8 @@ volume_db = -6.0
 max_distance = 18.0
 
 [node name="Sprite" type="Sprite3D" parent="."]
+script = ExtResource("90_bob")
+stretch = 0.012
 position = Vector3(0, 0.1, 0)
 pixel_size = 0.03125
 billboard = 2

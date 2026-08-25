@@ -150,7 +150,37 @@ const WALL_RUBBLE_FRAMES: Array[Texture2D] = [
 ]
 const BREAK_FRAME_TIME := 0.07
 const WALL_BREAK_Y := 1.5  # eye/torch height on the 4m opening
-const SECRET_SLIDE_TIME := 3.0  # matches the stone-grind sound length
+## The slab takes its time on purpose: the grind is POSITIONAL, and the whole
+## point of a slow reveal is giving you long enough to work out which direction
+## it's coming from. Lengthening the slide alone would not do that — the sound
+## is 3.12 s and would simply stop while the wall kept moving in silence, which
+## is exactly the part you'd be navigating by.
+##
+## So the pitch does the work. 0.75 stretches the grind to ~4.16 s AND drops
+## it, which suits a stone slab: heavier, slower, more mass. The slide then
+## matches at 4.0, a hair under the audio so the sound covers the whole move
+## and tails off after it rather than cutting out early.
+##
+## 2x was the instinct and it IS too long — six seconds of grinding wall with
+## nothing to do turns a discovery into a wait. Raise the pitch back toward 1.0
+## to shorten both together; the two constants must move as a pair.
+const SECRET_SLIDE_TIME := 4.0
+const SECRET_GRIND_PITCH := 0.75
+## The sliding slab is a COPY of the door wall, and it travels exactly one
+## cell into a neighbour that still holds a real GridMap wall — the code picks
+## the stone side on purpose. Same mesh, same size, same place at the end of
+## the slide: textbook z-fighting, and it worsens as the slab tucks in.
+##
+## Shrinking it a hair is the fix. Buried, it is then strictly INSIDE the
+## static wall and loses the depth test everywhere at once, from every angle —
+## which is what "tucks into the stone" should look like anyway. Its exposed
+## half meets open air, where 1 cm on a 2 m block is invisible.
+##
+## NOT a positional nudge: dot.gd already recorded why — "nudging it forward
+## in space breaks the moment you walk around it." And NOT render_priority,
+## which sorts transparent materials; this is opaque geometry and the depth
+## buffer decides.
+const SECRET_SLAB_INSET := 0.995
 const CEILING_TALL_CHANCE := 0.35   # a regular room's odds of a raised ceiling
 const CEILING_CATHEDRAL_CHANCE := 0.2  # of raised rooms, odds of +2 vs +1 layer
 const CEILING_GRAND_LAYERS := 2     # boss arenas + item rooms go this tall
@@ -284,6 +314,10 @@ var item_resolved := false
 # untouched — this is paint only. Index by world; [0] and out-of-range worlds
 # (endless descent past the demo) fall back to the nearest built look.
 const WORLD_APPEARANCE := ["dry", "dry", "damp", "deep"]
+## Which set the T debug key is showing. 0 means "never pressed" — the floor is
+## wearing whatever its own world gave it. Not persisted and not reset on
+## reload, because R already reloads and re-applies the real one.
+var debug_look := 0
 # Which contract texture each reskinnable tile material pulls from the folder.
 # Names are fixed and identical across every appearance folder (the contract).
 # Shared materials ride along: wall_fill uses "wall"; floor_wood_pale reuses
@@ -590,11 +624,46 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	# R rerolls the whole dungeon (debug key) — never mid-boss-fight.
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_R:
-		if fight_active:
-			return
-		get_tree().reload_current_scene()
+	if event is InputEventKey and event.pressed:
+		# R rerolls the whole dungeon (debug key) — never mid-boss-fight.
+		if event.physical_keycode == KEY_R:
+			if fight_active:
+				return
+			get_tree().reload_current_scene()
+		# T reskins this floor dry -> damp -> deep, in place (debug key).
+		elif event.physical_keycode == KEY_T:
+			_cycle_appearance()
+		# G force-opens this floor's secret chamber (debug key). _open_secret_room
+		# already guards on `secret_opened` and the (-1,-1) sentinel, so a second
+		# press does nothing and a floor without a secret is a safe no-op. Only
+		# x-1 floors carry one (REGULAR is what passes `with_secret`), so 1-1 is
+		# always a live test. Beats building a mock wall in main.tscn: this
+		# exercises the REAL slab, the real neighbour stone and the real grind.
+		elif event.physical_keycode == KEY_G:
+			_open_secret_room()
+
+
+func _cycle_appearance() -> void:
+	## Debug: walk the CURRENT floor through the three tile sets without
+	## reloading. `_apply_appearance` only swaps `albedo_texture` on the mesh
+	## library's shared materials, so nothing about the build depends on it and
+	## the whole room changes in a frame. APPEARANCE_TEXTURES covers all nine
+	## skinned tiles — stone floor/wall/ceiling, wood floor/wall/partial, and
+	## both upper bands — so one press compares the entire set.
+	##
+	## THIS EXISTS INSTEAD OF A TILE-DISPLAY SCENE, deliberately. These textures
+	## are triplanar on 2 m boxes, lit by a torch you carry, with height fog
+	## under them and an upper band above. A flat row of them — in a display
+	## room or on a web page — shows what the PNG looks like, not what the TILE
+	## looks like. And the question actually being asked is "is damp different
+	## enough from dry", which only answers itself when the camera, the lighting
+	## and the geometry hold still and only the skin moves.
+	##
+	## Indices are 1..3 because WORLD_APPEARANCE[0] is unused padding (worlds
+	## are 1-based and `_apply_appearance` clamps to 1).
+	debug_look = debug_look % 3 + 1
+	_apply_appearance(debug_look)
+	print("tiles: %s" % WORLD_APPEARANCE[debug_look])
 
 
 func _try_collapse(cell: Vector3i) -> void:
@@ -848,7 +917,8 @@ func _open_secret_room() -> void:
 	if grid_map.get_cell_item(door + Vector3i(0, 1, 0)) != wall_fill_id:
 		grid_map.set_cell_item(door + Vector3i(0, 1, 0), ceiling_id)
 	upper_map.set_cell_item(door, GridMap.INVALID_CELL_ITEM)
-	Sfx.play_at(SOUND_SECRET_GRIND, _cell_to_world(secret_door, 1.0), -3.0)
+	Sfx.play_at(SOUND_SECRET_GRIND, _cell_to_world(secret_door, 1.0), -3.0,
+			SECRET_GRIND_PITCH)
 	_slide_secret_wall(door, upper_prev)
 	# The commoner pays in gold: three hearts at the chamber's heart.
 	var center := Vector3.ZERO
@@ -887,12 +957,14 @@ func _slide_secret_wall(door: Vector3i, upper_prev: int) -> void:
 	lower.mesh = lib.get_item_mesh(wall_id)
 	lower.transform = Transform3D(Basis(), grid_map.map_to_local(door)) \
 			* lib.get_item_mesh_transform(wall_id)
+	lower.scale *= SECRET_SLAB_INSET
 	mover.add_child(lower)
 	if upper_prev != GridMap.INVALID_CELL_ITEM:
 		var band := MeshInstance3D.new()
 		band.mesh = upper_map.mesh_library.get_item_mesh(upper_prev)
 		band.transform = Transform3D(Basis(), upper_map.map_to_local(door)) \
 				* upper_map.mesh_library.get_item_mesh_transform(upper_prev)
+		band.scale *= SECRET_SLAB_INSET
 		mover.add_child(band)
 
 	var target := Vector3(slide.x * 2.0, 0.0, slide.y * 2.0)
@@ -2340,6 +2412,26 @@ func _room_doorways(room: Rect2i) -> Array[Vector2i]:
 				continue  # interior, not the ring
 			if _is_open_cell(cell):
 				doors.append(cell)
+	# THE SECRET DOOR IS INVISIBLE TO THE SCAN ABOVE, and that is exactly how a
+	# table ended up standing in a revealed chamber's mouth (seen 2026-08-11).
+	# It's ordinary `wall_id` stone until the plate fires — so it PASSES the
+	# wall test a prop needs, then turns into a doorway later. Breakable wooden
+	# walls have the same shape of risk but are already safe by accident: they
+	# are `wall_wood_id`, so the wall test rejects them and nothing ever backs
+	# onto one.
+	#
+	# The pale plank goes in for a different reason. It's the only tell the
+	# commoner secret gives you — "pattern recognition, no spotlight" — and a
+	# waist-high table beside it hides the one clue from a standing player.
+	# _stone_cells already keeps furniture OFF it (wood isn't stone); this
+	# keeps furniture from standing over it.
+	#
+	# Both are known at build time and neither has to belong to THIS room: the
+	# Chebyshev check simply never matches for a room they're nowhere near.
+	if secret_door != Vector2i(-1, -1):
+		doors.append(secret_door)
+	if secret_plank != Vector2i(-1, -1):
+		doors.append(secret_plank)
 	return doors
 
 

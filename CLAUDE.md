@@ -170,6 +170,13 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   `dot.gd`'s corpse scars. Band layout and the `DeathStats` headroom limit are
   in docs/ui-language.md — **`TALLY_PER_ROW` is the wrong knob** if the stats
   crowd, since 3 is already tuned to the screen width.
+  **ICON SLOT SIZES ARE NOT FREE.** Nearest filtering only survives an integer
+  scale, so a slot must be a whole multiple or divisor of the SOURCE canvas:
+  48 px effigies are crisp at 48/96/144, the 64 px crystals at 32/64/128.
+  Victory goes large (`VICTORY_EFFIGY_PX` 96, `VICTORY_ITEM_PX` 64) and is the
+  ONLY place the crystals draw 1:1; the 48 px slot everywhere else — including
+  the in-game HUD strip — squeezes them to 0.75× and drops a quarter of their
+  rows. Check the arithmetic before changing any icon size.
 - **The item strip draws in COLLECTION order** (`RunState.item_order`), not
   source order. A fixed layout can only show what you already knew; collection
   order makes the rightmost icon the thing you just claimed, which is the
@@ -400,7 +407,15 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   only, spawn room skipped, and a cell qualifies only if its neighbour is
   solid WALL — which stops a prop landing IN a doorway, while
   `STRUCTURE_DOOR_CLEARANCE` (Chebyshev, in cells) stops it landing BESIDE
-  one and narrowing the way in. Rooms are 3×3 to 7×7, so raising that
+  one and narrowing the way in. **THE WALL TEST ONLY KNOWS WALLS THAT ARE
+  WALLS NOW**: the secret door is plain `wall_id` until the plate fires, so it
+  PASSES the test and then becomes a doorway — that put a table in a revealed
+  chamber's mouth once. `_room_doorways` therefore appends `secret_door` and
+  `secret_plank` outright (the plank because a table beside it hides the pale
+  tell, not because one could stand on it). **Anything else that turns wall
+  into floor later must join that list.** Breakable wooden walls are already
+  safe only by accident — they're `wall_wood_id`, so the wall test rejects
+  them; loosen that test and they'd start revealing furniture. Rooms are 3×3 to 7×7, so raising that
   clearance quietly rules small rooms out of furniture entirely; if density
   looks wrong, reach for `STRUCTURE_ROOM_CHANCE` first. Placement runs **LAST
   of all placement passes** so one distance sweep clears the hatch,
@@ -426,7 +441,12 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   hitting through bars costs nothing, and why the boss-arena rule below is
   load-bearing. No `alert()` on purpose (both rally paths guard with
   `has_method`). `base_tint`/`knock_timer` exist for `dot.gd`, so a caged
-  thing can burn. `corpse_lies_flat` is the only per-specimen behaviour: a
+  thing can burn. **A Dot host only needs to be a `Node3D`** plus the
+  `dead` / `take_damage` / `knock_timer` / `base_tint` / `"Sprite"` contract —
+  `dot.gd`'s guard demanded `CharacterBody3D` until 2026-08-11 and silently
+  made every non-body host immune while orphaning its overlay mid-animation
+  (`fx` and `glow` hang off the HOST so they outlive the Dot, so a Dot that
+  frees itself early strands them forever). Don't re-tighten it. `corpse_lies_flat` is the only per-specimen behaviour: a
   mush corpse is drawn TOP-DOWN and must lie flat, a skeleton corpse is an
   upright bone pile and must not. A third specimen wanting different
   behaviour should get its own script, not another flag.
@@ -676,5 +696,22 @@ to see better — the dungeon is ambient plus the CARRIED torch, and a
 static light makes every prop and creature judgement made there a lie.
 It currently holds the boxed-prop bench: three tables, a cage on one, and
 a second cage at floor level for contrast. The generator prints its
-ASCII blueprint to Output each run; R rerolls the current floor
-without resetting the run (debug key).
+ASCII blueprint to Output each run.
+
+**Debug keys** (both in `dungeon.gd._unhandled_input`): **R** rerolls the
+current floor without resetting the run — never mid-boss-fight. **T** reskins
+the floor you're standing in through dry → damp → deep IN PLACE, no reload,
+printing the set to Output. `_apply_appearance` only swaps `albedo_texture` on
+the mesh library's SHARED materials, so nothing about the build depends on it
+and the whole room changes in a frame; R re-applies the floor's real set.
+
+**T exists instead of a tile-display scene, deliberately.** These textures are
+triplanar on 2 m boxes, lit by a torch you CARRY, with height fog under them
+and an upper band above — a flat row of them, in a display room or on a web
+page, shows what the PNG looks like and not what the tile looks like. The
+question being asked is "is damp different enough from dry", and that only
+answers itself when camera, lighting and geometry hold still and only the skin
+moves. `APPEARANCE_TEXTURES` covers all nine skinned tiles, so one press
+compares the whole set. Caveat: a random floor won't contain every tile —
+`wall_upper2` is boss-arena and item-room only, wood is a per-room roll — so
+reroll with R until the room has what you want, then cycle.

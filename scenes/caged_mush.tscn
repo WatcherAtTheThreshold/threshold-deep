@@ -11,6 +11,7 @@
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/mush_take_hit2.ogg" id="9_snd2"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/mush_take_hit3.ogg" id="10_snd3"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/mini_mush_death.ogg" id="11_death"]
+[ext_resource type="Script" path="res://scripts/sprite_bob.gd" id="90_bob"]
 
 [node name="CagedMush" type="Node3D" groups=["enemies"]]
 script = ExtResource("1_spec")
@@ -26,6 +27,8 @@ hit_pitch = 1.45
 corpse_lies_flat = true
 
 [node name="Sprite" type="Sprite3D" parent="."]
+script = ExtResource("90_bob")
+stretch = 0.025
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
 pixel_size = 0.03125
 billboard = 2

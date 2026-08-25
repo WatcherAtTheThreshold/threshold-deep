@@ -1,8 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/slime.gd" id="1_slime"]
 [ext_resource type="Texture2D" path="res://assets/sprites/slime/slime-spawn.png" id="2_texture"]
 [ext_resource type="AudioStream" path="res://assets/audio/sfx/enemies/footsteps_slimes.ogg" id="3_steps"]
+[ext_resource type="Script" path="res://scripts/sprite_bob.gd" id="90_bob"]
 
 [sub_resource type="SphereShape3D" id="sphere_slime"]
 radius = 0.5
@@ -22,6 +23,9 @@ volume_db = -6.0
 max_distance = 18.0
 
 [node name="Sprite" type="Sprite3D" parent="."]
+script = ExtResource("90_bob")
+stretch = 0.035
+walk_multiplier = 1.8
 pixel_size = 0.03125
 billboard = 2
 shaded = true
