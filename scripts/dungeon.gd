@@ -335,6 +335,8 @@ const LIGHT_LOOKS := [
 	["agx + glow", Environment.TONE_MAPPER_AGX, true],
 ]
 static var debug_light := 0
+## The K debug key's game speeds (Engine.time_scale), cycled in order.
+const DEBUG_SPEEDS: Array[float] = [1.0, 1.15, 1.3]
 # Which contract texture each reskinnable tile material pulls from the folder.
 # Names are fixed and identical across every appearance folder (the contract).
 # Shared materials ride along: wall_fill uses "wall"; floor_wood_pale reuses
@@ -665,6 +667,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			debug_light = (debug_light + 1) % LIGHT_LOOKS.size()
 			_apply_light_look(debug_light)
 			print("light look: %s" % LIGHT_LOOKS[debug_light][0])
+		# K cycles the whole game's speed (debug key) — the "is it too slow?"
+		# test. Engine.time_scale scales EVERYTHING timed by delta: you, the
+		# roster, orbs, cooldowns, tweens, hitstop. Music, sfx pitch and mouse
+		# look are untouched. It's engine-global, so it survives R, descents and
+		# the title; restarting the game resets it to 1.0.
+		elif event.physical_keycode == KEY_K:
+			var i := DEBUG_SPEEDS.find(Engine.time_scale)
+			Engine.time_scale = DEBUG_SPEEDS[(i + 1) % DEBUG_SPEEDS.size()]
+			print("game speed: x%.2f" % Engine.time_scale)
 
 
 func _apply_light_look(i: int) -> void:

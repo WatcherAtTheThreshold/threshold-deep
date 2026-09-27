@@ -140,9 +140,14 @@ func take_over() -> void:
 
 
 func play_end() -> void:
-	# The victory report. take_over()'s shape, with the ONE difference that
-	# matters: nothing ever calls release() after this, so the drift never
-	# resurfaces underneath the report. `owned` is what holds the claim.
+	# EITHER ending — victory or death. take_over()'s shape, with the ONE
+	# difference that matters: nothing ever calls release() after this, so the
+	# drift never resurfaces underneath the report. `owned` holds the claim.
+	#
+	# One track serves both because it's in A minor like the rest of the score,
+	# so it lands as trepidatious rather than triumphant. If a brighter victory
+	# piece is ever written, this becomes a two-entry choice keyed on
+	# `RunState.bosses_defeated >= 3`, not a second function.
 	#
 	# It deliberately does NOT clear `started`. Doing so would make hush()
 	# early-return on the way back to the title, leaving this track playing

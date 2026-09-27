@@ -3,15 +3,16 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxqp8oh13xg57"
-path="res://.godot/imported/floor_wooden.png-3fd9927f1bfd57ffb47e2ebbdb7894a7.ctex"
+path.s3tc="res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 
 [deps]
 
-source_file="res://../threshold-deep/assets/tiles/dry/floor_wooden.png"
-dest_files=["res://.godot/imported/floor_wooden.png-3fd9927f1bfd57ffb47e2ebbdb7894a7.ctex"]
+source_file="res://assets/tiles/dry/floor_wooden.png"
+dest_files=["res://.godot/imported/floor_wooden.png-cac1f2ce60ee2e855b3f97f6e05c4b54.s3tc.ctex"]
 
 [params]
 

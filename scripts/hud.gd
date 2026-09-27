@@ -214,7 +214,7 @@ func show_victory() -> void:
 	# The ending gets its own piece. Started FIRST so its fade-in runs under the
 	# report's, and reached only through the 3-3 hatch where the screen is already
 	# black — so the cut away from the deep drift is covered by the transition.
-	# Death does the opposite and calls hush(): nothing is owed a fanfare there.
+	# Death calls this too; the piece is written to carry either outcome.
 	MusicDrift.play_end()
 	death_label.text = "YOU PREVAILED"
 	death_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.35))
@@ -273,14 +273,23 @@ func _on_player_died() -> void:
 		e.modulate.a = 0.0
 		e.visible = true
 	death_elements = elements
-	# The drift dies WITH you, not on the way out the door. It used to hush in
+	# BOTH endings get the ending piece (2026-08-16). It sits in A minor like the
+	# rest of the score, so it reads trepidatious rather than triumphant and
+	# carries a death as well as a win — a separate, brighter track for victory
+	# is the eventual plan, not a correction to this.
+	#
+	# play_end() SUPERSEDES the hush that used to be here: it bumps the drift's
+	# gen so the loop bails and stops the player, exactly as hush did, and then
+	# brings the ending track up instead of leaving silence. Returning to the
+	# title still clears it, because title.gd's hush() covers an owned track as
+	# well as a running drift.
+	#
+	# It fires HERE and not on the way out the door. It used to hush in
 	# _restart_run, one line before the scene change — a 1.2s fade against a
 	# title track starting at full, so every death overlapped the two. It only
 	# sounded wrong SOMETIMES because the drift plays random passages with long
 	# silences between: die in a gap and there was nothing to collide.
-	# Hushing here gives it the whole report to fade out in, and the quiet the
-	# report plays in is the better beat anyway.
-	MusicDrift.hush()
+	MusicDrift.play_end()
 	# The mouse is still CAPTURED from the fight — free it or the CLOSE plate
 	# is visible and unclickable, which is worse than having no plate at all.
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)

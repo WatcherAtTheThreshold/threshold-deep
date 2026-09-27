@@ -4,6 +4,7 @@ extends CharacterBody3D
 signal health_changed(current: int, maximum: int, magic: int)
 signal attacked
 signal torch_attacked  # the off-hand torch shove (drives the left-hand viewmodel)
+signal hit_landed(hold: float)  # a melee swing connected; the hand holds its strike frame this long
 signal blocked
 signal died
 signal poisoned(current: int, maximum: int, magic: int)
@@ -40,6 +41,20 @@ const WIDESWING_ARC_DEG := 85.0
 # can never shove you over a rim.
 const MELEE_RECOIL := {"torch": 1.2, "sword": 2.0, "halberd": 3.2}
 const RECOIL_FRICTION := 14.0
+# Hitstop: a landed melee hit FREEZES what it struck for a beat, by weapon heft,
+# so the blow reads as meeting something. Only the victims freeze — never the
+# whole world, or a crowd fight stutters on every swing. Seconds; Hasty divides
+# them like it divides the cooldown. Ranged weapons get none: a stop only feels
+# good when your own hand made the hit. One freeze per swing however many it
+# caught (Wide Swing), so three victims don't read as a hitch.
+const HITSTOP := {"torch": 0.02, "sword": 0.05, "halberd": 0.09}
+# Your own movement during the freeze, as a fraction — you lean into the hit
+# instead of gliding through it. Never applied mid-dash: a Gapleaper leap that
+# swings mid-air must still clear the gap.
+const HITSTOP_MOVE_SCALE := 0.25
+# The halberd alone also kicks the camera: its whole identity is weight.
+const HALBERD_HIT_SHAKE := 0.05
+const HALBERD_HIT_SHAKE_TIME := 0.15
 # Dash contact. A discrete, player-initiated impact — unlike a passive bump,
 # which is continuous and would rattle the screen the whole time an enemy
 # crowds you. Barrelstone's charge hits harder because it went THROUGH.
@@ -155,6 +170,7 @@ var dash_dir := Vector3.ZERO
 var barrel_hit := {}  # enemies the current dash has already struck (Barrelstone)
 var dash_bumped := false  # this dash already thudded into a body (once per dash)
 var recoil := Vector3.ZERO  # decaying self-knockback from a landed melee hit
+var hitstop_timer := 0.0  # your own slowed beat after a landed melee hit
 # True while the cell underfoot is plank (dungeon.gd sets it on every cell
 # change — it owns the tile ids). Drives the creak, which is a WARNING: the
 # boards tell you the ground is temporary before you ever look down.
@@ -554,6 +570,7 @@ func _physics_process(delta: float) -> void:
 	invuln_timer = maxf(invuln_timer - delta, 0.0)
 	dash_timer = maxf(dash_timer - delta, 0.0)
 	dash_cooldown_timer = maxf(dash_cooldown_timer - delta, 0.0)
+	hitstop_timer = maxf(hitstop_timer - delta, 0.0)
 
 	if not is_on_floor():
 		velocity += get_gravity() * delta
@@ -652,7 +669,12 @@ func _physics_process(delta: float) -> void:
 	if recoil.length_squared() > 0.0:
 		velocity.x += recoil.x
 		velocity.z += recoil.z
-		recoil = recoil.move_toward(Vector3.ZERO, RECOIL_FRICTION * delta)
+		# Held, not decayed, through the hitstop — the full kick lands after.
+		if hitstop_timer == 0.0:
+			recoil = recoil.move_toward(Vector3.ZERO, RECOIL_FRICTION * delta)
+	if hitstop_timer > 0.0 and dash_timer == 0.0:
+		velocity.x *= HITSTOP_MOVE_SCALE
+		velocity.z *= HITSTOP_MOVE_SCALE
 
 	move_and_slide()
 	_update_step_audio()
@@ -745,7 +767,7 @@ func _attack() -> void:
 			reach += WIDESWING_RANGE - ATTACK_RANGE
 			arc = WIDESWING_ARC_DEG
 		var forward := -global_transform.basis.z
-		var landed := false
+		var struck: Array[Node3D] = []
 		for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 			var to := enemy.global_position - global_position
 			to.y = 0.0
@@ -754,13 +776,19 @@ func _attack() -> void:
 				enemy.take_damage(attack_damage, to.normalized() * push_scale, self)
 				apply_dots(enemy)
 				RunState.record_damage_dealt(attack_damage)
-				landed = true
-		if landed:
+				struck.append(enemy)
+		if not struck.is_empty():
 			# Straight back, not away from the body — one swing gives one kick
 			# no matter how many it caught, and the push can never come at you
 			# sideways and walk you off a rim you weren't looking at.
 			var kick: float = MELEE_RECOIL.get(RunState.weapon, 0.0)
 			recoil = -forward * kick
+			var hold: float = HITSTOP.get(RunState.weapon, 0.0) \
+					/ HASTY_MULTS[RunState.hasty_tier]
+			_hitstop(struck, hold)
+			hit_landed.emit(hold)
+			if RunState.weapon == "halberd":
+				shake(HALBERD_HIT_SHAKE, HALBERD_HIT_SHAKE_TIME)
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable. Matches the melee
 	# reach above so a halberd pokes walls as far as it pokes enemies.
@@ -773,6 +801,24 @@ func _attack() -> void:
 		var scene := get_tree().current_scene
 		if scene.has_method("damage_wall"):
 			scene.damage_wall(hit.position, hit.normal, attack_damage)
+
+
+func _hitstop(targets: Array[Node3D], hold: float) -> void:
+	# Freeze each struck body for `hold` seconds: DISABLED stops its script, its
+	# tweens (so the red hit-flash holds at full) and its skid, then everything
+	# resumes exactly where it was — the knockback lands AFTER the freeze, which
+	# is the whole effect. Generic on purpose: any "enemies" member works, with
+	# no per-creature code. The restore is bound to the TARGET, so a body freed
+	# mid-hold (a split, an R reroll) just drops the connection.
+	if hold <= 0.0:
+		return
+	hitstop_timer = maxf(hitstop_timer, hold)
+	for t: Node3D in targets:
+		if not is_instance_valid(t) or t.process_mode == PROCESS_MODE_DISABLED:
+			continue  # gone already, or still held by a previous hit
+		var restore := Callable(t, "set").bind("process_mode", t.process_mode)
+		t.process_mode = PROCESS_MODE_DISABLED
+		get_tree().create_timer(hold, false).timeout.connect(restore)
 
 
 func _make_noise(radius: float) -> void:
@@ -808,6 +854,7 @@ func _torch_attack() -> void:
 	Sfx.play_at(TORCH_HIT_SOUNDS[randi_range(0, TORCH_HIT_SOUNDS.size() - 1)],
 			global_position, -4.0)
 	var forward := -global_transform.basis.z
+	var struck: Array[Node3D] = []
 	for enemy: Node3D in get_tree().get_nodes_in_group("enemies"):
 		var to := enemy.global_position - global_position
 		to.y = 0.0
@@ -817,6 +864,10 @@ func _torch_attack() -> void:
 					TORCH_OFFHAND_DAMAGE, to.normalized() * TORCH_KNOCKBACK, self)
 			Dot.attach(enemy, self, "Cinder", Dot.CINDER_OFFHAND_TICKS)
 			RunState.record_damage_dealt(TORCH_OFFHAND_DAMAGE)
+			struck.append(enemy)
+	# The shove gets the torch's token freeze on its victims (no hand hold —
+	# the left hand runs its own script and a shove isn't a strike).
+	_hitstop(struck, HITSTOP["torch"])
 	# The shove also smacks whatever wall you're facing — breaks a wooden
 	# wall in two, matching the main torch's bite (damage_wall counts each
 	# point as a hit).

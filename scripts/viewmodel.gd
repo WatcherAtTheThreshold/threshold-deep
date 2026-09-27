@@ -81,6 +81,8 @@ var base_offset: Vector2
 var anchor_off: Vector2
 var swing_offset := Vector2.ZERO
 var swing_tween: Tween = null
+var arc_frames: Array[Texture2D] = []  # the swing in flight, kept so a hit can re-time it
+var arc_times: Array[float] = []
 
 @onready var embers: CPUParticles2D = $Embers
 
@@ -95,6 +97,7 @@ func _ready() -> void:
 	base_offset = Vector2(offset_left, offset_top)
 	anchor_off = base_offset + Vector2(128, 128) * scale
 	player.attacked.connect(_on_attacked)
+	player.hit_landed.connect(_on_hit_landed)
 
 
 func set_weapon(new_weapon: String) -> void:
@@ -161,8 +164,6 @@ func _on_attacked() -> void:
 	# and boomerang used is gone: once art exists, moving the sprite around to
 	# fake a motion just fights the drawing.
 	swinging = true
-	var arc_frames: Array[Texture2D]
-	var arc_times: Array[float]
 	match weapon:
 		"sword":
 			arc_frames = SWORD_SWING_FRAMES
@@ -190,9 +191,22 @@ func _on_attacked() -> void:
 		throw_tween.chain().tween_callback(func() -> void:
 			swing_offset = Vector2.ZERO
 			rotation = 0.0)
+	texture = arc_frames[0]
+	_play_arc(0.0)
+
+
+func _on_hit_landed(hold: float) -> void:
+	# Hitstop, hand side. Damage lands the instant the swing starts (during the
+	# windup frame), in the same call that started the arc — so no time has
+	# passed and the arc can simply be rebuilt with the hold added to the
+	# STRIKE frame: the blade stops where it meets the body, not mid-windup.
+	if swinging and not arc_frames.is_empty():
+		_play_arc(hold)
+
+
+func _play_arc(strike_hold: float) -> void:
 	if swing_tween != null and swing_tween.is_valid():
 		swing_tween.kill()
-	texture = arc_frames[0]
 	swing_tween = create_tween()
 	swing_tween.tween_interval(arc_times[0])
 	swing_tween.tween_callback(func() -> void:
@@ -200,7 +214,7 @@ func _on_attacked() -> void:
 		# Embers burst on the extended frame — the hit. Flames only.
 		if weapon == "torch":
 			embers.restart())
-	swing_tween.tween_interval(arc_times[1])
+	swing_tween.tween_interval(arc_times[1] + strike_hold)
 	swing_tween.tween_callback(func() -> void:
 		texture = arc_frames[2])
 	swing_tween.tween_interval(arc_times[2])
