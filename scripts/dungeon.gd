@@ -657,6 +657,12 @@ func damage_wall(hit_pos: Vector3, hit_normal: Vector3, amount := 1) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Every key below is a DEBUG key: live in the editor (F5/F6) and in any
+	# "Export With Debug" build, dead in a release export — so a player can't
+	# stumble onto a free secret room (G) or a new game speed (K). Anything
+	# player-facing must NOT go below this guard.
+	if not OS.is_debug_build():
+		return
 	if event is InputEventKey and event.pressed:
 		# R rerolls the whole dungeon (debug key) — never mid-boss-fight.
 		if event.physical_keycode == KEY_R:

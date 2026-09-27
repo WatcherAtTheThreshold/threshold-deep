@@ -670,8 +670,8 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   NOT shake — contact there is continuous and would rattle constantly.
 - Input actions (`project.godot`): `move_*`, `dash` (Space — short
   forward burst, ~1s cooldown; there is deliberately no jump),
-  `attack` (left mouse). Esc toggles mouse capture; R rerolls the
-  dungeon.
+  `attack` (left mouse). Esc toggles mouse capture. (R is a DEBUG key,
+  not a player control — see Testing.)
 
 ## Web build — the first-run stutter
 
@@ -725,7 +725,11 @@ It currently holds the boxed-prop bench: three tables, a cage on one, and
 a second cage at floor level for contrast. The generator prints its
 ASCII blueprint to Output each run.
 
-**Debug keys** (both in `dungeon.gd._unhandled_input`): **R** rerolls the
+**Debug keys** (all in `dungeon.gd._unhandled_input`, which returns early
+unless `OS.is_debug_build()` — live in the editor and in "Export With Debug"
+builds, DEAD in the release demo export; decided 2026-09-27, R included).
+**Export the demo with "Export With Debug" UNCHECKED** or all five ship live.
+**R** rerolls the
 current floor without resetting the run — never mid-boss-fight. **T** reskins
 the floor you're standing in through dry → damp → deep IN PLACE, no reload,
 printing the set to Output. **L** cycles post-processing looks (shipped
