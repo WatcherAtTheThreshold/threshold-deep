@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/viewmodel.gd" id="2_viewmodel"]
@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://assets/ui/title/close_button.png" id="12_close"]
 [ext_resource type="Texture2D" path="res://assets/ui/title/close_button_hover.png" id="13_closeh"]
 [ext_resource type="Texture2D" path="res://assets/ui/title/close_button_pressed.png" id="14_closep"]
+[ext_resource type="Script" path="res://scripts/torch_light.gd" id="15_torchlight"]
 
 [sub_resource type="CapsuleShape3D" id="capsule_player"]
 radius = 0.4
@@ -49,6 +50,7 @@ autoplay = true
 position = Vector3(0, 0.55, 0)
 
 [node name="TorchLight" type="OmniLight3D" parent="Camera3D"]
+script = ExtResource("15_torchlight")
 position = Vector3(0.35, -0.15, -0.4)
 light_color = Color(1, 0.75, 0.45, 1)
 light_energy = 1.8

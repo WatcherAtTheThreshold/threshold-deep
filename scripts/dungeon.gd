@@ -318,6 +318,23 @@ const WORLD_APPEARANCE := ["dry", "dry", "damp", "deep"]
 ## wearing whatever its own world gave it. Not persisted and not reset on
 ## reload, because R already reloads and re-applies the real one.
 var debug_look := 0
+## The L debug key's post-processing looks, cycled live for side-by-side
+## comparison with the torch in hand. [0] is the shipped look and MUST match
+## the Environment in dungeon.tscn / title.tscn / main.tscn (Filmic + glow,
+## picked 2026-09-27 over the old Linear/no-glow); the glow's blend mode lives
+## in those scenes, this only flips tonemapper + glow on/off. STATIC so a pick
+## survives R rerolls and descents — comparing across several floors is the
+## point. Glow and tonemapping both work on the web (Compatibility) renderer,
+## unlike SDFGI/SSAO, which is why only they're here.
+const LIGHT_LOOKS := [
+	["shipped (filmic + glow)", Environment.TONE_MAPPER_FILMIC, true],
+	["filmic", Environment.TONE_MAPPER_FILMIC, false],
+	["old (linear, no glow)", Environment.TONE_MAPPER_LINEAR, false],
+	["glow", Environment.TONE_MAPPER_LINEAR, true],
+	["agx", Environment.TONE_MAPPER_AGX, false],
+	["agx + glow", Environment.TONE_MAPPER_AGX, true],
+]
+static var debug_light := 0
 # Which contract texture each reskinnable tile material pulls from the folder.
 # Names are fixed and identical across every appearance folder (the contract).
 # Shared materials ride along: wall_fill uses "wall"; floor_wood_pale reuses
@@ -383,8 +400,10 @@ func _ready() -> void:
 	# same reason the appearance is: the Environment is a cached sub-resource,
 	# so a 3-3 that lowered it would hand the next run a fogged-out dungeon.
 	_set_fog_floor(0.5)
+	# Same cached-sub-resource trap: re-apply the L key's look every load.
+	_apply_light_look(debug_light)
 
-	kind = RunState.floor_kind(RunState.depth)
+	kind =RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	var dungeon := DungeonGenerator.generate(GRID_WIDTH, GRID_HEIGHT,
@@ -641,6 +660,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		# exercises the REAL slab, the real neighbour stone and the real grind.
 		elif event.physical_keycode == KEY_G:
 			_open_secret_room()
+		# L cycles the post-processing looks in place (debug key).
+		elif event.physical_keycode == KEY_L:
+			debug_light = (debug_light + 1) % LIGHT_LOOKS.size()
+			_apply_light_look(debug_light)
+			print("light look: %s" % LIGHT_LOOKS[debug_light][0])
+
+
+func _apply_light_look(i: int) -> void:
+	var env: Environment = $WorldEnvironment.environment
+	if env == null:
+		return
+	env.tonemap_mode = LIGHT_LOOKS[i][1]
+	env.glow_enabled = LIGHT_LOOKS[i][2]
 
 
 func _cycle_appearance() -> void:

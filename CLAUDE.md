@@ -225,7 +225,14 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
 - Ceilings are slabs at grid layer y = 1 over every walkable cell
   (breaking a wooden wall must also lid the opened cell). They block
   the directional light: interiors are lit by ambient + carried torch
-  only, and that darkness is intentional. **Varied ceiling heights**
+  only, and that darkness is intentional. The `Moon` DirectionalLight3D
+  in dungeon.tscn is therefore **hidden** (2026-09-25): it lit nothing
+  and still rendered a full-scene shadow map every frame. The torch's
+  light flickers ±10% via `torch_light.gd` (energy only, never range).
+  **Post-processing is Filmic tonemap + Screen-blend glow** (picked
+  2026-09-27 over Linear/no glow), set identically in the Environments of
+  dungeon.tscn, title.tscn and main.tscn — change one, change all three,
+  plus `LIGHT_LOOKS[0]` in dungeon.gd, which `_ready` re-applies. **Varied ceiling heights**
   (`_vary_ceilings` → `_raise_room`): per room, the ceiling can lift by
   N cell-layers (4 m each). Raising a room moves its ceiling to a higher
   layer, then fills the 1-cell border frame with the collisionless
@@ -701,7 +708,11 @@ ASCII blueprint to Output each run.
 **Debug keys** (both in `dungeon.gd._unhandled_input`): **R** rerolls the
 current floor without resetting the run — never mid-boss-fight. **T** reskins
 the floor you're standing in through dry → damp → deep IN PLACE, no reload,
-printing the set to Output. `_apply_appearance` only swaps `albedo_texture` on
+printing the set to Output. **L** cycles post-processing looks (shipped
+filmic+glow / filmic / old linear / glow / agx ± glow) via `LIGHT_LOOKS`; the pick is a `static var`
+so it survives R and descents. Only glow and tonemapping are offered because
+the web export runs the Compatibility renderer — SDFGI/SSAO/SSIL would show in
+the editor and never in the browser. `_apply_appearance` only swaps `albedo_texture` on
 the mesh library's SHARED materials, so nothing about the build depends on it
 and the whole room changes in a frame; R re-applies the floor's real set.
 
