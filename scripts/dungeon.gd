@@ -335,8 +335,19 @@ const LIGHT_LOOKS := [
 	["agx + glow", Environment.TONE_MAPPER_AGX, true],
 ]
 static var debug_light := 0
-## The K debug key's game speeds (Engine.time_scale), cycled in order.
-const DEBUG_SPEEDS: Array[float] = [1.0, 1.15, 1.3]
+## The dungeon runs FASTER than authored time: Engine.time_scale, set on every
+## floor load, and reset to 1.0 by title.gd so menus/hall walk stay authored.
+## Picked 2026-09-27 by playtest: 1.0 read as sluggish once you'd played 1.3,
+## 1.6 turned frenetic in places, 1.45 is the landing.
+## Everything timed by delta scales together — you, the roster, orbs, wind-ups,
+## cooldowns, tweens, hitstop — so balance RATIOS are unchanged; only reaction
+## time shrinks. Sfx pitch, music and mouse look don't scale. The balance
+## consts below and in every creature script are still in AUTHORED seconds.
+const DUNGEON_SPEED := 1.45
+## The K debug key cycles these (starting from the shipped speed); the pick is
+## static so it survives R and descents, and 1.0 is kept to feel the old pace.
+const DEBUG_SPEEDS: Array[float] = [1.45, 1.6, 1.0, 1.3]
+static var game_speed := DUNGEON_SPEED
 # Which contract texture each reskinnable tile material pulls from the folder.
 # Names are fixed and identical across every appearance folder (the contract).
 # Shared materials ride along: wall_fill uses "wall"; floor_wood_pale reuses
@@ -404,6 +415,7 @@ func _ready() -> void:
 	_set_fog_floor(0.5)
 	# Same cached-sub-resource trap: re-apply the L key's look every load.
 	_apply_light_look(debug_light)
+	Engine.time_scale = game_speed  # see DUNGEON_SPEED; the title resets it
 
 	kind =RunState.floor_kind(RunState.depth)
 	var rng := RandomNumberGenerator.new()
@@ -667,15 +679,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			debug_light = (debug_light + 1) % LIGHT_LOOKS.size()
 			_apply_light_look(debug_light)
 			print("light look: %s" % LIGHT_LOOKS[debug_light][0])
-		# K cycles the whole game's speed (debug key) — the "is it too slow?"
-		# test. Engine.time_scale scales EVERYTHING timed by delta: you, the
-		# roster, orbs, cooldowns, tweens, hitstop. Music, sfx pitch and mouse
-		# look are untouched. It's engine-global, so it survives R, descents and
-		# the title; restarting the game resets it to 1.0.
+		# K cycles the game speed (debug key) — see DUNGEON_SPEED.
 		elif event.physical_keycode == KEY_K:
-			var i := DEBUG_SPEEDS.find(Engine.time_scale)
-			Engine.time_scale = DEBUG_SPEEDS[(i + 1) % DEBUG_SPEEDS.size()]
-			print("game speed: x%.2f" % Engine.time_scale)
+			var i := DEBUG_SPEEDS.find(game_speed)
+			game_speed = DEBUG_SPEEDS[(i + 1) % DEBUG_SPEEDS.size()]
+			Engine.time_scale = game_speed
+			print("game speed: x%.2f" % game_speed)
 
 
 func _apply_light_look(i: int) -> void:

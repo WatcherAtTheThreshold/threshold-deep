@@ -105,6 +105,9 @@ func _ready() -> void:
 	# here, but this catches any future route in — and it's free, since hush()
 	# early-returns when the drift isn't running.
 	MusicDrift.hush()
+	# The dungeon runs fast (dungeon.gd DUNGEON_SPEED); the title's hall walk,
+	# fades and menus are timed in authored seconds, so put the clock back.
+	Engine.time_scale = 1.0
 	_build_corridor()
 	_lay_camera_path()
 	crackle.finished.connect(crackle.play)  # hand-loop the torch ambient

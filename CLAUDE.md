@@ -644,8 +644,9 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   movement branch rather than replacing it, so it bends your movement
   instead of seizing it. Travel stays under 0.4 m, well inside a 2 m
   cell, so a swing can't shove you over a rim.
-  **Hitstop** (2026-09-27, `HITSTOP`: torch 0.02 / sword 0.05 / halberd
-  0.09 s, ÷ Hasty): a landed melee hit sets each VICTIM's `process_mode` to
+  **Hitstop** (2026-09-27, `HITSTOP`: torch 0.08 / sword 0.18 / halberd
+  0.26 s authored, ÷ Hasty, ÷ the 1.45 time_scale in real time; earlier
+  passes at 0.02/0.05/0.09 and 0.05/0.12/0.18 couldn't be felt): a landed melee hit sets each VICTIM's `process_mode` to
   DISABLED for the hold — script, tweens (the red flash holds) and skid all
   pause, so the knockback lands after — never the whole world, or crowd
   fights stutter. One freeze per swing however many it caught. The player
@@ -653,7 +654,16 @@ motion values are per-weapon in `viewmodel.gd.set_sword()`.
   leap must still clear its gap) and recoil is held, not decayed. The hand
   holds its STRIKE frame (`hit_landed` → `viewmodel._play_arc(hold)`),
   since damage lands during the windup. Ranged weapons get none; the
-  off-hand shove gets the torch's. Halberd hits also shake the camera.
+  off-hand shove gets the torch's. Sword and halberd hits also shake the
+  camera (`MELEE_HIT_SHAKE`).
+- **The dungeon runs at ×1.45 game speed** (`DUNGEON_SPEED` in dungeon.gd →
+  `Engine.time_scale` on every floor load; `title.gd._ready` resets it to
+  1.0). Chosen by playtest 2026-09-27 — 1.0 felt sluggish after 1.3, 1.6 got frenetic. Every
+  `const` in every script is still AUTHORED seconds/speeds: a 0.35 s knock
+  plays in 0.24 s real. Ratios between everything are unchanged; only
+  reaction windows (wizard wind-ups — the Pillar-3 telegraphs) shrink. Any
+  new route into the dungeon inherits it through `_ready`; any new route to
+  a non-dungeon scene needs its own reset.
 - Dash contact shakes the camera: `_dash_bump()` (no relic, small,
   once per dash, no damage) or `_barrel_strike()` (Barrelstone,
   larger, per enemy struck). Passive walking bumps deliberately do
@@ -720,9 +730,9 @@ current floor without resetting the run — never mid-boss-fight. **T** reskins
 the floor you're standing in through dry → damp → deep IN PLACE, no reload,
 printing the set to Output. **L** cycles post-processing looks (shipped
 filmic+glow / filmic / old linear / glow / agx ± glow) via `LIGHT_LOOKS`; the pick is a `static var`
-so it survives R and descents. **K** cycles game speed ×1.0 / 1.15 / 1.3
-(`Engine.time_scale`, `DEBUG_SPEEDS`) — engine-global, so it persists until
-the game restarts. Only glow and tonemapping are offered because
+so it survives R and descents. **K** cycles game speed ×1.45 (shipped) / 1.6 / 1.0 / 1.3
+(`DEBUG_SPEEDS`, a `static var` so it survives R and descents; the title
+resets the clock but the pick re-applies on the next run). Only glow and tonemapping are offered because
 the web export runs the Compatibility renderer — SDFGI/SSAO/SSIL would show in
 the editor and never in the browser. `_apply_appearance` only swaps `albedo_texture` on
 the mesh library's SHARED materials, so nothing about the build depends on it

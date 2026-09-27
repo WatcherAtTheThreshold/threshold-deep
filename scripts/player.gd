@@ -47,14 +47,17 @@ const RECOIL_FRICTION := 14.0
 # them like it divides the cooldown. Ranged weapons get none: a stop only feels
 # good when your own hand made the hit. One freeze per swing however many it
 # caught (Wide Swing), so three victims don't read as a hitch.
-const HITSTOP := {"torch": 0.02, "sword": 0.05, "halberd": 0.09}
+# AUTHORED seconds — the dungeon's time_scale (1.45) shortens them in real time
+# (sword 0.18 → ~0.12 s real). Tuning history, all 2026-09-27 playtests:
+# 0.02/0.05/0.09 imperceptible; 0.05/0.12/0.18 at ×1.3 still not clearly felt.
+const HITSTOP := {"torch": 0.08, "sword": 0.18, "halberd": 0.26}
 # Your own movement during the freeze, as a fraction — you lean into the hit
 # instead of gliding through it. Never applied mid-dash: a Gapleaper leap that
 # swings mid-air must still clear the gap.
-const HITSTOP_MOVE_SCALE := 0.25
-# The halberd alone also kicks the camera: its whole identity is weight.
-const HALBERD_HIT_SHAKE := 0.05
-const HALBERD_HIT_SHAKE_TIME := 0.15
+const HITSTOP_MOVE_SCALE := 0.1
+# Blades kick the camera on connect, by heft; the torch doesn't (it's a shove).
+const MELEE_HIT_SHAKE := {"sword": 0.025, "halberd": 0.07}
+const MELEE_HIT_SHAKE_TIME := {"sword": 0.12, "halberd": 0.18}
 # Dash contact. A discrete, player-initiated impact — unlike a passive bump,
 # which is continuous and would rattle the screen the whole time an enemy
 # crowds you. Barrelstone's charge hits harder because it went THROUGH.
@@ -787,8 +790,8 @@ func _attack() -> void:
 					/ HASTY_MULTS[RunState.hasty_tier]
 			_hitstop(struck, hold)
 			hit_landed.emit(hold)
-			if RunState.weapon == "halberd":
-				shake(HALBERD_HIT_SHAKE, HALBERD_HIT_SHAKE_TIME)
+			if MELEE_HIT_SHAKE.has(RunState.weapon):
+				shake(MELEE_HIT_SHAKE[RunState.weapon], MELEE_HIT_SHAKE_TIME[RunState.weapon])
 	# The swing also lands on whatever wall you're facing — the
 	# dungeon decides if that cell is breakable. Matches the melee
 	# reach above so a halberd pokes walls as far as it pokes enemies.
